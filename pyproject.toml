@@ -1,0 +1,40 @@
+[build-system]
+requires = [
+    "setuptools",
+    "setuptools-scm",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swoop"
+authors = [
+    {name = "Jarrett Keifer", email = "jkeifer@element84.com"},
+]
+description = "STAC Workflow Open Orchestration Framework"
+requires-python = ">=3.11"
+keywords = [
+    "stac",
+    "workflow",
+    "geospatial",
+]
+license = {text = "Apache License 2.0"}
+classifiers = [
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "fastapi",
+]
+dynamic = [
+  "version",
+  "readme",
+]
+
+[project.optional-dependencies]
+dev = [
+    "uvicorn"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "swoop.api.__version__"}
+readme = {file = "README.md"}
