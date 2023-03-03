@@ -20,11 +20,11 @@ app.include_router(
 )
 app.include_router(
     jobs.router,
-    prefix='/jobs',
+    prefix="/jobs",
 )
 app.include_router(
     payloads.router,
-    prefix='/payloads',
+    prefix="/payloads",
 )
 app.include_router(
     metrics.router,

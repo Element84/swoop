@@ -1,7 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
 
-from typing import Union
 
 from fastapi import APIRouter, Query
 
@@ -20,9 +19,9 @@ router: APIRouter = APIRouter(
 
 
 @router.get(
-    '/counts',
+    "/counts",
     response_model=Counts,
-    responses={'404': {'model': APIException}},
+    responses={"404": {"model": APIException}},
 )
 def get_execution_counts(
     process_id: list[str] | None = Query(default=None),
@@ -31,7 +30,7 @@ def get_execution_counts(
     start_datetime: datetime | None = None,
     end_datetime: datetime | None = None,
     parent_id: list[str] | None = Query(default=None),
-) -> Union[Counts, APIException]:
+) -> Counts | APIException:
     """
     Retrieve execution count summary.
     """
@@ -39,9 +38,9 @@ def get_execution_counts(
 
 
 @router.get(
-    '/events',
+    "/events",
     response_model=Events,
-    responses={'404': {'model': APIException}},
+    responses={"404": {"model": APIException}},
 )
 def get_execution_events(
     process_id: list[str] | None = Query(default=None),
@@ -50,7 +49,7 @@ def get_execution_events(
     start_datetime: datetime | None = None,
     end_datetime: datetime | None = None,
     parent_id: list[str] | None = Query(default=None),
-) -> Union[Events, APIException]:
+) -> Events | APIException:
     """
     Retrieve execution count summary.
     """

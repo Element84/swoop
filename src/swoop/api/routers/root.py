@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Union
 
 from fastapi import APIRouter
 
@@ -15,12 +14,12 @@ router: APIRouter = APIRouter()
 
 
 @router.get(
-    '/',
+    "/",
     response_model=LandingPage,
-    responses={'500': {'model': APIException}},
-    tags=['Capabilities'],
+    responses={"500": {"model": APIException}},
+    tags=["Capabilities"],
 )
-def get_landing_page() -> Union[LandingPage, APIException]:
+def get_landing_page() -> LandingPage | APIException:
     """
     landing page of this API
     """
@@ -28,12 +27,12 @@ def get_landing_page() -> Union[LandingPage, APIException]:
 
 
 @router.get(
-    '/conformance',
+    "/conformance",
     response_model=ConfClasses,
-    responses={'500': {'model': APIException}},
-    tags=['ConformanceDeclaration'],
+    responses={"500": {"model": APIException}},
+    tags=["ConformanceDeclaration"],
 )
-def get_conformance_classes() -> Union[ConfClasses, APIException]:
+def get_conformance_classes() -> ConfClasses | APIException:
     """
     information about standards that this API conforms to
     """

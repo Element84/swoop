@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Union
 
 from fastapi import APIRouter, Path, Query
 
@@ -21,7 +20,7 @@ router: APIRouter = APIRouter(
 )
 
 
-@router.get('/', response_model=ProcessList)
+@router.get("/", response_model=ProcessList)
 def list_processes(
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
 ) -> ProcessList:
@@ -32,13 +31,13 @@ def list_processes(
 
 
 @router.get(
-    '/{process_id}',
+    "/{process_id}",
     response_model=Process,
-    responses={'404': {'model': APIException}},
+    responses={"404": {"model": APIException}},
 )
 def get_process_description(
-    process_id: str = Path(..., alias='processID')
-) -> Union[Process, APIException]:
+    process_id: str = Path(..., alias="processID")
+) -> Process | APIException:
     """
     retrieve a process description
     """
@@ -46,9 +45,7 @@ def get_process_description(
 
 
 @router.get("/{process_id}/definition")
-async def get_process_definition(
-    process_id: str = Path(..., alias='processID')
-) -> str:
+async def get_process_definition(process_id: str = Path(..., alias="processID")) -> str:
     """
     retrieve a process definition
     """
@@ -56,18 +53,17 @@ async def get_process_definition(
 
 
 @router.post(
-    '/{process_id}/execution',
+    "/{process_id}/execution",
     response_model=InlineResponse200,
     responses={
-        '201': {'model': StatusInfo},
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "201": {"model": StatusInfo},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
 def execute_process(
-    process_id: str = Path(..., alias='processID'),
-    body: Execute = ...
-) -> Union[InlineResponse200, StatusInfo, APIException]:
+    process_id: str = Path(..., alias="processID"), body: Execute = ...
+) -> InlineResponse200 | StatusInfo | APIException:
     """
     execute a process.
     """

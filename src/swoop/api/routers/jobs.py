@@ -1,7 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
 
-from typing import Union
 
 from fastapi import APIRouter, Path, Query
 
@@ -22,9 +21,9 @@ router: APIRouter = APIRouter(
 
 
 @router.get(
-    '/',
+    "/",
     response_model=JobList,
-    responses={'404': {'model': APIException}},
+    responses={"404": {"model": APIException}},
 )
 def list_jobs(
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
@@ -34,7 +33,7 @@ def list_jobs(
     start_datetime: datetime | None = None,
     end_datetime: datetime | None = None,
     parent_id: list[str] | None = Query(default=None),
-) -> Union[JobList, APIException]:
+) -> JobList | APIException:
     """
     retrieve the list of jobs.
     """
@@ -42,16 +41,16 @@ def list_jobs(
 
 
 @router.get(
-    '/{job_id}',
+    "/{job_id}",
     response_model=StatusInfo,
     responses={
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
 def get_job_status(
-    job_id: str = Path(..., alias='jobId'),
-) -> Union[StatusInfo, APIException]:
+    job_id: str = Path(..., alias="jobId"),
+) -> StatusInfo | APIException:
     """
     retrieve the status of a job
     """
@@ -59,16 +58,16 @@ def get_job_status(
 
 
 @router.delete(
-    '/{job_id}',
+    "/{job_id}",
     response_model=StatusInfo,
     responses={
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
 def cancel_job(
-    job_id: str = Path(..., alias='jobId'),
-) -> Union[StatusInfo, APIException]:
+    job_id: str = Path(..., alias="jobId"),
+) -> StatusInfo | APIException:
     """
     cancel a job execution, remove a finished job
     """
@@ -76,16 +75,14 @@ def cancel_job(
 
 
 @router.get(
-    '/{job_id}/results',
+    "/{job_id}/results",
     response_model=Results,
     responses={
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
-def get_job_result(
-    job_id: str = Path(..., alias='jobId')
-) -> Union[Results, APIException]:
+def get_job_result(job_id: str = Path(..., alias="jobId")) -> Results | APIException:
     """
     retrieve the result(s) of a job
     """
@@ -94,16 +91,16 @@ def get_job_result(
 
 # TODO: model payload, use here for response
 @router.get(
-    '/{job_id}/payload',
+    "/{job_id}/payload",
     response_model=dict,
     responses={
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
 def get_job_payload(
-    job_id: str = Path(..., alias='jobId'),
-) -> Union[dict,  APIException]:
+    job_id: str = Path(..., alias="jobId"),
+) -> dict | APIException:
     """
     retrieve the input payload of a job
     """
@@ -111,17 +108,17 @@ def get_job_payload(
 
 
 @router.post(
-    '/{job_id}/rerun',
+    "/{job_id}/rerun",
     response_model=InlineResponse200,
     responses={
-        '201': {'model': StatusInfo},
-        '404': {'model': APIException},
-        '500': {'model': APIException},
+        "201": {"model": StatusInfo},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
     },
 )
 def rerun_job(
-    job_id: str = Path(..., alias='jobId'),
-) -> Union[InlineResponse200, StatusInfo, APIException]:
+    job_id: str = Path(..., alias="jobId"),
+) -> InlineResponse200 | StatusInfo | APIException:
     """
     rerun a job.
     """
