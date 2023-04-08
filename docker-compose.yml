@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: "${DATABASE_NAME:-postgres}"
+      POSTGRES_PASSWORD: "${DATABASE_PASS:-password}"
+      POSTGRES_USER: "${DATABASE_USER:-postgres}"
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
