@@ -3,8 +3,8 @@ version: '3.8'
 services:
   postgres:
     build:
-      context: .
-      dockerfile: pg-Dockerfile
+      context: ./db
+      dockerfile: Dockerfile
     restart: always
     environment:
       POSTGRES_DB: "${DATABASE_NAME:-postgres}"

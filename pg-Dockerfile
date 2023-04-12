@@ -1,7 +1,0 @@
-FROM postgres:15
-
-RUN set -x && \
-    echo "deb http://http.us.debian.org/debian/ testing non-free contrib main" \
-        > /etc/apt/sources.list.d/testing && \
-    apt-get update && \
-    apt-get install -y postgresql-15-partman
