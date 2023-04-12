@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
+    build:
+      context: .
+      dockerfile: pg-Dockerfile
     restart: always
     environment:
       POSTGRES_DB: "${DATABASE_NAME:-postgres}"
