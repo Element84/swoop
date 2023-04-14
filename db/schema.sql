@@ -67,8 +67,37 @@ CREATE FUNCTION swoop.add_pending_event() RETURNS trigger
     AS $$
 DECLARE
 BEGIN
-  INSERT INTO swoop.event (event_time, action_uuid, status) VALUES
-    (NEW.created_at, NEW.action_uuid, 'PENDING');
+  INSERT INTO swoop.event (event_time, action_uuid, status, event_source) VALUES
+    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-api');
+  RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: add_thread(); Type: FUNCTION; Schema: swoop; Owner: -
+--
+
+CREATE FUNCTION swoop.add_thread() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+BEGIN
+  INSERT INTO swoop.thread (
+    created_at,
+    last_update,
+    action_uuid,
+    action_name,
+    priority,
+    status
+  ) VALUES (
+    NEW.created_at,
+    NEW.created_at,
+    NEW.action_uuid,
+    NEW.action_name,
+    NEW.priority,
+    'PENDING'
+  );
   RETURN NULL;
 END;
 $$;
@@ -221,18 +250,10 @@ CREATE FUNCTION swoop.update_thread() RETURNS trigger
     AS $$
 DECLARE
   _latest timestamptz;
-  _lock_id integer;
   _status text;
   _next_attempt timestamptz;
 BEGIN
-  SELECT
-    last_update,
-    lock_id
-  FROM
-    swoop.thread
-  WHERE
-    action_uuid = NEW.action_uuid
-  INTO _latest, _lock_id;
+  SELECT last_update FROM swoop.thread WHERE action_uuid = NEW.action_uuid INTO _latest;
 
   -- If the event time is older than the last update we don't update the thread
   -- (we can't use a trigger condition to filter this because we don't know the
@@ -253,55 +274,22 @@ BEGIN
     SELECT NEW.event_time + (NEW.retry_seconds * interval '1 second') INTO _next_attempt;
   END IF;
 
-  -- It seems like we would want to use an insert conflict handler, not IF, but
-  -- we cannot enforce the action_uuid constraint across partition bounds. In
-  -- cases where updates to an event thread span the end/beginning of two months,
-  -- we would end up with a second thread row created when the first event is
-  -- inserted after the new monthly partition was created.
-  IF _latest IS NULL THEN
-    -- denormalize some values off action so we
-    -- don't have to join later in frequent queries
-    WITH action AS (
-      SELECT
-        action_name,
-        priority
-      FROM
-        swoop.action
-      WHERE
-        action_uuid = NEW.action_uuid
-    )
+  UPDATE swoop.thread as t SET
+    last_update = NEW.event_time,
+    status = _status,
+    next_attempt_after = _next_attempt
+  WHERE
+    t.action_uuid = NEW.action_uuid;
 
-    INSERT INTO swoop.thread (
-      created_at,
-      last_update,
-      action_uuid,
-      action_name,
-      priority,
-      status,
-      next_attempt_after
-    ) VALUES (
-      NEW.event_time,
-      NEW.event_time,
-      NEW.action_uuid,
-      (SELECT action_name FROM action),
-      (SELECT priority FROM action),
-      _status,
-      _next_attempt
-    );
-  ELSE
-    UPDATE swoop.thread as t SET
-      last_update = NEW.event_time,
-      status = _status,
-      next_attempt_after = _next_attempt
-    WHERE
-      t.action_uuid = NEW.action_uuid;
+  -- We _could_ try to drop the thread lock here, which would be nice for
+  -- swoop-conductor so it didn't have to explicitly unlock, but the unlock
+  -- function raises a warning. Being explicit isn't the worst thing either,
+  -- given the complications with possible relocking and the need for clients
+  -- to stay aware of that possibility.
 
-    -- We _could_ try to drop the thread lock here, which would be nice for
-    -- swoop-conductor so it didn't have to explicitly unlock, but the unlock
-    -- function raises a warning. Being explicit isn't the worst thing either,
-    -- given the complications with possible relocking and the need for clients
-    -- to stay aware of that possibility.
-END IF; RETURN NULL; END; $$;
+  RETURN NULL;
+END;
+$$;
 
 
 --
@@ -593,6 +581,7 @@ CREATE TABLE swoop.event (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -608,6 +597,7 @@ CREATE TABLE swoop.event_default (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -622,6 +612,7 @@ CREATE TABLE swoop.event_p2022_12 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -636,6 +627,7 @@ CREATE TABLE swoop.event_p2023_01 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -650,6 +642,7 @@ CREATE TABLE swoop.event_p2023_02 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -664,6 +657,7 @@ CREATE TABLE swoop.event_p2023_03 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -678,6 +672,7 @@ CREATE TABLE swoop.event_p2023_04 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -692,6 +687,7 @@ CREATE TABLE swoop.event_p2023_05 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -706,6 +702,7 @@ CREATE TABLE swoop.event_p2023_06 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -720,6 +717,7 @@ CREATE TABLE swoop.event_p2023_07 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -734,6 +732,7 @@ CREATE TABLE swoop.event_p2023_08 (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text,
     CONSTRAINT event_retry_seconds_check CHECK (((retry_seconds > 0) AND (retry_seconds <= 86400)))
@@ -758,6 +757,7 @@ CREATE TABLE swoop.event_template (
     event_time timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
     status text NOT NULL,
+    event_source text,
     retry_seconds integer,
     error text
 );
@@ -2389,6 +2389,13 @@ CREATE TRIGGER add_pending_event AFTER INSERT ON swoop.action FOR EACH ROW EXECU
 
 
 --
+-- Name: action add_thread; Type: TRIGGER; Schema: swoop; Owner: -
+--
+
+CREATE TRIGGER add_thread AFTER INSERT ON swoop.action FOR EACH ROW EXECUTE FUNCTION swoop.add_thread();
+
+
+--
 -- Name: thread processable_notify; Type: TRIGGER; Schema: swoop; Owner: -
 --
 
@@ -2399,7 +2406,7 @@ CREATE TRIGGER processable_notify AFTER INSERT OR UPDATE ON swoop.thread FOR EAC
 -- Name: event update_thread; Type: TRIGGER; Schema: swoop; Owner: -
 --
 
-CREATE TRIGGER update_thread AFTER INSERT ON swoop.event FOR EACH ROW WHEN ((new.status <> 'INFO'::text)) EXECUTE FUNCTION swoop.update_thread();
+CREATE TRIGGER update_thread AFTER INSERT ON swoop.event FOR EACH ROW WHEN ((new.status <> ALL (ARRAY['PENDING'::text, 'INFO'::text]))) EXECUTE FUNCTION swoop.update_thread();
 
 
 --
