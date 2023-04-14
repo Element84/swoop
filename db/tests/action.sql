@@ -1,7 +1,7 @@
 BEGIN;
 
 SET search_path = tap, public;
-SELECT plan(16);
+SELECT plan(14);
 
 INSERT INTO swoop.action (
   action_uuid,
@@ -101,9 +101,21 @@ SELECT results_eq(
 -- get the processable action
 SELECT is_empty(
   $$
-    SELECT swoop.get_processable_actions(_action_names => array['bogus'])
+    SELECT swoop.get_processable_actions(
+      _ignored_action_uuids => array[]::uuid[],
+      _action_names => array['bogus']
+    )
   $$,
-  'should not return any processable actions'
+  'should not return any processable actions - bad action name'
+);
+
+SELECT is_empty(
+  $$
+    SELECT swoop.get_processable_actions(
+      _ignored_action_uuids => array['b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid]
+    )
+  $$,
+  'should not return any processable actions - filtered action uuid'
 );
 
 SELECT results_eq(
@@ -112,7 +124,10 @@ SELECT results_eq(
       action_uuid,
       action_name
     FROM
-      swoop.get_processable_actions(_action_names => array['argo-workflow'])
+      swoop.get_processable_actions(
+        _ignored_action_uuids => array[]::uuid[],
+        _action_names => array['argo-workflow']
+      )
   $$,
   $$
     SELECT
@@ -120,6 +135,8 @@ SELECT results_eq(
       action_name
     FROM
       swoop.action
+    WHERE
+      action_uuid = 'b15120b8-b7ab-4180-9b7a-b0384758f468'
   $$,
   'should get our processable action'
 );
@@ -141,39 +158,10 @@ SELECT results_eq(
       lock_id::oid
     FROM
       swoop.thread
+    WHERE
+      action_uuid = 'b15120b8-b7ab-4180-9b7a-b0384758f468'
   $$,
   'should have an advisory lock for the processable action we grabbed'
-);
-
-SELECT is_empty(
-  $$
-    SELECT swoop.get_processable_actions()
-  $$,
-  'should not return any processable actions due to lock'
-);
-
--- release lock to see thread become processable again
-SELECT ok(
-  swoop.release_processable_lock('b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid),
-  'should release the lock on our row'
-);
-
-SELECT results_eq(
-  $$
-    SELECT
-      action_uuid,
-      action_name
-    FROM
-      swoop.get_processable_actions(_action_names => array['argo-workflow'])
-  $$,
-  $$
-    SELECT
-      action_uuid,
-      action_name
-    FROM
-      swoop.action
-  $$,
-  'should get our processable action again'
 );
 
 -- insert backoff event for action, drop lock,
@@ -192,10 +180,14 @@ INSERT INTO swoop.event (
   'some error string'
 );
 
-SELECT ok(
-  swoop.release_processable_lock('b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid),
-  'should release the lock on our row again'
-);
+SELECT
+  ok(
+    swoop.unlock_thread(lock_id),
+    'should release the lock on our row'
+  )
+FROM swoop.thread
+WHERE
+  action_uuid = 'b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid;
 
 SELECT is_empty(
   $$
@@ -229,8 +221,14 @@ FROM swoop.thread;
 
 SELECT results_eq(
   $$
-    SELECT action_uuid, action_name
-    FROM swoop.get_processable_actions(_action_names => array['argo-workflow'])
+    SELECT
+      action_uuid,
+      action_name
+    FROM
+      swoop.get_processable_actions(
+        _ignored_action_uuids => array[]::uuid[],
+        _action_names => array['argo-workflow']
+      )
   $$,
   $$
     SELECT action_uuid, action_name
@@ -250,14 +248,21 @@ INSERT INTO swoop.event (
   'QUEUED'
 );
 
-SELECT ok(
-  swoop.release_processable_lock('b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid),
-  'should release the lock on our row once more'
-);
+SELECT
+  ok(
+    swoop.unlock_thread(lock_id),
+    'should release the lock on our row once more'
+  )
+FROM swoop.thread
+WHERE
+  action_uuid = 'b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid;
+
 
 SELECT is_empty(
   $$
-    SELECT swoop.get_processable_actions()
+    SELECT swoop.get_processable_actions(
+      _ignored_action_uuids => array[]::uuid[]
+    )
   $$,
   'should not return any processable actions due to state'
 );
