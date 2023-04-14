@@ -75,26 +75,49 @@ $$;
 
 
 --
--- Name: get_processable_actions(smallint, text[]); Type: FUNCTION; Schema: swoop; Owner: -
+-- Name: get_processable_actions(uuid[], integer, text[]); Type: FUNCTION; Schema: swoop; Owner: -
 --
 
-CREATE FUNCTION swoop.get_processable_actions(_limit smallint DEFAULT 10, _action_names text[] DEFAULT ARRAY[]::text[]) RETURNS TABLE(action_uuid uuid, action_name text)
+CREATE FUNCTION swoop.get_processable_actions(_ignored_action_uuids uuid[], _limit integer DEFAULT 10, _action_names text[] DEFAULT ARRAY[]::text[]) RETURNS TABLE(action_uuid uuid, action_name text)
     LANGUAGE plpgsql
     AS $$
 DECLARE
 BEGIN
-  RETURN QUERY SELECT
-    a.action_uuid,
-    a.action_name
-  FROM
-    swoop.action_thread as a
-  WHERE
-    a.is_processable
-    AND (
-      array_length(_action_names, 1) = 0
-      OR a.action_name = any(_action_names)
-    )
-    AND pg_try_advisory_lock(to_regclass('swoop.thread')::oid::integer, a.lock_id)
+  RETURN QUERY
+  -- The CTE here is **critical**. If we don't use the CTE,
+  -- then the LIMIT likely will not be applied before the
+  -- WHERE clause, and we will lock rows that aren't returned.
+  -- Those rows will get stuck as locked until the session
+  -- drops or runs `pg_advisory_unlock_all()`.
+  WITH actions AS (
+    SELECT
+      t.action_uuid as action_uuid,
+      t.action_name as action_name,
+      t.lock_id as lock_id
+    FROM
+      swoop.thread as t
+    WHERE
+      swoop.thread_is_processable(t) -- noqa: RF02
+      AND (
+        -- strangely this returns null instead of 0 if
+        -- the array is empty
+        array_length(_action_names, 1) IS NULL
+        OR t.action_name = any(_action_names)
+      )
+      AND (
+        -- see notes on the swoop.action_thread view for
+        -- the reasoning behind _ignored_action_uuids
+        array_length(_ignored_action_uuids, 1) IS NULL
+        OR NOT (t.action_uuid = any(_ignored_action_uuids))
+      )
+    ORDER BY t.priority
+  )
+
+  SELECT
+    a.action_uuid AS action_uuid,
+    a.action_name AS action_name
+  FROM actions AS a
+  WHERE swoop.lock_thread(a.lock_id)
   LIMIT _limit;
   RETURN;
 END;
@@ -102,21 +125,88 @@ $$;
 
 
 --
--- Name: release_processable_lock(uuid); Type: FUNCTION; Schema: swoop; Owner: -
+-- Name: lock_thread(integer); Type: FUNCTION; Schema: swoop; Owner: -
 --
 
-CREATE FUNCTION swoop.release_processable_lock(_action_uuid uuid) RETURNS boolean
+CREATE FUNCTION swoop.lock_thread(_lock_id integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$
 DECLARE
 BEGIN
   RETURN (
-    SELECT
-      pg_advisory_unlock(to_regclass('swoop.thread')::oid::integer, lock_id)
-    FROM
-      swoop.thread as t
-    WHERE
-      t.action_uuid = _action_uuid
+    SELECT pg_try_advisory_lock(to_regclass('swoop.thread')::oid::integer, _lock_id)
+  );
+END;
+$$;
+
+
+--
+-- Name: notify_for_processable_thread(); Type: FUNCTION; Schema: swoop; Owner: -
+--
+
+CREATE FUNCTION swoop.notify_for_processable_thread() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+BEGIN
+  PERFORM
+    pg_notify(action_name, NEW.action_uuid::text)
+  FROM
+    swoop.action
+  WHERE
+    action_uuid = NEW.action_uuid;
+  RETURN NULL;
+END;
+$$;
+
+
+SET default_tablespace = '';
+
+--
+-- Name: thread; Type: TABLE; Schema: swoop; Owner: -
+--
+
+CREATE TABLE swoop.thread (
+    created_at timestamp with time zone NOT NULL,
+    last_update timestamp with time zone NOT NULL,
+    action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
+    status text NOT NULL,
+    next_attempt_after timestamp with time zone,
+    lock_id integer NOT NULL
+)
+PARTITION BY RANGE (created_at);
+
+
+--
+-- Name: thread_is_processable(swoop.thread); Type: FUNCTION; Schema: swoop; Owner: -
+--
+
+CREATE FUNCTION swoop.thread_is_processable(_thread swoop.thread) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+BEGIN
+  RETURN (
+      _thread.status = 'PENDING'
+      OR _thread.status = 'BACKOFF' AND _thread.next_attempt_after <= now()
+  );
+END;
+$$;
+
+
+--
+-- Name: unlock_thread(integer); Type: FUNCTION; Schema: swoop; Owner: -
+--
+
+CREATE FUNCTION swoop.unlock_thread(_lock_id integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+BEGIN
+  RETURN (
+    SELECT pg_advisory_unlock(to_regclass('swoop.thread')::oid::integer, _lock_id)
   );
 END;
 $$;
@@ -131,32 +221,73 @@ CREATE FUNCTION swoop.update_thread() RETURNS trigger
     AS $$
 DECLARE
   _latest timestamptz;
+  _lock_id integer;
   _status text;
   _next_attempt timestamptz;
 BEGIN
-  -- get the latest event time for the action thread
-  SELECT last_update FROM swoop.thread where action_uuid = NEW.action_uuid INTO _latest;
+  SELECT
+    last_update,
+    lock_id
+  FROM
+    swoop.thread
+  WHERE
+    action_uuid = NEW.action_uuid
+  INTO _latest, _lock_id;
 
-  -- if the event time is older than the last update we don't update the thread
+  -- If the event time is older than the last update we don't update the thread
+  -- (we can't use a trigger condition to filter this because we don't know the
+  -- last update time from the event alone).
   IF _latest IS NOT NULL AND NEW.event_time < _latest THEN
     RETURN NULL;
   END IF;
 
-  -- coerce status to UNKNOWN if it doesn't match a known status type
+  -- Coerce status to UNKNOWN if it doesn't match a known status type
   SELECT name from swoop.event_state WHERE name = NEW.status
   UNION
   SELECT 'UNKNOWN'
   LIMIT 1
   INTO _status;
 
-  -- if we need a next attempt time let's calculated it
+  -- If we need a next attempt time let's calculate it
   IF NEW.retry_seconds IS NOT NULL THEN
     SELECT NEW.event_time + (NEW.retry_seconds * interval '1 second') INTO _next_attempt;
   END IF;
 
+  -- It seems like we would want to use an insert conflict handler, not IF, but
+  -- we cannot enforce the action_uuid constraint across partition bounds. In
+  -- cases where updates to an event thread span the end/beginning of two months,
+  -- we would end up with a second thread row created when the first event is
+  -- inserted after the new monthly partition was created.
   IF _latest IS NULL THEN
-    INSERT INTO swoop.thread (created_at, last_update, action_uuid, status, next_attempt_after)
-      VALUES (NEW.event_time, NEW.event_time, NEW.action_uuid, _status, _next_attempt);
+    -- denormalize some values off action so we
+    -- don't have to join later in frequent queries
+    WITH action AS (
+      SELECT
+        action_name,
+        priority
+      FROM
+        swoop.action
+      WHERE
+        action_uuid = NEW.action_uuid
+    )
+
+    INSERT INTO swoop.thread (
+      created_at,
+      last_update,
+      action_uuid,
+      action_name,
+      priority,
+      status,
+      next_attempt_after
+    ) VALUES (
+      NEW.event_time,
+      NEW.event_time,
+      NEW.action_uuid,
+      (SELECT action_name FROM action),
+      (SELECT priority FROM action),
+      _status,
+      _next_attempt
+    );
   ELSE
     UPDATE swoop.thread as t SET
       last_update = NEW.event_time,
@@ -164,14 +295,14 @@ BEGIN
       next_attempt_after = _next_attempt
     WHERE
       t.action_uuid = NEW.action_uuid;
-  END IF;
 
-  RETURN NULL;
-END;
-$$;
+    -- We _could_ try to drop the thread lock here, which would be nice for
+    -- swoop-conductor so it didn't have to explicitly unlock, but the unlock
+    -- function raises a warning. Being explicit isn't the worst thing either,
+    -- given the complications with possible relocking and the need for clients
+    -- to stay aware of that possibility.
+END IF; RETURN NULL; END; $$;
 
-
-SET default_tablespace = '';
 
 --
 -- Name: action; Type: TABLE; Schema: swoop; Owner: -
@@ -434,21 +565,6 @@ CREATE TABLE swoop.action_template (
 
 
 --
--- Name: thread; Type: TABLE; Schema: swoop; Owner: -
---
-
-CREATE TABLE swoop.thread (
-    created_at timestamp with time zone NOT NULL,
-    last_update timestamp with time zone NOT NULL,
-    action_uuid uuid NOT NULL,
-    status text NOT NULL,
-    next_attempt_after timestamp with time zone,
-    lock_id integer NOT NULL
-)
-PARTITION BY RANGE (created_at);
-
-
---
 -- Name: action_thread; Type: VIEW; Schema: swoop; Owner: -
 --
 
@@ -464,7 +580,7 @@ CREATE VIEW swoop.action_thread AS
     t.status,
     t.next_attempt_after,
     t.lock_id,
-    ((t.status = 'PENDING'::text) OR ((t.status = 'BACKOFF'::text) AND (t.next_attempt_after <= now()))) AS is_processable
+    swoop.thread_is_processable(t.*) AS is_processable
    FROM (swoop.thread t
      JOIN swoop.action a USING (action_uuid));
 
@@ -664,6 +780,8 @@ CREATE TABLE swoop.thread_default (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -693,6 +811,8 @@ CREATE TABLE swoop.thread_p2022_12 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -707,6 +827,8 @@ CREATE TABLE swoop.thread_p2023_01 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -721,6 +843,8 @@ CREATE TABLE swoop.thread_p2023_02 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -735,6 +859,8 @@ CREATE TABLE swoop.thread_p2023_03 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -749,6 +875,8 @@ CREATE TABLE swoop.thread_p2023_04 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -763,6 +891,8 @@ CREATE TABLE swoop.thread_p2023_05 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -777,6 +907,8 @@ CREATE TABLE swoop.thread_p2023_06 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -791,6 +923,8 @@ CREATE TABLE swoop.thread_p2023_07 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -805,6 +939,8 @@ CREATE TABLE swoop.thread_p2023_08 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -819,6 +955,8 @@ CREATE TABLE swoop.thread_template (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
+    action_name text NOT NULL,
+    priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
     lock_id integer NOT NULL
@@ -2251,10 +2389,17 @@ CREATE TRIGGER add_pending_event AFTER INSERT ON swoop.action FOR EACH ROW EXECU
 
 
 --
+-- Name: thread processable_notify; Type: TRIGGER; Schema: swoop; Owner: -
+--
+
+CREATE TRIGGER processable_notify AFTER INSERT OR UPDATE ON swoop.thread FOR EACH ROW WHEN (swoop.thread_is_processable(new.*)) EXECUTE FUNCTION swoop.notify_for_processable_thread();
+
+
+--
 -- Name: event update_thread; Type: TRIGGER; Schema: swoop; Owner: -
 --
 
-CREATE TRIGGER update_thread AFTER INSERT ON swoop.event FOR EACH ROW EXECUTE FUNCTION swoop.update_thread();
+CREATE TRIGGER update_thread AFTER INSERT ON swoop.event FOR EACH ROW WHEN ((new.status <> 'INFO'::text)) EXECUTE FUNCTION swoop.update_thread();
 
 
 --
