@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ..models import (
     ConfClasses,
     Exception as APIException,
     LandingPage,
+    Link,
 )
 
 
@@ -19,11 +20,22 @@ router: APIRouter = APIRouter()
     responses={"500": {"model": APIException}},
     tags=["Capabilities"],
 )
-def get_landing_page() -> LandingPage | APIException:
+def get_landing_page(request: Request) -> LandingPage | APIException:
     """
     landing page of this API
     """
-    pass
+    return LandingPage(
+        title="Example processing server",
+        description="Example server implementing the OGC API - Processes 1.0 Standard",
+        links=[
+            Link(
+                href=str(request.url_for("get_conformance_classes")),
+                rel="http://www.opengis.net/def/rel/ogc/1.0/conformance",
+                type="application/json",
+                hreflang=None,
+            ),
+        ],
+    )
 
 
 @router.get(
