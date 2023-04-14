@@ -78,8 +78,12 @@ CREATE TABLE IF NOT EXISTS swoop.thread ( -- noqa
   last_update timestamptz NOT NULL,
   -- action_uuid reference to action omitted, we don't need referential integrity
   action_uuid uuid NOT NULL,
+
+  -- denormalize some values off action so we
+  -- don't have to join later in frequent queries
   action_name text NOT NULL,
   priority smallint NOT NULL,
+
   status text NOT NULL REFERENCES swoop.event_state ON DELETE RESTRICT,
   next_attempt_after timestamptz,
 
@@ -119,6 +123,7 @@ CREATE TABLE IF NOT EXISTS swoop.event (
   event_time timestamptz NOT NULL,
   action_uuid uuid NOT NULL, -- reference omitted, we don't need referential integrity
   status text NOT NULL,
+  event_source text,
   -- max backoff cannot be more than 1 day (even that seems extreme in most cases)
   retry_seconds int CHECK (retry_seconds > 0 AND retry_seconds <= 86400),
   error text
@@ -142,8 +147,8 @@ LANGUAGE plpgsql VOLATILE
 AS $$
 DECLARE
 BEGIN
-  INSERT INTO swoop.event (event_time, action_uuid, status) VALUES
-    (NEW.created_at, NEW.action_uuid, 'PENDING');
+  INSERT INTO swoop.event (event_time, action_uuid, status, event_source) VALUES
+    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-api');
   RETURN NULL;
 END;
 $$;
@@ -153,24 +158,46 @@ AFTER INSERT ON swoop.action
 FOR EACH ROW EXECUTE FUNCTION swoop.add_pending_event();
 
 
+CREATE OR REPLACE FUNCTION swoop.add_thread()
+RETURNS trigger
+LANGUAGE plpgsql VOLATILE
+AS $$
+DECLARE
+BEGIN
+  INSERT INTO swoop.thread (
+    created_at,
+    last_update,
+    action_uuid,
+    action_name,
+    priority,
+    status
+  ) VALUES (
+    NEW.created_at,
+    NEW.created_at,
+    NEW.action_uuid,
+    NEW.action_name,
+    NEW.priority,
+    'PENDING'
+  );
+  RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER add_thread
+AFTER INSERT ON swoop.action
+FOR EACH ROW EXECUTE FUNCTION swoop.add_thread();
+
+
 CREATE OR REPLACE FUNCTION swoop.update_thread()
 RETURNS trigger
 LANGUAGE plpgsql VOLATILE
 AS $$
 DECLARE
   _latest timestamptz;
-  _lock_id integer;
   _status text;
   _next_attempt timestamptz;
 BEGIN
-  SELECT
-    last_update,
-    lock_id
-  FROM
-    swoop.thread
-  WHERE
-    action_uuid = NEW.action_uuid
-  INTO _latest, _lock_id;
+  SELECT last_update FROM swoop.thread WHERE action_uuid = NEW.action_uuid INTO _latest;
 
   -- If the event time is older than the last update we don't update the thread
   -- (we can't use a trigger condition to filter this because we don't know the
@@ -191,59 +218,26 @@ BEGIN
     SELECT NEW.event_time + (NEW.retry_seconds * interval '1 second') INTO _next_attempt;
   END IF;
 
-  -- It seems like we would want to use an insert conflict handler, not IF, but
-  -- we cannot enforce the action_uuid constraint across partition bounds. In
-  -- cases where updates to an event thread span the end/beginning of two months,
-  -- we would end up with a second thread row created when the first event is
-  -- inserted after the new monthly partition was created.
-  IF _latest IS NULL THEN
-    -- denormalize some values off action so we
-    -- don't have to join later in frequent queries
-    WITH action AS (
-      SELECT
-        action_name,
-        priority
-      FROM
-        swoop.action
-      WHERE
-        action_uuid = NEW.action_uuid
-    )
+  UPDATE swoop.thread as t SET
+    last_update = NEW.event_time,
+    status = _status,
+    next_attempt_after = _next_attempt
+  WHERE
+    t.action_uuid = NEW.action_uuid;
 
-    INSERT INTO swoop.thread (
-      created_at,
-      last_update,
-      action_uuid,
-      action_name,
-      priority,
-      status,
-      next_attempt_after
-    ) VALUES (
-      NEW.event_time,
-      NEW.event_time,
-      NEW.action_uuid,
-      (SELECT action_name FROM action),
-      (SELECT priority FROM action),
-      _status,
-      _next_attempt
-    );
-  ELSE
-    UPDATE swoop.thread as t SET
-      last_update = NEW.event_time,
-      status = _status,
-      next_attempt_after = _next_attempt
-    WHERE
-      t.action_uuid = NEW.action_uuid;
+  -- We _could_ try to drop the thread lock here, which would be nice for
+  -- swoop-conductor so it didn't have to explicitly unlock, but the unlock
+  -- function raises a warning. Being explicit isn't the worst thing either,
+  -- given the complications with possible relocking and the need for clients
+  -- to stay aware of that possibility.
 
-    -- We _could_ try to drop the thread lock here, which would be nice for
-    -- swoop-conductor so it didn't have to explicitly unlock, but the unlock
-    -- function raises a warning. Being explicit isn't the worst thing either,
-    -- given the complications with possible relocking and the need for clients
-    -- to stay aware of that possibility.
-END IF; RETURN NULL; END; $$;
+  RETURN NULL;
+END;
+$$;
 
 CREATE OR REPLACE TRIGGER update_thread
 AFTER INSERT ON swoop.event
-FOR EACH ROW WHEN (NEW.status != 'INFO') -- noqa: CP02
+FOR EACH ROW WHEN (NEW.status NOT IN ('PENDING', 'INFO')) -- noqa: CP02
 EXECUTE FUNCTION swoop.update_thread();
 
 
@@ -440,6 +434,8 @@ DROP FUNCTION swoop.notify_for_processable_thread;
 DROP FUNCTION swoop.thread_is_processable;
 DROP TRIGGER update_thread ON swoop.event;
 DROP FUNCTION swoop.update_thread;
+DROP TRIGGER add_thread ON swoop.action;
+DROP FUNCTION swoop.add_thread;
 DROP TRIGGER add_pending_event ON swoop.action;
 DROP FUNCTION swoop.add_pending_event;
 DROP TABLE swoop.event_template;
