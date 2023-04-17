@@ -11,23 +11,8 @@ brew install dbmate
 
 ## Database Setup / Migrations
 
-The DB schema and migrations are managed by [Dbmate](https://github.com/amacneil/dbmate#commands).
+Instructions for this can be found in the Database README, found at:  `/db/README.md`
 
-Existing migrations can be found in: `/db/migrations/`
-<br><br>
-### Database setup:
-
-Create a `.env` file (specifying a `user`, `password`, `port`):
-```
-touch .env
-
-echo "DATABASE_URL=\"postgres://{user}:{password}@127.0.0.1:{port}/swoop?sslmode=disable\"" >> .env2
-```
-
-Create the database and tables:
-```
-dbmate up
-```
 
 
 
