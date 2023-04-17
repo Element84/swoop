@@ -217,6 +217,54 @@ EOF
 }
 
 
+dotest () {
+    # added custom for swoop
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                cat <<EOF
+NAME:
+   dbmate test - run pgtap database tests
+
+   *command added by ${WRAPPER_NAME}*
+
+   Requires pg_prove to be installed and on the path.
+
+USAGE:
+   dbmate test [command options] [tests_or_dirs_to_run...]
+
+OPTIONS:
+   --help, -h                   show help
+
+EXAMPLE:
+   dbmate test db/tests/
+EOF
+                return
+                ;;
+        esac
+    done
+
+    builtin type -P pg_prove >/dev/null || {
+        fatal "Tests require pg_prove to be installed from CPAN."
+    }
+
+    # pop the 'test' of args
+    shift
+
+    set -x
+    pg_prove \
+        -U "$DATABASE_USER" \
+        -d "$DATABASE_NAME" \
+        -h "$DATABASE_HOST" \
+        -p "$DATABASE_PORT" \
+        --ext .sql \
+        -v \
+        "$@"
+    set +x
+}
+
+
 find_dbmate() {
     # to allow installing this script on the path,
     # dbmate can be installed with the  name _dbmate
@@ -263,6 +311,10 @@ dbmate () {
                 ;;
             create)
                 create "$@"
+                return
+                ;;
+            test)
+                dotest "$@"
                 return
                 ;;
             -*)
