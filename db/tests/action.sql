@@ -1,13 +1,13 @@
 BEGIN;
 
 SET search_path = tap, public;
-SELECT plan(14);
+SELECT plan(13);
 
 INSERT INTO swoop.action (
   action_uuid,
   action_type,
+  handler_name,
   action_name,
-  workflow_name,
   created_at
 ) VALUES (
   'b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid,
@@ -66,44 +66,12 @@ SELECT results_eq(
   'thread should be created on event insert'
 );
 
--- check action_thread view
-SELECT results_eq(
-  $$
-    SELECT
-      action_uuid,
-      action_type,
-      action_name,
-      workflow_name,
-      priority,
-      last_update,
-      status,
-      next_attempt_after,
-      is_processable
-    FROM
-      swoop.action_thread
-  $$,
-  $$
-    VALUES (
-      'b15120b8-b7ab-4180-9b7a-b0384758f468'::uuid,
-      'workflow',
-      'argo-workflow',
-      'workflow-a',
-      100::smallint,
-      '2023-04-13 00:25:07.388012+00'::timestamptz,
-      'PENDING',
-      null::timestamptz,
-      true
-    )
-  $$,
-  'verify view shows expected action-thread join'
-);
-
 -- get the processable action
 SELECT is_empty(
   $$
     SELECT swoop.get_processable_actions(
       _ignored_action_uuids => array[]::uuid[],
-      _action_names => array['bogus']
+      _handler_names => array['bogus']
     )
   $$,
   'should not return any processable actions - bad action name'
@@ -122,17 +90,17 @@ SELECT results_eq(
   $$
     SELECT
       action_uuid,
-      action_name
+      handler_name
     FROM
       swoop.get_processable_actions(
         _ignored_action_uuids => array[]::uuid[],
-        _action_names => array['argo-workflow']
+        _handler_names => array['argo-workflow']
       )
   $$,
   $$
     SELECT
       action_uuid,
-      action_name
+      handler_name
     FROM
       swoop.action
     WHERE
@@ -223,15 +191,15 @@ SELECT results_eq(
   $$
     SELECT
       action_uuid,
-      action_name
+      handler_name
     FROM
       swoop.get_processable_actions(
         _ignored_action_uuids => array[]::uuid[],
-        _action_names => array['argo-workflow']
+        _handler_names => array['argo-workflow']
       )
   $$,
   $$
-    SELECT action_uuid, action_name
+    SELECT action_uuid, handler_name
     FROM swoop.action
   $$,
   'should get our processable action in the backoff state'
