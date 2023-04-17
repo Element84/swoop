@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+#
+# Released under the MIT license at
+# https://gist.github.com/jkeifer/f75c65213c6a327229cf85ffa47e1efe
+#
+# Copyright 2023 Jarrett Keifer <jkeifer0@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the “Software”), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+set -euo pipefail
+
+
+WRAPPER_NAME='dbmate-tupac'
+WRAPPER_VERSION='0.1.0'
+
+export DBMATE_NO_DUMP_SCHEMA=true
+
+# try to load .env file for vars from cwd
+. .env ||:
+
+
+echo2 () {
+    echo -e >&2 "${@}"
+}
+
+
+fatal () {
+    local msg="${1?message string required}"; shift
+    local rc=${1:-1}
+    echo2 "${msg:-}"
+    exit "$rc"
+}
+
+
+usage () {
+    cat <<EOF
+$0 - $WRAPPER_NAME, a wrapper around dbmate to facilite better schema testing
+
+Orverridden/added commands:
+    create
+    dump
+    verify
+
+Each command supports '-h|--help' for detailed usage information.
+
+Additionally, automatic writing of a schema dump is disabled.
+
+--- original dbmate usage ---
+
+EOF
+    "$DBMATE" --help
+}
+
+
+version () {
+    echo "$WRAPPER_NAME version $WRAPPER_VERSION"
+    "$DBMATE" --version
+}
+
+
+dump () {
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                cat <<EOF
+NAME:
+   dbmate dump - Write a dump of the database to stdout
+
+   *command overridden by ${WRAPPER_NAME}*
+
+USAGE:
+   dbmate dump [command options] [arguments...]
+
+OPTIONS:
+   --help, -h  show help
+EOF
+                return
+                ;;
+        esac
+    done
+
+    [ -n "${DATABASE_URL:-}" ] || fatal "cannot connect to the database: DATABASE_URL no set"
+    pg_dump -d "${DATABASE_URL}"
+}
+
+
+verify () {
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                cat <<EOF
+NAME:
+   dbmate verify - checks that the reference schema and migrations are in sync
+
+   *command added by ${WRAPPER_NAME}*
+
+   This command does the following:
+     - creates the database from the reference schema
+     - dumps the database
+     - drops the database
+     - creates the database and applies all migrations
+     - dumps the database
+     - drops the database
+     - diffs the dumps
+
+   The dumps should not have any differences. A difference indicates the schema and migrations are out of sync.
+
+USAGE:
+   dbmate verify [command options] [arguments...]
+
+OPTIONS:
+   --help, -h  show help
+EOF
+                return
+                ;;
+        esac
+    done
+
+    local dump_dir now
+    local schema="${DBMATE_SCHEMA_FILE:-./db/schema.sql}"
+
+    dump_dir="$(mktemp -d)"
+    trap "rm -rf '$dump_dir'" EXIT
+
+    now="$(date -u "+%Y%m%d%H%M%S")"
+    local schema_dump="${dump_dir}/dump.${now}.schema.sql"
+    local migrations_dump="${dump_dir}/dump.${now}.migrations.sql"
+
+    dbmate create --from-schema "$schema" --insert-migrations >/dev/null
+    dbmate dump > "$schema_dump"
+    dbmate drop > /dev/null
+    dbmate up >/dev/null
+    dbmate dump > "$migrations_dump"
+    dbmate drop >/dev/null
+
+    diff "$schema_dump" "$migrations_dump"
+}
+
+
+create () {
+    #overrides create to add --with-schema option
+    local arg
+    local schema_file=
+    local insert_migrations=false
+    while [ $# -gt 0 ]; do
+        arg=$1
+        shift ||:
+        case "$arg" in
+            -h|--help)
+                cat <<EOF
+NAME:
+   dbmate create - Create database
+
+   *command overridden by ${WRAPPER_NAME}*
+
+USAGE:
+   dbmate create [command options] [arguments...]
+
+OPTIONS:
+   --help, -h                   show help
+   --from-schema [schema_file]  create database from specified plain-text schema file
+   --insert-migrations          if loading from schema, insert migration versions (useful for comparing schema vs migrations dumps)
+EOF
+                return
+                ;;
+            --from-schema=*)
+                schema_file="${arg#*=}"
+                [ -n "${schema_file:-}" ] || fatal "Must provide a valid schema file"
+                ;;
+            --from-schema)
+                schema_file="${1:-}"
+                shift ||:
+                [ -n "${schema_file:-}" ] || fatal "Must provide a valid schema file"
+                ;;
+            --insert-migrations)
+                insert_migrations=true
+                ;;
+        esac
+    done
+
+    "$DBMATE" create
+
+    if [ -n "${schema_file:-}" ]; then
+        [ -f "$schema_file" ] || fatal "'$schema_file': File not found"
+        psql -d "${DATABASE_URL}" < "${schema_file}"
+
+        if [ "${insert_migrations}" == "true" ]; then
+            local migration
+            local migrations_dir="${DBMATE_MIGRATIONS_DIR:-./db/migrations}"
+            local insert="INSERT INTO ${DBMATE_MIGRATIONS_TABLE} (version) VALUES "
+            for migration in "${migrations_dir}"/*.sql; do
+                migration="$(basename "$migration")"
+                migration="${migration%%_*}"
+                psql -d "${DATABASE_URL}" -c "$insert ('${migration}');"
+            done
+        fi
+    fi
+}
+
+
+find_dbmate() {
+    # to allow installing this script on the path,
+    # dbmate can be installed with the  name _dbmate
+    local _dbmate
+    _dbmate="$(builtin type -P _dbmate || builtin type -P dbmate)"
+
+    [ -n "$_dbmate" ] || {
+        fatal "dbmate not found. See https://github.com/amacneil/dbmate."
+    }
+
+    [ "${BASH_SOURCE[0]}" != "$_dbmate" ] || {
+        fatal "Found dbmate on path, but appears to be ${WRAPPER_NAME}. Install dbmate to location on path with the name _dbmate."
+    }
+
+    echo "$_dbmate"
+}
+
+
+dbmate () {
+    DBMATE="$(find_dbmate)"
+
+    builtin type -P psql >/dev/null || {
+        fatal "psql not found. dbmate wrapper requires it for some operations."
+    }
+
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                usage
+                return
+                ;;
+            -v|--version)
+                version
+                return
+                ;;
+            dump)
+                dump "$@"
+                return
+                ;;
+            verify)
+                verify "$@"
+                return
+                ;;
+            create)
+                create "$@"
+                return
+                ;;
+            -*)
+                ;;
+            *)
+                "$DBMATE" "$@"
+                return
+                ;;
+        esac
+    done
+
+    # if a command is missing default to help
+    usage
+}
+
+
+# check if we have been sourced and exit if so
+(return 0 2>/dev/null) && exit
+
+
+dbmate "$@"
