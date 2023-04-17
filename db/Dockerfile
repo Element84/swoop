@@ -14,11 +14,13 @@ RUN set -x && \
 RUN cpan TAP::Parser::SourceHandler::pgTAP
 
 
-# install dbmate
+# install dbmate and wrapper
+COPY dbmate /usr/local/bin/dbmate
 RUN set -x && \
+    DBMATE="/usr/local/bin/_dbmate" && \
     ARCH="$(a="$(uname -m)"; [ "$a" = "aarch64" ] && echo "amd64" || echo "$a")" && \
-    curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.2.0/dbmate-linux-$ARCH && \
-    chmod +x /usr/local/bin/dbmate
+    curl -fsSL -o "$DBMATE" https://github.com/amacneil/dbmate/releases/download/v2.2.0/dbmate-linux-$ARCH && \
+    chmod +x "$DBMATE"
 
 # install pgtap
 RUN set -x && \
