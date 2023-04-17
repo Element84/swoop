@@ -37,28 +37,27 @@ INSERT INTO swoop.event_state (name, description) VALUES
 CREATE TABLE IF NOT EXISTS swoop.action (
   action_uuid uuid NOT NULL DEFAULT gen_random_uuid(),
   action_type text NOT NULL CHECK (action_type IN ('callback', 'workflow')),
-  action_name text NOT NULL,
+  action_name text,
+  handler_name text NOT NULL,
   parent_uuid bigint, -- reference omitted, we don't need referential integrity
-  workflow_name text,  -- not explicitly required, but helpful for queries
   created_at timestamptz NOT NULL DEFAULT now(),
   priority smallint DEFAULT 100,
 
-  -- this is the key reason why workflows and callbacks are different
   CONSTRAINT workflow_or_callback CHECK (
     CASE
       WHEN
         action_type = 'callback' THEN
         parent_uuid IS NOT NULL
-        AND workflow_name IS NULL
       WHEN
         action_type = 'workflow' THEN
-        workflow_name IS NOT NULL
+        action_name IS NOT NULL
     END
   )
 ) PARTITION BY RANGE (created_at);
 
 CREATE INDEX ON swoop.action (created_at);
 CREATE INDEX ON swoop.action (action_uuid);
+CREATE INDEX ON swoop.action (handler_name);
 CREATE INDEX ON swoop.action (action_name);
 CREATE TABLE IF NOT EXISTS swoop.action_template (LIKE swoop.action);
 ALTER TABLE swoop.action_template ADD PRIMARY KEY (action_uuid);
@@ -81,11 +80,12 @@ CREATE TABLE IF NOT EXISTS swoop.thread ( -- noqa
 
   -- denormalize some values off action so we
   -- don't have to join later in frequent queries
-  action_name text NOT NULL,
+  handler_name text NOT NULL,
   priority smallint NOT NULL,
 
   status text NOT NULL REFERENCES swoop.event_state ON DELETE RESTRICT,
   next_attempt_after timestamptz,
+  error text,
 
   -- We lock with advisory locks that take two int4 values, one for the table
   -- OID and one for this lock_id. Note that this sequence can recycle values,
@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS swoop.thread ( -- noqa
 CREATE INDEX ON swoop.thread (created_at);
 CREATE INDEX ON swoop.thread (action_uuid);
 CREATE INDEX ON swoop.thread (status);
+CREATE INDEX ON swoop.thread (handler_name);
 CREATE TABLE IF NOT EXISTS swoop.thread_template (LIKE swoop.thread);
 ALTER TABLE swoop.thread_template ADD PRIMARY KEY (action_uuid);
 SELECT partman.create_parent(
@@ -132,6 +133,11 @@ CREATE TABLE IF NOT EXISTS swoop.event (
 CREATE INDEX ON swoop.event (event_time);
 CREATE INDEX ON swoop.event (action_uuid);
 CREATE TABLE IF NOT EXISTS swoop.event_template (LIKE swoop.event);
+ALTER TABLE swoop.event_template ADD PRIMARY KEY (
+  action_uuid,
+  event_time,
+  status
+);
 SELECT partman.create_parent(
   'swoop.event',
   'event_time',
@@ -148,7 +154,7 @@ AS $$
 DECLARE
 BEGIN
   INSERT INTO swoop.event (event_time, action_uuid, status, event_source) VALUES
-    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-api');
+    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-db');
   RETURN NULL;
 END;
 $$;
@@ -168,14 +174,14 @@ BEGIN
     created_at,
     last_update,
     action_uuid,
-    action_name,
+    handler_name,
     priority,
     status
   ) VALUES (
     NEW.created_at,
     NEW.created_at,
     NEW.action_uuid,
-    NEW.action_name,
+    NEW.handler_name,
     NEW.priority,
     'PENDING'
   );
@@ -221,7 +227,8 @@ BEGIN
   UPDATE swoop.thread as t SET
     last_update = NEW.event_time,
     status = _status,
-    next_attempt_after = _next_attempt
+    next_attempt_after = _next_attempt,
+    error = NEW.error
   WHERE
     t.action_uuid = NEW.action_uuid;
 
@@ -262,7 +269,7 @@ AS $$
 DECLARE
 BEGIN
   PERFORM
-    pg_notify(action_name, NEW.action_uuid::text)
+    pg_notify(handler_name, NEW.action_uuid::text)
   FROM
     swoop.action
   WHERE
@@ -275,25 +282,6 @@ CREATE OR REPLACE TRIGGER processable_notify
 AFTER INSERT OR UPDATE ON swoop.thread
 FOR EACH ROW WHEN (swoop.thread_is_processable(NEW)) -- noqa: CP02
 EXECUTE FUNCTION swoop.notify_for_processable_thread();
-
-
-CREATE OR REPLACE VIEW swoop.action_thread AS
-SELECT
-  a.action_uuid AS action_uuid,
-  a.action_type AS action_type,
-  a.action_name AS action_name,
-  a.parent_uuid AS parent_uuid,
-  a.workflow_name AS workflow_name,
-  a.created_at AS created_at,
-  a.priority AS priority,
-  t.last_update AS last_update,
-  t.status AS status,
-  t.next_attempt_after AS next_attempt_after,
-  t.lock_id AS lock_id,
-  swoop.thread_is_processable(t) AS is_processable -- noqa: RF02
-FROM
-  swoop.thread AS t
-  INNER JOIN swoop.action AS a USING (action_uuid);
 
 
 -- If we are looking for processable rows we want to exclude any that already
@@ -349,9 +337,9 @@ FROM
 CREATE OR REPLACE FUNCTION swoop.get_processable_actions(
   _ignored_action_uuids uuid [],
   _limit integer DEFAULT 10,
-  _action_names text [] DEFAULT ARRAY[]::text []
+  _handler_names text [] DEFAULT ARRAY[]::text []
 )
-RETURNS TABLE (action_uuid uuid, action_name text)
+RETURNS TABLE (action_uuid uuid, handler_name text)
 LANGUAGE plpgsql VOLATILE
 AS $$
 DECLARE
@@ -365,7 +353,7 @@ BEGIN
   WITH actions AS (
     SELECT
       t.action_uuid as action_uuid,
-      t.action_name as action_name,
+      t.handler_name as handler_name,
       t.lock_id as lock_id
     FROM
       swoop.thread as t
@@ -374,8 +362,8 @@ BEGIN
       AND (
         -- strangely this returns null instead of 0 if
         -- the array is empty
-        array_length(_action_names, 1) IS NULL
-        OR t.action_name = any(_action_names)
+        array_length(_handler_names, 1) IS NULL
+        OR t.handler_name = any(_handler_names)
       )
       AND (
         -- see notes on the swoop.action_thread view for
@@ -388,7 +376,7 @@ BEGIN
 
   SELECT
     a.action_uuid AS action_uuid,
-    a.action_name AS action_name
+    a.handler_name AS handler_name
   FROM actions AS a
   WHERE swoop.lock_thread(a.lock_id)
   LIMIT _limit;

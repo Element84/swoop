@@ -10,8 +10,8 @@ BEGIN
     INSERT INTO swoop.action (
       action_uuid,
       action_type,
+      handler_name,
       action_name,
-      workflow_name,
       created_at
     ) VALUES (
       gen_random_uuid(),
@@ -31,9 +31,9 @@ SELECT
     'should have expected number of processable threads'
   )
 FROM
-  swoop.action_thread
+  swoop.thread AS t --noqa: AL05
 WHERE
-  is_processable;
+  swoop.thread_is_processable(t);
 
 SELECT
   is(

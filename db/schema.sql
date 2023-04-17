@@ -68,7 +68,7 @@ CREATE FUNCTION swoop.add_pending_event() RETURNS trigger
 DECLARE
 BEGIN
   INSERT INTO swoop.event (event_time, action_uuid, status, event_source) VALUES
-    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-api');
+    (NEW.created_at, NEW.action_uuid, 'PENDING', 'swoop-db');
   RETURN NULL;
 END;
 $$;
@@ -87,14 +87,14 @@ BEGIN
     created_at,
     last_update,
     action_uuid,
-    action_name,
+    handler_name,
     priority,
     status
   ) VALUES (
     NEW.created_at,
     NEW.created_at,
     NEW.action_uuid,
-    NEW.action_name,
+    NEW.handler_name,
     NEW.priority,
     'PENDING'
   );
@@ -107,7 +107,7 @@ $$;
 -- Name: get_processable_actions(uuid[], integer, text[]); Type: FUNCTION; Schema: swoop; Owner: -
 --
 
-CREATE FUNCTION swoop.get_processable_actions(_ignored_action_uuids uuid[], _limit integer DEFAULT 10, _action_names text[] DEFAULT ARRAY[]::text[]) RETURNS TABLE(action_uuid uuid, action_name text)
+CREATE FUNCTION swoop.get_processable_actions(_ignored_action_uuids uuid[], _limit integer DEFAULT 10, _handler_names text[] DEFAULT ARRAY[]::text[]) RETURNS TABLE(action_uuid uuid, handler_name text)
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -121,7 +121,7 @@ BEGIN
   WITH actions AS (
     SELECT
       t.action_uuid as action_uuid,
-      t.action_name as action_name,
+      t.handler_name as handler_name,
       t.lock_id as lock_id
     FROM
       swoop.thread as t
@@ -130,8 +130,8 @@ BEGIN
       AND (
         -- strangely this returns null instead of 0 if
         -- the array is empty
-        array_length(_action_names, 1) IS NULL
-        OR t.action_name = any(_action_names)
+        array_length(_handler_names, 1) IS NULL
+        OR t.handler_name = any(_handler_names)
       )
       AND (
         -- see notes on the swoop.action_thread view for
@@ -144,7 +144,7 @@ BEGIN
 
   SELECT
     a.action_uuid AS action_uuid,
-    a.action_name AS action_name
+    a.handler_name AS handler_name
   FROM actions AS a
   WHERE swoop.lock_thread(a.lock_id)
   LIMIT _limit;
@@ -179,7 +179,7 @@ CREATE FUNCTION swoop.notify_for_processable_thread() RETURNS trigger
 DECLARE
 BEGIN
   PERFORM
-    pg_notify(action_name, NEW.action_uuid::text)
+    pg_notify(handler_name, NEW.action_uuid::text)
   FROM
     swoop.action
   WHERE
@@ -199,10 +199,11 @@ CREATE TABLE swoop.thread (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 )
 PARTITION BY RANGE (created_at);
@@ -277,7 +278,8 @@ BEGIN
   UPDATE swoop.thread as t SET
     last_update = NEW.event_time,
     status = _status,
-    next_attempt_after = _next_attempt
+    next_attempt_after = _next_attempt,
+    error = NEW.error
   WHERE
     t.action_uuid = NEW.action_uuid;
 
@@ -299,16 +301,16 @@ $$;
 CREATE TABLE swoop.action (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 )
@@ -324,16 +326,16 @@ SET default_table_access_method = heap;
 CREATE TABLE swoop.action_default (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -346,16 +348,16 @@ END)
 CREATE TABLE swoop.action_p2022_12 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -368,16 +370,16 @@ END)
 CREATE TABLE swoop.action_p2023_01 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -390,16 +392,16 @@ END)
 CREATE TABLE swoop.action_p2023_02 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -412,16 +414,16 @@ END)
 CREATE TABLE swoop.action_p2023_03 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -434,16 +436,16 @@ END)
 CREATE TABLE swoop.action_p2023_04 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -456,16 +458,16 @@ END)
 CREATE TABLE swoop.action_p2023_05 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -478,16 +480,16 @@ END)
 CREATE TABLE swoop.action_p2023_06 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -500,16 +502,16 @@ END)
 CREATE TABLE swoop.action_p2023_07 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -522,16 +524,16 @@ END)
 CREATE TABLE swoop.action_p2023_08 (
     action_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     priority smallint DEFAULT 100,
     CONSTRAINT action_action_type_check CHECK ((action_type = ANY (ARRAY['callback'::text, 'workflow'::text]))),
     CONSTRAINT workflow_or_callback CHECK (
 CASE
-    WHEN (action_type = 'callback'::text) THEN ((parent_uuid IS NOT NULL) AND (workflow_name IS NULL))
-    WHEN (action_type = 'workflow'::text) THEN (workflow_name IS NOT NULL)
+    WHEN (action_type = 'callback'::text) THEN (parent_uuid IS NOT NULL)
+    WHEN (action_type = 'workflow'::text) THEN (action_name IS NOT NULL)
     ELSE NULL::boolean
 END)
 );
@@ -544,33 +546,12 @@ END)
 CREATE TABLE swoop.action_template (
     action_uuid uuid NOT NULL,
     action_type text NOT NULL,
-    action_name text NOT NULL,
+    action_name text,
+    handler_name text NOT NULL,
     parent_uuid bigint,
-    workflow_name text,
     created_at timestamp with time zone NOT NULL,
     priority smallint
 );
-
-
---
--- Name: action_thread; Type: VIEW; Schema: swoop; Owner: -
---
-
-CREATE VIEW swoop.action_thread AS
- SELECT a.action_uuid,
-    a.action_type,
-    a.action_name,
-    a.parent_uuid,
-    a.workflow_name,
-    a.created_at,
-    a.priority,
-    t.last_update,
-    t.status,
-    t.next_attempt_after,
-    t.lock_id,
-    swoop.thread_is_processable(t.*) AS is_processable
-   FROM (swoop.thread t
-     JOIN swoop.action a USING (action_uuid));
 
 
 --
@@ -780,10 +761,11 @@ CREATE TABLE swoop.thread_default (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -811,10 +793,11 @@ CREATE TABLE swoop.thread_p2022_12 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -827,10 +810,11 @@ CREATE TABLE swoop.thread_p2023_01 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -843,10 +827,11 @@ CREATE TABLE swoop.thread_p2023_02 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -859,10 +844,11 @@ CREATE TABLE swoop.thread_p2023_03 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -875,10 +861,11 @@ CREATE TABLE swoop.thread_p2023_04 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -891,10 +878,11 @@ CREATE TABLE swoop.thread_p2023_05 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -907,10 +895,11 @@ CREATE TABLE swoop.thread_p2023_06 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -923,10 +912,11 @@ CREATE TABLE swoop.thread_p2023_07 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -939,10 +929,11 @@ CREATE TABLE swoop.thread_p2023_08 (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -955,10 +946,11 @@ CREATE TABLE swoop.thread_template (
     created_at timestamp with time zone NOT NULL,
     last_update timestamp with time zone NOT NULL,
     action_uuid uuid NOT NULL,
-    action_name text NOT NULL,
+    handler_name text NOT NULL,
     priority smallint NOT NULL,
     status text NOT NULL,
     next_attempt_after timestamp with time zone,
+    error text,
     lock_id integer NOT NULL
 );
 
@@ -1182,11 +1174,99 @@ ALTER TABLE ONLY swoop.action_template
 
 
 --
+-- Name: event_default event_default_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_default
+    ADD CONSTRAINT event_default_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2022_12 event_p2022_12_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2022_12
+    ADD CONSTRAINT event_p2022_12_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_01 event_p2023_01_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_01
+    ADD CONSTRAINT event_p2023_01_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_02 event_p2023_02_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_02
+    ADD CONSTRAINT event_p2023_02_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_03 event_p2023_03_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_03
+    ADD CONSTRAINT event_p2023_03_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_04 event_p2023_04_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_04
+    ADD CONSTRAINT event_p2023_04_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_05 event_p2023_05_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_05
+    ADD CONSTRAINT event_p2023_05_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_06 event_p2023_06_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_06
+    ADD CONSTRAINT event_p2023_06_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_07 event_p2023_07_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_07
+    ADD CONSTRAINT event_p2023_07_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
+-- Name: event_p2023_08 event_p2023_08_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_p2023_08
+    ADD CONSTRAINT event_p2023_08_pkey PRIMARY KEY (action_uuid, event_time, status);
+
+
+--
 -- Name: event_state event_state_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
 --
 
 ALTER TABLE ONLY swoop.event_state
     ADD CONSTRAINT event_state_pkey PRIMARY KEY (name);
+
+
+--
+-- Name: event_template event_template_pkey; Type: CONSTRAINT; Schema: swoop; Owner: -
+--
+
+ALTER TABLE ONLY swoop.event_template
+    ADD CONSTRAINT event_template_pkey PRIMARY KEY (action_uuid, event_time, status);
 
 
 --
@@ -1248,6 +1328,20 @@ CREATE INDEX action_default_created_at_idx ON swoop.action_default USING btree (
 
 
 --
+-- Name: action_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_handler_name_idx ON ONLY swoop.action USING btree (handler_name);
+
+
+--
+-- Name: action_default_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_default_handler_name_idx ON swoop.action_default USING btree (handler_name);
+
+
+--
 -- Name: action_p2022_12_action_name_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1266,6 +1360,13 @@ CREATE INDEX action_p2022_12_action_uuid_idx ON swoop.action_p2022_12 USING btre
 --
 
 CREATE INDEX action_p2022_12_created_at_idx ON swoop.action_p2022_12 USING btree (created_at);
+
+
+--
+-- Name: action_p2022_12_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2022_12_handler_name_idx ON swoop.action_p2022_12 USING btree (handler_name);
 
 
 --
@@ -1290,6 +1391,13 @@ CREATE INDEX action_p2023_01_created_at_idx ON swoop.action_p2023_01 USING btree
 
 
 --
+-- Name: action_p2023_01_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_01_handler_name_idx ON swoop.action_p2023_01 USING btree (handler_name);
+
+
+--
 -- Name: action_p2023_02_action_name_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1308,6 +1416,13 @@ CREATE INDEX action_p2023_02_action_uuid_idx ON swoop.action_p2023_02 USING btre
 --
 
 CREATE INDEX action_p2023_02_created_at_idx ON swoop.action_p2023_02 USING btree (created_at);
+
+
+--
+-- Name: action_p2023_02_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_02_handler_name_idx ON swoop.action_p2023_02 USING btree (handler_name);
 
 
 --
@@ -1332,6 +1447,13 @@ CREATE INDEX action_p2023_03_created_at_idx ON swoop.action_p2023_03 USING btree
 
 
 --
+-- Name: action_p2023_03_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_03_handler_name_idx ON swoop.action_p2023_03 USING btree (handler_name);
+
+
+--
 -- Name: action_p2023_04_action_name_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1350,6 +1472,13 @@ CREATE INDEX action_p2023_04_action_uuid_idx ON swoop.action_p2023_04 USING btre
 --
 
 CREATE INDEX action_p2023_04_created_at_idx ON swoop.action_p2023_04 USING btree (created_at);
+
+
+--
+-- Name: action_p2023_04_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_04_handler_name_idx ON swoop.action_p2023_04 USING btree (handler_name);
 
 
 --
@@ -1374,6 +1503,13 @@ CREATE INDEX action_p2023_05_created_at_idx ON swoop.action_p2023_05 USING btree
 
 
 --
+-- Name: action_p2023_05_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_05_handler_name_idx ON swoop.action_p2023_05 USING btree (handler_name);
+
+
+--
 -- Name: action_p2023_06_action_name_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1392,6 +1528,13 @@ CREATE INDEX action_p2023_06_action_uuid_idx ON swoop.action_p2023_06 USING btre
 --
 
 CREATE INDEX action_p2023_06_created_at_idx ON swoop.action_p2023_06 USING btree (created_at);
+
+
+--
+-- Name: action_p2023_06_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_06_handler_name_idx ON swoop.action_p2023_06 USING btree (handler_name);
 
 
 --
@@ -1416,6 +1559,13 @@ CREATE INDEX action_p2023_07_created_at_idx ON swoop.action_p2023_07 USING btree
 
 
 --
+-- Name: action_p2023_07_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_07_handler_name_idx ON swoop.action_p2023_07 USING btree (handler_name);
+
+
+--
 -- Name: action_p2023_08_action_name_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1434,6 +1584,13 @@ CREATE INDEX action_p2023_08_action_uuid_idx ON swoop.action_p2023_08 USING btre
 --
 
 CREATE INDEX action_p2023_08_created_at_idx ON swoop.action_p2023_08 USING btree (created_at);
+
+
+--
+-- Name: action_p2023_08_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX action_p2023_08_handler_name_idx ON swoop.action_p2023_08 USING btree (handler_name);
 
 
 --
@@ -1619,6 +1776,20 @@ CREATE INDEX thread_default_created_at_idx ON swoop.thread_default USING btree (
 
 
 --
+-- Name: thread_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_handler_name_idx ON ONLY swoop.thread USING btree (handler_name);
+
+
+--
+-- Name: thread_default_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_default_handler_name_idx ON swoop.thread_default USING btree (handler_name);
+
+
+--
 -- Name: thread_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1647,6 +1818,13 @@ CREATE INDEX thread_p2022_12_created_at_idx ON swoop.thread_p2022_12 USING btree
 
 
 --
+-- Name: thread_p2022_12_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2022_12_handler_name_idx ON swoop.thread_p2022_12 USING btree (handler_name);
+
+
+--
 -- Name: thread_p2022_12_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1665,6 +1843,13 @@ CREATE INDEX thread_p2023_01_action_uuid_idx ON swoop.thread_p2023_01 USING btre
 --
 
 CREATE INDEX thread_p2023_01_created_at_idx ON swoop.thread_p2023_01 USING btree (created_at);
+
+
+--
+-- Name: thread_p2023_01_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_01_handler_name_idx ON swoop.thread_p2023_01 USING btree (handler_name);
 
 
 --
@@ -1689,6 +1874,13 @@ CREATE INDEX thread_p2023_02_created_at_idx ON swoop.thread_p2023_02 USING btree
 
 
 --
+-- Name: thread_p2023_02_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_02_handler_name_idx ON swoop.thread_p2023_02 USING btree (handler_name);
+
+
+--
 -- Name: thread_p2023_02_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1707,6 +1899,13 @@ CREATE INDEX thread_p2023_03_action_uuid_idx ON swoop.thread_p2023_03 USING btre
 --
 
 CREATE INDEX thread_p2023_03_created_at_idx ON swoop.thread_p2023_03 USING btree (created_at);
+
+
+--
+-- Name: thread_p2023_03_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_03_handler_name_idx ON swoop.thread_p2023_03 USING btree (handler_name);
 
 
 --
@@ -1731,6 +1930,13 @@ CREATE INDEX thread_p2023_04_created_at_idx ON swoop.thread_p2023_04 USING btree
 
 
 --
+-- Name: thread_p2023_04_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_04_handler_name_idx ON swoop.thread_p2023_04 USING btree (handler_name);
+
+
+--
 -- Name: thread_p2023_04_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1749,6 +1955,13 @@ CREATE INDEX thread_p2023_05_action_uuid_idx ON swoop.thread_p2023_05 USING btre
 --
 
 CREATE INDEX thread_p2023_05_created_at_idx ON swoop.thread_p2023_05 USING btree (created_at);
+
+
+--
+-- Name: thread_p2023_05_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_05_handler_name_idx ON swoop.thread_p2023_05 USING btree (handler_name);
 
 
 --
@@ -1773,6 +1986,13 @@ CREATE INDEX thread_p2023_06_created_at_idx ON swoop.thread_p2023_06 USING btree
 
 
 --
+-- Name: thread_p2023_06_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_06_handler_name_idx ON swoop.thread_p2023_06 USING btree (handler_name);
+
+
+--
 -- Name: thread_p2023_06_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1794,6 +2014,13 @@ CREATE INDEX thread_p2023_07_created_at_idx ON swoop.thread_p2023_07 USING btree
 
 
 --
+-- Name: thread_p2023_07_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_07_handler_name_idx ON swoop.thread_p2023_07 USING btree (handler_name);
+
+
+--
 -- Name: thread_p2023_07_status_idx; Type: INDEX; Schema: swoop; Owner: -
 --
 
@@ -1812,6 +2039,13 @@ CREATE INDEX thread_p2023_08_action_uuid_idx ON swoop.thread_p2023_08 USING btre
 --
 
 CREATE INDEX thread_p2023_08_created_at_idx ON swoop.thread_p2023_08 USING btree (created_at);
+
+
+--
+-- Name: thread_p2023_08_handler_name_idx; Type: INDEX; Schema: swoop; Owner: -
+--
+
+CREATE INDEX thread_p2023_08_handler_name_idx ON swoop.thread_p2023_08 USING btree (handler_name);
 
 
 --
@@ -1843,6 +2077,13 @@ ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_default_cr
 
 
 --
+-- Name: action_default_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_default_handler_name_idx;
+
+
+--
 -- Name: action_p2022_12_action_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -1861,6 +2102,13 @@ ALTER INDEX swoop.action_action_uuid_idx ATTACH PARTITION swoop.action_p2022_12_
 --
 
 ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2022_12_created_at_idx;
+
+
+--
+-- Name: action_p2022_12_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2022_12_handler_name_idx;
 
 
 --
@@ -1885,6 +2133,13 @@ ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_01_c
 
 
 --
+-- Name: action_p2023_01_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_01_handler_name_idx;
+
+
+--
 -- Name: action_p2023_02_action_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -1903,6 +2158,13 @@ ALTER INDEX swoop.action_action_uuid_idx ATTACH PARTITION swoop.action_p2023_02_
 --
 
 ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_02_created_at_idx;
+
+
+--
+-- Name: action_p2023_02_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_02_handler_name_idx;
 
 
 --
@@ -1927,6 +2189,13 @@ ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_03_c
 
 
 --
+-- Name: action_p2023_03_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_03_handler_name_idx;
+
+
+--
 -- Name: action_p2023_04_action_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -1945,6 +2214,13 @@ ALTER INDEX swoop.action_action_uuid_idx ATTACH PARTITION swoop.action_p2023_04_
 --
 
 ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_04_created_at_idx;
+
+
+--
+-- Name: action_p2023_04_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_04_handler_name_idx;
 
 
 --
@@ -1969,6 +2245,13 @@ ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_05_c
 
 
 --
+-- Name: action_p2023_05_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_05_handler_name_idx;
+
+
+--
 -- Name: action_p2023_06_action_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -1987,6 +2270,13 @@ ALTER INDEX swoop.action_action_uuid_idx ATTACH PARTITION swoop.action_p2023_06_
 --
 
 ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_06_created_at_idx;
+
+
+--
+-- Name: action_p2023_06_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_06_handler_name_idx;
 
 
 --
@@ -2011,6 +2301,13 @@ ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_07_c
 
 
 --
+-- Name: action_p2023_07_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_07_handler_name_idx;
+
+
+--
 -- Name: action_p2023_08_action_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2029,6 +2326,13 @@ ALTER INDEX swoop.action_action_uuid_idx ATTACH PARTITION swoop.action_p2023_08_
 --
 
 ALTER INDEX swoop.action_created_at_idx ATTACH PARTITION swoop.action_p2023_08_created_at_idx;
+
+
+--
+-- Name: action_p2023_08_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.action_handler_name_idx ATTACH PARTITION swoop.action_p2023_08_handler_name_idx;
 
 
 --
@@ -2186,6 +2490,13 @@ ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_default_cr
 
 
 --
+-- Name: thread_default_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_default_handler_name_idx;
+
+
+--
 -- Name: thread_default_status_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2204,6 +2515,13 @@ ALTER INDEX swoop.thread_action_uuid_idx ATTACH PARTITION swoop.thread_p2022_12_
 --
 
 ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2022_12_created_at_idx;
+
+
+--
+-- Name: thread_p2022_12_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2022_12_handler_name_idx;
 
 
 --
@@ -2228,6 +2546,13 @@ ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_01_c
 
 
 --
+-- Name: thread_p2023_01_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_01_handler_name_idx;
+
+
+--
 -- Name: thread_p2023_01_status_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2246,6 +2571,13 @@ ALTER INDEX swoop.thread_action_uuid_idx ATTACH PARTITION swoop.thread_p2023_02_
 --
 
 ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_02_created_at_idx;
+
+
+--
+-- Name: thread_p2023_02_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_02_handler_name_idx;
 
 
 --
@@ -2270,6 +2602,13 @@ ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_03_c
 
 
 --
+-- Name: thread_p2023_03_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_03_handler_name_idx;
+
+
+--
 -- Name: thread_p2023_03_status_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2288,6 +2627,13 @@ ALTER INDEX swoop.thread_action_uuid_idx ATTACH PARTITION swoop.thread_p2023_04_
 --
 
 ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_04_created_at_idx;
+
+
+--
+-- Name: thread_p2023_04_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_04_handler_name_idx;
 
 
 --
@@ -2312,6 +2658,13 @@ ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_05_c
 
 
 --
+-- Name: thread_p2023_05_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_05_handler_name_idx;
+
+
+--
 -- Name: thread_p2023_05_status_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2330,6 +2683,13 @@ ALTER INDEX swoop.thread_action_uuid_idx ATTACH PARTITION swoop.thread_p2023_06_
 --
 
 ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_06_created_at_idx;
+
+
+--
+-- Name: thread_p2023_06_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_06_handler_name_idx;
 
 
 --
@@ -2354,6 +2714,13 @@ ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_07_c
 
 
 --
+-- Name: thread_p2023_07_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_07_handler_name_idx;
+
+
+--
 -- Name: thread_p2023_07_status_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
 --
 
@@ -2372,6 +2739,13 @@ ALTER INDEX swoop.thread_action_uuid_idx ATTACH PARTITION swoop.thread_p2023_08_
 --
 
 ALTER INDEX swoop.thread_created_at_idx ATTACH PARTITION swoop.thread_p2023_08_created_at_idx;
+
+
+--
+-- Name: thread_p2023_08_handler_name_idx; Type: INDEX ATTACH; Schema: swoop; Owner: -
+--
+
+ALTER INDEX swoop.thread_handler_name_idx ATTACH PARTITION swoop.thread_p2023_08_handler_name_idx;
 
 
 --
