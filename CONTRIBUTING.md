@@ -31,6 +31,11 @@ pre-commit checks, this can be done with:
 git commit -m "message" --no-verify
 ```
 
+## Testing
+
+Tests are run using `pytest`. Put pytest python modules and other resource in
+the `/tests` directory.
+
 ## Adding/updating dependencies
 
 ### Updating `requirements.txt` to latest versions

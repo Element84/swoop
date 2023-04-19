@@ -8,7 +8,6 @@ brew install dbmate
 ```
 <br>
 
-
 ## Database Setup / Migrations
 
 The DB schema and migrations are managed by [Dbmate](https://github.com/amacneil/dbmate#commands).
@@ -28,8 +27,11 @@ Create the database and tables:
 ```
 dbmate up
 ```
+<br>
 
+## Environment Setup and Testing
 
+Refer to [Contributing.md](./CONTRIBUTING.md) for environment setup and testing instructions.
 
 <br><br><br>
 This project is a work in progress.
