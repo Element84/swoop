@@ -1,0 +1,20 @@
+[sqlfluff]
+dialect = postgres
+exclude_rules = ST07
+
+[sqlfluff:indentation]
+tab_space_size = 2
+indented_joins = True
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:layout.long_lines]
+ignore_comment_lines = True
+ignore_comment_clauses = True
