@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from swoop.api.config import get_settings
+from swoop.api.config import Settings
 
 from swoop.api.routers import (
     jobs,
@@ -10,9 +10,8 @@ from swoop.api.routers import (
     root,
 )
 
-settings = get_settings()
-
 app: FastAPI = FastAPI()
+app.state.settings = Settings()
 
 app.include_router(
     root.router,
