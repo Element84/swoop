@@ -1,5 +1,4 @@
 import asyncpg
-from fastapi import FastAPI
 from .config import Settings
 
 async def connect_to_db(settings: Settings) -> None:

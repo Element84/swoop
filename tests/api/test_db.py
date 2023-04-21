@@ -1,5 +1,5 @@
 from swoop.api.config import get_settings
-from swoop.api.db import close_db_connection, connect_to_db
+from swoop.api.db import connect_to_db
 import pytest
 
 @pytest.mark.asyncio
@@ -9,10 +9,11 @@ async def test_db_connection_pool():
     pools = await connect_to_db(settings)
     readpool = pools[0]
 
-    for i in range(0, settings.db_max_conn_size):
+    # Saturate the connection pool
+    for i in range(settings.db_max_conn_size):
         await readpool.acquire()
 
-    # No connections available, this should Timeout after 1s
+    # Expecting a Timeout (after 1s), with no connections available
     with pytest.raises(TimeoutError):
         await readpool.acquire(timeout=1)
 
