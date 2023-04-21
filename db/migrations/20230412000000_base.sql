@@ -1,16 +1,13 @@
-CREATE SCHEMA swoop;
+-- migrate:up
+
+CREATE SCHEMA IF NOT EXISTS swoop;
 CREATE SCHEMA partman;
 CREATE EXTENSION pg_partman SCHEMA partman;
 CREATE SCHEMA tap;
 CREATE EXTENSION pgtap SCHEMA tap;
 
 
-CREATE TABLE swoop.schema_migrations (
-  version character varying(128) PRIMARY KEY
-);
-
-
-CREATE TABLE swoop.event_state (
+CREATE TABLE IF NOT EXISTS swoop.event_state (
   name text PRIMARY KEY,
   description text NOT NULL
 );
@@ -37,7 +34,7 @@ INSERT INTO swoop.event_state (name, description) VALUES
 ('INFO', 'Event is informational and does not change thread state');
 
 
-CREATE TABLE swoop.action (
+CREATE TABLE IF NOT EXISTS swoop.action (
   action_uuid uuid NOT NULL DEFAULT gen_random_uuid(),
   action_type text NOT NULL CHECK (action_type IN ('callback', 'workflow')),
   action_name text,
@@ -62,7 +59,7 @@ CREATE INDEX ON swoop.action (created_at);
 CREATE INDEX ON swoop.action (action_uuid);
 CREATE INDEX ON swoop.action (handler_name);
 CREATE INDEX ON swoop.action (action_name);
-CREATE TABLE swoop.action_template (LIKE swoop.action);
+CREATE TABLE IF NOT EXISTS swoop.action_template (LIKE swoop.action);
 ALTER TABLE swoop.action_template ADD PRIMARY KEY (action_uuid);
 SELECT partman.create_parent(
   'swoop.action',
@@ -75,7 +72,7 @@ SELECT partman.create_parent(
 
 -- the noqa is here for GENERATED ALWAYS AS IDENTITY
 -- https://github.com/sqlfluff/sqlfluff/issues/4455
-CREATE TABLE swoop.thread ( -- noqa
+CREATE TABLE IF NOT EXISTS swoop.thread ( -- noqa
   created_at timestamptz NOT NULL,
   last_update timestamptz NOT NULL,
   -- action_uuid reference to action omitted, we don't need referential integrity
@@ -112,7 +109,7 @@ CREATE INDEX ON swoop.thread (created_at);
 CREATE INDEX ON swoop.thread (action_uuid);
 CREATE INDEX ON swoop.thread (status);
 CREATE INDEX ON swoop.thread (handler_name);
-CREATE TABLE swoop.thread_template (LIKE swoop.thread);
+CREATE TABLE IF NOT EXISTS swoop.thread_template (LIKE swoop.thread);
 ALTER TABLE swoop.thread_template ADD PRIMARY KEY (action_uuid);
 SELECT partman.create_parent(
   'swoop.thread',
@@ -123,7 +120,7 @@ SELECT partman.create_parent(
 );
 
 
-CREATE TABLE swoop.event (
+CREATE TABLE IF NOT EXISTS swoop.event (
   event_time timestamptz NOT NULL,
   action_uuid uuid NOT NULL, -- reference omitted, we don't need referential integrity
   status text NOT NULL,
@@ -135,7 +132,7 @@ CREATE TABLE swoop.event (
 
 CREATE INDEX ON swoop.event (event_time);
 CREATE INDEX ON swoop.event (action_uuid);
-CREATE TABLE swoop.event_template (LIKE swoop.event);
+CREATE TABLE IF NOT EXISTS swoop.event_template (LIKE swoop.event);
 ALTER TABLE swoop.event_template ADD PRIMARY KEY (
   action_uuid,
   event_time,
@@ -150,7 +147,7 @@ SELECT partman.create_parent(
 );
 
 
-CREATE FUNCTION swoop.add_pending_event()
+CREATE OR REPLACE FUNCTION swoop.add_pending_event()
 RETURNS trigger
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -162,12 +159,12 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER add_pending_event
+CREATE OR REPLACE TRIGGER add_pending_event
 AFTER INSERT ON swoop.action
 FOR EACH ROW EXECUTE FUNCTION swoop.add_pending_event();
 
 
-CREATE FUNCTION swoop.add_thread()
+CREATE OR REPLACE FUNCTION swoop.add_thread()
 RETURNS trigger
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -192,12 +189,12 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER add_thread
+CREATE OR REPLACE TRIGGER add_thread
 AFTER INSERT ON swoop.action
 FOR EACH ROW EXECUTE FUNCTION swoop.add_thread();
 
 
-CREATE FUNCTION swoop.update_thread()
+CREATE OR REPLACE FUNCTION swoop.update_thread()
 RETURNS trigger
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -245,13 +242,13 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER update_thread
+CREATE OR REPLACE TRIGGER update_thread
 AFTER INSERT ON swoop.event
 FOR EACH ROW WHEN (NEW.status NOT IN ('PENDING', 'INFO')) -- noqa: CP02
 EXECUTE FUNCTION swoop.update_thread();
 
 
-CREATE FUNCTION swoop.thread_is_processable(_thread swoop.thread) -- noqa: LT01
+CREATE OR REPLACE FUNCTION swoop.thread_is_processable(_thread swoop.thread) -- noqa: LT01
 RETURNS boolean
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -265,7 +262,7 @@ END;
 $$;
 
 
-CREATE FUNCTION swoop.notify_for_processable_thread()
+CREATE OR REPLACE FUNCTION swoop.notify_for_processable_thread()
 RETURNS trigger
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -281,7 +278,7 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER processable_notify
+CREATE OR REPLACE TRIGGER processable_notify
 AFTER INSERT OR UPDATE ON swoop.thread
 FOR EACH ROW WHEN (swoop.thread_is_processable(NEW)) -- noqa: CP02
 EXECUTE FUNCTION swoop.notify_for_processable_thread();
@@ -337,7 +334,7 @@ EXECUTE FUNCTION swoop.notify_for_processable_thread();
 -- In fact the only noticable advantage of the row-level locks is that they do
 -- not stack, so the client doesn't have to track how many times they've
 -- aquired a lock.
-CREATE FUNCTION swoop.get_processable_actions(
+CREATE OR REPLACE FUNCTION swoop.get_processable_actions(
   _ignored_action_uuids uuid [],
   _limit integer DEFAULT 10,
   _handler_names text [] DEFAULT ARRAY[]::text []
@@ -388,7 +385,7 @@ END;
 $$;
 
 
-CREATE FUNCTION swoop.lock_thread(_lock_id integer)
+CREATE OR REPLACE FUNCTION swoop.lock_thread(_lock_id integer)
 RETURNS bool
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -401,7 +398,7 @@ END;
 $$;
 
 
-CREATE FUNCTION swoop.unlock_thread(_lock_id integer)
+CREATE OR REPLACE FUNCTION swoop.unlock_thread(_lock_id integer)
 RETURNS bool
 LANGUAGE plpgsql VOLATILE
 AS $$
@@ -412,3 +409,32 @@ BEGIN
   );
 END;
 $$;
+
+
+-- migrate:down
+
+DROP FUNCTION swoop.unlock_thread;
+DROP FUNCTION swoop.lock_thread;
+DROP FUNCTION swoop.get_processable_actions;
+DROP VIEW swoop.action_thread;
+DROP TRIGGER processable_notify ON swoop.thread;
+DROP FUNCTION swoop.notify_for_processable_thread;
+DROP FUNCTION swoop.thread_is_processable;
+DROP TRIGGER update_thread ON swoop.event;
+DROP FUNCTION swoop.update_thread;
+DROP TRIGGER add_thread ON swoop.action;
+DROP FUNCTION swoop.add_thread;
+DROP TRIGGER add_pending_event ON swoop.action;
+DROP FUNCTION swoop.add_pending_event;
+DROP TABLE swoop.event_template;
+DROP TABLE swoop.event;
+DROP TABLE swoop.thread_template;
+DROP TABLE swoop.thread;
+DROP TABLE swoop.action_template;
+DROP TABLE swoop.action;
+DROP TABLE swoop.event_state;
+DROP EXTENSION pgtap;
+DROP SCHEMA tap CASCADE;
+DROP EXTENSION pg_partman;
+DROP SCHEMA partman CASCADE;
+DROP SCHEMA swoop CASCADE;
