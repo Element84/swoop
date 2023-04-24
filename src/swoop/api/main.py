@@ -20,9 +20,7 @@ app.state.settings = settings
 @app.on_event("startup")
 async def startup_event():
     """Connect to database on startup."""
-    pools = await connect_to_db(settings)
-    app.state.readpool = pools[0]
-    app.state.writepool = pools[1]
+    app.state.readpool, app.state.writepool = await connect_to_db(app.state.settings)
 
 @app.on_event("shutdown")
 async def shutdown_event():
