@@ -3,6 +3,8 @@ from .db import close_db_connection, connect_to_db
 
 from swoop.api.config import get_settings
 
+from swoop.api.config import Settings
+
 from swoop.api.routers import (
     jobs,
     metrics,
@@ -11,11 +13,9 @@ from swoop.api.routers import (
     root,
 )
 
-settings = get_settings()
-
 app: FastAPI = FastAPI()
 
-app.state.settings = settings
+app.state.settings = get_settings()
 
 @app.on_event("startup")
 async def startup_event():
