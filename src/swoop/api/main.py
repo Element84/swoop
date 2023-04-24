@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from swoop.api.db import close_db_connection, connect_to_db
-
 from swoop.api.config import get_settings
-
-from swoop.api.config import Settings
 
 from swoop.api.routers import (
     jobs,
