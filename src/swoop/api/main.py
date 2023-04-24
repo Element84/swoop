@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .db import close_db_connection, connect_to_db
+from swoop.api.db import close_db_connection, connect_to_db
 
 from swoop.api.config import get_settings
 
