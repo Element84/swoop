@@ -17,12 +17,12 @@ app.state.settings = get_settings()
 @app.on_event("startup")
 async def startup_event():
     """Connect to database on startup."""
-    app.state.readpool, app.state.writepool = await connect_to_db(app.state.settings)
+    await connect_to_db(app)
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Close database connection."""
-    await close_db_connection(app.state)
+    await close_db_connection(app)
 
 app.include_router(
     root.router,
