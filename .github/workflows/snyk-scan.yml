@@ -26,8 +26,16 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: Snyk IaC report vulnerabilities
-        uses: snyk/actions/iac@master
+      - name: Snyk Python report vulnerabilities
+        uses: snyk/actions/python@master
+        continue-on-error: true # To make sure that SARIF upload gets called
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --sarif-file-output=snyk.sarif
+
+      - name: Snyk Docker report vulnerabilities
+        uses: snyk/actions/docker@master
         continue-on-error: true # To make sure that SARIF upload gets called
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -40,8 +48,15 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-      - name: Snyk IaC gatekeeper
-        uses: snyk/actions/iac@master
+      - name: Snyk Python gatekeeper
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high # Forces fail on high-severity vulnerabilities
+
+      - name: Snyk Docker gatekeeper
+        uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
