@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pydantic import BaseSettings
 import os
 from urllib.parse import quote
@@ -38,17 +37,16 @@ class Settings(BaseSettings):
     @property
     def reader_connection_string(self):
         """Create reader psql connection string."""
+        if hasattr(self, 'database_url'):
+            return self.database_url
         return self.build_db_connection_string()
 
     @property
     def writer_connection_string(self):
         """Create writer psql connection string."""
+        if hasattr(self, 'database_url'):
+            return self.database_url
         return self.build_db_connection_string()
 
     class Config:
         env_file = default_env
-
-
-@lru_cache
-def get_settings(*args, **kwargs):
-    return Settings(*args, **kwargs)

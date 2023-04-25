@@ -7,7 +7,7 @@ import pytest
 
 from pathlib import Path
 
-from swoop.api.config import Settings, get_settings
+from swoop.api.config import Settings
 
 
 @pytest.fixture(scope="session")
@@ -17,7 +17,7 @@ def dbschema(pytestconfig) -> Path:
 
 @pytest.fixture(scope="session")
 def settings() -> Settings:
-    return get_settings()
+    return Settings()
 
 
 async def async_create_database(db_name: str, db_connection_string: str) -> None:
