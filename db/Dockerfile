@@ -1,4 +1,4 @@
-FROM postgres:15.2
+FROM postgres:15
 
 # May not be ideal, I think it might be upgrading the pg version
 # and inflating the image size, but it works for testing.
