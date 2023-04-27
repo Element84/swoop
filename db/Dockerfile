@@ -18,7 +18,9 @@ RUN cpan TAP::Parser::SourceHandler::pgTAP
 COPY dbmate /usr/local/bin/dbmate
 RUN set -x && \
     DBMATE="/usr/local/bin/_dbmate" && \
-    ARCH="$(a="$(uname -m)"; [ "$a" = "aarch64" ] && echo "amd64" || echo "$a")" && \
+    ARCH="$(uname -m)" && \
+    { [ "$ARCH" != "aarch64" ] || ARCH=arm64; } && \
+    { [ "$ARCH" != "x86_64" ] || ARCH=amd64; } && \
     curl -fsSL -o "$DBMATE" https://github.com/amacneil/dbmate/releases/download/v2.2.0/dbmate-linux-$ARCH && \
     chmod +x "$DBMATE"
 
