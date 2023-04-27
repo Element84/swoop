@@ -37,15 +37,11 @@ class Settings(BaseSettings):
     @property
     def reader_connection_string(self):
         """Create reader psql connection string."""
-        if hasattr(self, 'database_url'):
-            return self.database_url
         return self.build_db_connection_string()
 
     @property
     def writer_connection_string(self):
         """Create writer psql connection string."""
-        if hasattr(self, 'database_url'):
-            return self.database_url
         return self.build_db_connection_string()
 
     class Config:
