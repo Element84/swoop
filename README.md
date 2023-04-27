@@ -29,11 +29,11 @@ Settings are managed using [Pydantic](https://docs.pydantic.dev/usage/settings/#
 To get a settings object configured from a specific dotenv file:
 
 ```python
-from swoop.api.config import get_settings
+from swoop.api.config import Settings
 settings = Settings('.env')
 ```
 
-If you don't provide an env file in `get_settings` swoop will default to (in this order):
+If you don't provide an env file in `Settings` swoop will default to (in this order):
 
 - A `DOTENV` environment variable
 - '.env'

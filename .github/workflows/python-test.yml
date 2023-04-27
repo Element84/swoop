@@ -33,6 +33,9 @@ jobs:
         run: |
           ruff check .
 
+      - name: Create DB Container
+        run: docker compose up --build -V -d
+
       - name: Test with pytest
         run: pytest --cov=swoop --cov-report=xml
 
