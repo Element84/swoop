@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Path, Query, Request
 
 from ..models import (
     Exception as APIException,
@@ -18,6 +18,14 @@ DEFAULT_JOB_LIMIT = 1000
 router: APIRouter = APIRouter(
     tags=["Jobs"],
 )
+
+
+# TODO - REMOVE ME - Temporary example, for basic testing
+@router.get("/test")
+async def test(request: Request):
+    async with request.app.state.readpool.acquire() as conn:
+       rows = await conn.fetch("SELECT * FROM swoop.action")
+       return [dict(r) for r in rows]
 
 
 @router.get(
