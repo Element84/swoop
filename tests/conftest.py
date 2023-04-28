@@ -4,7 +4,7 @@ import string
 
 import asyncpg
 import pytest
-
+from datetime import datetime
 from pathlib import Path
 
 from contextlib import asynccontextmanager
@@ -37,25 +37,36 @@ async def load_schema(schema: Path, db_connection_string: str) -> None:
 
 async def load_data(db_connection_string: str) -> None:
     async with get_db_connection(db_connection_string) as conn:
-        inserted = await conn.copy_records_to_table(
+        created = datetime(2023,4,28,15,49,0)
+        queued = datetime(2023,4,28,15,49,1)
+        started = datetime(2023,4,28,15,49,2)
+        completed = datetime(2023,4,28,15,49,3)
+        retry_at = datetime(2023,4,28,15,49,10)
+
+        actions = await conn.copy_records_to_table(
             table_name='action',
             schema_name='swoop',
-            columns=['action_uuid', 'action_type', 'action_name', 'handler_name', 'parent_uuid', 'priority'],
+            columns=['action_uuid', 'action_type', 'action_name', 'handler_name', 'parent_uuid', 'created_at'],
             records=[
-            ('2595f2da-81a6-423c-84db-935e6791046e','callback','foo_name','handler_foo',5001,100),
-            ('81842304-0aa9-4609-89f0-1c86819b0752','callback','foo_name','handler_foo',5001,100)
+            ('2595f2da-81a6-423c-84db-935e6791046e','workflow','foo_name','handler_foo',5001,created),
+            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','foo_name','handler_foo',5001,created)
             ],
         )
 
-        # inserted = await conn.copy_to_table(
-        #     table_name='action',
-        #     schema_name='swoop',
-        #     source='tests/fixtures/action.csv',
-        #     #header=True,
-        #     columns=['action_uuid', 'action_type', 'action_name', 'handler_name', 'parent_uuid', 'priority']
-        # )
+        threads = await conn.copy_records_to_table(
+            table_name='thread',
+            schema_name='swoop',
+            columns=['created_at', 'last_update', 'action_uuid', 'handler_name', 'priority', 'status', 'next_attempt_after', 'error'],
+            records=[
+            (created,created,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'PENDING',retry_at,'none'),
+            (queued,queued,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'QUEUED',retry_at,'none'),
+            (started,started,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'RUNNING',retry_at,'none'),
+            (completed,completed,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'SUCCESSFUL',retry_at,'none')
+            ],
+        )
 
-        print (f'Insert Result: {inserted}')
+        print (f'Inserted Actions: {actions}')
+        print (f'Inserted Actions: {threads}')
 
 
 async def drop_database(db_name: str, db_connection_string: str) -> None:
