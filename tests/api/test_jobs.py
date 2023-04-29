@@ -14,15 +14,11 @@ async def test_get_all_jobs(test_app):
         # assert response.status_code == 200
         # #assert number of records = all
 
-        response = app_client.get('/jobs?limit=1&process_id=foo&collection_id=foo,bar')
+        response = app_client.get('/jobs?limit=1&process_id=500&parent_id=101,102')
         assert response.status_code == 200
         #assert number of records = 1
 
         # response = app_client.get('/jobs?process_id=foo')
-        # assert response.status_code == 200
-        # #assert number of records = 1
-
-        # response = app_client.get('/jobs?collection_id=bar')
         # assert response.status_code == 200
         # #assert number of records = 1
 
@@ -42,13 +38,9 @@ async def test_get_all_jobs(test_app):
         # assert response.status_code == 200
         # #assert number of records = 1
 
-        # response = app_client.get('/jobs?limit=1&process_id=x&collection_id=y&item_id=z&start_datetime=foo&end_datetime=bar&parent_id=123043')
+        # response = app_client.get('/jobs?limit=1&process_id=x&start_datetime=z&end_datetime=a&parent_id=b')
         # assert response.status_code == 200
         # #assert number of records = 1
-
-        # response = app_client.get('/jobs?item_id=foo,bar')
-        # assert response.status_code == 200
-        # #assert number of records = 2
 
         #assert False
 

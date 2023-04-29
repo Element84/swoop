@@ -20,26 +20,20 @@ router: APIRouter = APIRouter(
     tags=["Jobs"],
 )
 
+### Query Param Mapping Guide
+# 
+# Job requests contain params that may not directly map to a DB field.
+# Below is an explanation of what each query param maps to.
+#
+# A join between the 'action' and 'thread' tables is necessary to build
+# to filter by certain params, and create the StatusInfo return object.
+#
+#   process_id -> action.action_name
+#   start_datetime -> thread.created_at = {start_datetime}, and thread.status = 'RUNNING'
+#   end_datetime -> thread.created_at = {end_datetime}, and thread.status = 'COMPLETED'
+#   parent_id -> action.parent_uuid
+#   job_id -> action.action_uuid
 
-# Put your query arguments in this dict
-list_jobs_params = {
-    'process_id': (str, None),
-    'collection_id': (str, None),
-    'item_id': (str, None),
-    'start_datetime': (datetime, None),
-    'end_datetime': (datetime, None),
-    'parent_id': (str, None),
-    'action_type': (str, 'workflow')
-}
-list_jobs_query_model = create_model("Query", **list_jobs_params)
-
-### TODO
-# Update StatusInfo getters(?) to calculate the status based on the Thread info 
-# Transform query params into correct query ... some params apply to 'action', some to 'thread'
-#   join where:
-#     action_uuid match
-#     created_at is latest
-#   present 
 
 # class StatusInfo(BaseModel):
 #     processID: str | None = None   
@@ -55,28 +49,59 @@ list_jobs_query_model = create_model("Query", **list_jobs_params)
 #     links: list[Link] | None = None
 #     parentID: str | None = None
 
-def build_query(table, params, limit) -> JobList:
+def build_query(params, limit) -> JobList:
     params_dict = params.dict(exclude_none=True)
-    sql = f'SELECT * FROM {table}'
+    sql = """
+    SELECT * FROM swoop.action a
+    INNER JOIN swoop.thread t 
+    ON t.action_uuid = a.action_uuid
+    WHERE a.action_type = 'workflow'
+    """
+    # t1.column_name (AS) new_column_name,
+    # t2.column_name (AS) other_new_column_name,
 
     if len(params_dict) > 0:
-        sql += ' WHERE'
 
-        delimiter = ''
         for key,value in params_dict.items():
+            
+            if key == 'process_id':
+                key = f'a.action_name'
+            if key == 'parent_id':
+                key = f'a.parent_uuid'
+            if key == 'job_id':
+                key = f'a.action_uuid'
+
+            if key == 'start_datetime':
+                key = f't.created_at'
+                sql += " AND t.status = 'RUNNING'"
+            if key == 'end_datetime':
+                key = f't.created_at'
+                sql += " AND t.status = 'COMPLETED'"
+
             if ',' in value:
                 quoted = value.replace(",", "', '")
-                sql += f"{delimiter} {key} in ('{quoted}')" # List
+                sql += f" AND {key} in ('{quoted}')" # List
             else:
-                sql += f"{delimiter} {key} = '{value}'" # Single Value
-            delimiter = ' AND'
+                sql += f" AND {key} = '{value}'" # Single Value
 
     if limit:
         sql += f" LIMIT {limit}"
     sql += ';'
 
-    #print (sql)
+    print (sql)
     return sql
+
+
+params = {
+    'process_id': (str, None),
+    #'collection_id': (str, None), # TODO soon - possibly named just 'collection'
+    #'item_id': (str, None), # TODO soon
+    'start_datetime': (datetime, None),
+    'end_datetime': (datetime, None),
+    'parent_id': (str, None)
+}
+jobs_list_params = create_model("Query", **params)
+
 
 @router.get(
     "/",
@@ -86,13 +111,18 @@ def build_query(table, params, limit) -> JobList:
 async def list_jobs(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
-    params: list_jobs_query_model = Depends()
+    params: jobs_list_params = Depends()
 ) -> JobList | APIException:
     """
     retrieve the list of jobs.
     """
-    sql = build_query('swoop.action', params, limit)
+    sql = build_query(params, limit)
     async with request.app.state.readpool.acquire() as conn:
+        jobs = await conn.fetch(sql)
+        print (jobs)
+        # TODO ... transform jobs into StatusInfo objects
+        #   either do this in the StatusInfo constructor, or use 'as' in the query
+        #   consider the other /jobs requests ... which option would they share best?
         return JobList(
             jobs=[
                 StatusInfo(
