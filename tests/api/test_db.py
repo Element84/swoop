@@ -25,3 +25,18 @@ async def test_db_connection_pool():
 
     await close_db_connection(app)
     assert True
+
+
+# TODO - Would be nice to use this version of the test, but ".acquire()" has
+# an issue and gets stuck (something with the event_loop)
+# This version would allow removal of imports/refs like: connect/close/settings/FastAPI
+#
+#@pytest.mark.asyncio
+#async def test_db_connection_pool(test_app):
+#    with TestClient(test_app) as app_client:
+#        connections = []
+#
+#        # Saturate the connection pool
+#        for i in range(app.state.settings.db_max_conn_size):
+#            connections.append(await app.state.readpool.acquire())
+#        ...
