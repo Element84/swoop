@@ -3,11 +3,6 @@ from datetime import datetime
 from pydantic import create_model
 from itertools import groupby
 from asyncpg import Record
-
-import pydantic.json
-import asyncpg.pgproto.pgproto
-pydantic.json.ENCODERS_BY_TYPE[asyncpg.pgproto.pgproto.UUID] = str
-
 from fastapi import APIRouter, Path, Query, Request, Depends, HTTPException
 
 from ..models import (
@@ -105,20 +100,20 @@ def build_query(params, limit=None) -> JobList:
         for key,value in params.items():
             
             if key == 'process_id':
-                key = f'a.action_name'
+                key = 'a.action_name'
 
             if key == 'parent_id':
-                key = f'a.parent_uuid'
+                key = 'a.parent_uuid'
 
             if key == 'job_id':
-                key = f'a.action_uuid'
+                key = 'a.action_uuid'
 
             if key == 'start_datetime':
-                key = f'e.event_time'
+                key = 'e.event_time'
                 sql_where += "AND e.status = 'RUNNING' "
 
             if key == 'end_datetime':
-                key = f'e.event_time'
+                key = 'e.event_time'
                 sql_where += "AND e.status = 'COMPLETED' "
 
             if ',' in value:
@@ -262,8 +257,11 @@ async def get_job_payload(
     """
     retrieve the input payload of a job
     """
-    async with request.app.state.readpool.acquire() as conn:
-        sql = f"SELECT 1 FROM swoop.action WHERE action_type = 'workflow' AND action_uuid = '{job_id}';"
+    async with request.app.state.readpool.acquire() as conn:    
+        sql = """
+            SELECT 1 FROM swoop.action WHERE action_type = 'workflow' 
+            AND action_uuid = '{j}';
+            """.format(j = job_id)
         job = await conn.fetch(sql)
 
         if not job:

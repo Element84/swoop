@@ -6,7 +6,7 @@ def single_job():
     return {
             'jobs': [
                 {
-                    'processID': 'action_name_1',
+                    'processID': 'action_1',
                     'type': 'process',
                     'jobID': '2595f2da-81a6-423c-84db-935e6791046e',
                     'status': 'accepted',
@@ -34,11 +34,11 @@ def single_job():
 
 @pytest.fixture
 def all_jobs():
-    # TODO - figure out why 'action_name_1' is returned twice
+    # TODO - figure out why 'action_1' is returned twice
     return {
         'jobs': [
             {
-                'processID': 'action_name_1',
+                'processID': 'action_1',
                 'type': 'process',
                 'jobID': '2595f2da-81a6-423c-84db-935e6791046e',
                 'status': 'accepted',
@@ -52,7 +52,7 @@ def all_jobs():
                 'parentID': '5001'
             },
             {
-                'processID': 'action_name_2',
+                'processID': 'action_2',
                 'type': 'process',
                 'jobID': '81842304-0aa9-4609-89f0-1c86819b0752',
                 'status': 'accepted',
@@ -66,7 +66,7 @@ def all_jobs():
                 'parentID': '5002'
             },
             {
-                'processID': 'action_name_1',
+                'processID': 'action_1',
                 'type': 'process',
                 'jobID': '2595f2da-81a6-423c-84db-935e6791046e',
                 'status': 'running',
@@ -96,7 +96,7 @@ def all_jobs():
 async def test_get_all_jobs(test_app, single_job, all_jobs):
     with TestClient(test_app) as app_client:
         # TODO need to escape datetime string
-        # response = app_client.get('/jobs?limit=7&parent_id=5001,5002&start_datetime=2023-04-28T19:49:02+00:00')
+        # response = app_client.get('/jobs?parent_id=5001&start_datetime=2023-04-28T19:49:02')
         #assert response.status_code == 200
         #assert response.json() == {}
 
@@ -104,11 +104,11 @@ async def test_get_all_jobs(test_app, single_job, all_jobs):
         assert response.status_code == 200
         assert response.json() == all_jobs
 
-        response = app_client.get('/jobs?limit=1&process_id=action_name_1&parent_id=5001')
+        response = app_client.get('/jobs?limit=1&process_id=action_1&parent_id=5001')
         assert response.status_code == 200
         assert response.json() == single_job
 
-        response = app_client.get('/jobs?process_id=action_name_1')
+        response = app_client.get('/jobs?process_id=action_1')
         assert response.status_code == 200
         assert response.json() == single_job
 
