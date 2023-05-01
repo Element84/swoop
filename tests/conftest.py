@@ -49,7 +49,7 @@ async def load_data(db_connection_string: str) -> None:
             columns=['action_uuid', 'action_type', 'action_name', 'handler_name', 'parent_uuid', 'created_at'],
             records=[
             ('2595f2da-81a6-423c-84db-935e6791046e','workflow','action_name_1','handler_foo',5001,created),
-            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','action_name_2','handler_foo',5001,created)
+            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','action_name_2','handler_foo',5002,created)
             ],
         )
 
@@ -58,15 +58,29 @@ async def load_data(db_connection_string: str) -> None:
             schema_name='swoop',
             columns=['created_at', 'last_update', 'action_uuid', 'handler_name', 'priority', 'status', 'next_attempt_after', 'error'],
             records=[
-            (created,created,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'PENDING',retry_at,'none'),
-            (queued,queued,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'QUEUED',retry_at,'none'),
-            (started,started,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'RUNNING',retry_at,'none'),
+            (created,created,'81842304-0aa9-4609-89f0-1c86819b0752','handler',100,'PENDING',retry_at,'none'),
+            #(created,created,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'PENDING',retry_at,'none'),
+            #(queued,queued,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'QUEUED',retry_at,'none'),
+            #(started,started,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'RUNNING',retry_at,'none'),
             (completed,completed,'2595f2da-81a6-423c-84db-935e6791046e','handler',100,'SUCCESSFUL',retry_at,'none')
             ],
         )
 
+        events = await conn.copy_records_to_table(
+            table_name='event',
+            schema_name='swoop',
+            columns=['event_time', 'action_uuid', 'status', 'event_source', 'retry_seconds', 'error'],
+            records=[
+            #(created,'2595f2da-81a6-423c-84db-935e6791046e','PENDING','swoop-db',300,'none'),
+            (queued,'2595f2da-81a6-423c-84db-935e6791046e','QUEUED','swoop-db',300,'none'),
+            (started,'2595f2da-81a6-423c-84db-935e6791046e','RUNNING','swoop-db',300,'none'),
+            (completed,'2595f2da-81a6-423c-84db-935e6791046e','SUCCESSFUL','swoop-db',300,'none')
+            ],
+        )
+
         print (f'Inserted Actions: {actions}')
-        print (f'Inserted Actions: {threads}')
+        print (f'Inserted Threads: {threads}')
+        print (f'Inserted Events: {events}')
 
 
 async def drop_database(db_name: str, db_connection_string: str) -> None:
