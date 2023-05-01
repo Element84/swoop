@@ -1,7 +1,8 @@
 from __future__ import annotations
+from datetime import datetime
 
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Path, Query, Request
 
 from swoop.api.models import (
     Exception as APIException,
@@ -20,10 +21,28 @@ router: APIRouter = APIRouter(
 )
 
 
-@router.get("/", response_model=ProcessList)
+# TODO - REMOVE ME - Temporary example, for basic testing
+@router.get("/test")
+async def test(request: Request):
+    async with request.app.state.readpool.acquire() as conn:
+       rows = await conn.fetch("SELECT * FROM swoop.action")
+       return [dict(r) for r in rows]
+
+
+@router.get(
+    "/",
+    response_model=ProcessList,
+    responses={"404": {"model": APIException}},
+)
 def list_processes(
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
-) -> ProcessList:
+    process_id: list[str] | None = Query(default=None),
+    collection_id: list[str] | None = Query(default=None),
+    item_id: list[str] | None = Query(default=None),
+    start_datetime: datetime | None = None,
+    end_datetime: datetime | None = None,
+    parent_id: list[str] | None = Query(default=None),
+) -> ProcessList | APIException:
     """
     retrieve the list of available processes
     """
@@ -33,7 +52,10 @@ def list_processes(
 @router.get(
     "/{process_id}",
     response_model=Process,
-    responses={"404": {"model": APIException}},
+    responses={
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
 )
 def get_process_description(
     process_id: str = Path(..., alias="processID")
