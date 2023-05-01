@@ -14,13 +14,14 @@ async def test_get_all_jobs(test_app):
         # assert response.status_code == 200
         # #assert number of records = all
 
+        # TODO - change these values to real things on the fixture
         response = app_client.get('/jobs?limit=1&process_id=500&parent_id=101,102')
         assert response.status_code == 200
         #assert number of records = 1
 
-        # response = app_client.get('/jobs?process_id=foo')
-        # assert response.status_code == 200
-        # #assert number of records = 1
+        response = app_client.get('/jobs?process_id=action_name_1')
+        assert response.status_code == 200
+        #assert number of records = 1
 
         # response = app_client.get('/jobs?item_id=bar')
         # assert response.status_code == 200

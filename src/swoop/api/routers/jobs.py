@@ -20,13 +20,14 @@ router: APIRouter = APIRouter(
     tags=["Jobs"],
 )
 
+
 ### Query Param Mapping Guide
 # 
 # Job requests contain params that may not directly map to a DB field.
 # Below is an explanation of what each query param maps to.
 #
-# A join between the 'action' and 'thread' tables is necessary to build
-# to filter by certain params, and create the StatusInfo return object.
+# A join between the 'action' and 'thread' tables is necessary before filtering
+# by certain params, and generating a StatusInfo response object.
 #
 #   process_id -> action.action_name
 #   start_datetime -> thread.created_at = {start_datetime}, and thread.status = 'RUNNING'
@@ -35,30 +36,24 @@ router: APIRouter = APIRouter(
 #   job_id -> action.action_uuid
 
 
-# class StatusInfo(BaseModel):
-#     processID: str | None = None   
-#     type: Type
-#     jobID: str
-#     status: StatusCode
-#     message: str | None = None
-#     created: datetime | None = None
-#     started: datetime | None = None
-#     finished: datetime | None = None
-#     updated: datetime | None = None
-#     progress: conint(ge=0, le=100) | None = None
-#     links: list[Link] | None = None
-#     parentID: str | None = None
+def join_query() -> str:
+    return """
+        SELECT 
+        *
+        FROM swoop.action a
+        INNER JOIN swoop.thread t 
+        ON t.action_uuid = a.action_uuid
+        WHERE a.action_type = 'workflow'  # hmmm ... need to insert more WHERE args here
+        GROUP BY a.action_uuid
+        """
+    ### Do we want to rename anything as part of SELECT?
+    # a.action_name AS processID
+    # a.action_uuid AS jobID
+    # a.parent_uuid AS parentID
 
 def build_query(params, limit) -> JobList:
     params_dict = params.dict(exclude_none=True)
-    sql = """
-    SELECT * FROM swoop.action a
-    INNER JOIN swoop.thread t 
-    ON t.action_uuid = a.action_uuid
-    WHERE a.action_type = 'workflow'
-    """
-    # t1.column_name (AS) new_column_name,
-    # t2.column_name (AS) other_new_column_name,
+    sql = join_query()
 
     if len(params_dict) > 0:
 
@@ -66,14 +61,17 @@ def build_query(params, limit) -> JobList:
             
             if key == 'process_id':
                 key = f'a.action_name'
+
             if key == 'parent_id':
                 key = f'a.parent_uuid'
+
             if key == 'job_id':
                 key = f'a.action_uuid'
 
             if key == 'start_datetime':
                 key = f't.created_at'
                 sql += " AND t.status = 'RUNNING'"
+
             if key == 'end_datetime':
                 key = f't.created_at'
                 sql += " AND t.status = 'COMPLETED'"
@@ -88,14 +86,16 @@ def build_query(params, limit) -> JobList:
         sql += f" LIMIT {limit}"
     sql += ';'
 
+    # call build_query here ... pass it {where} and {limit}, insert them
+
     print (sql)
     return sql
 
 
 params = {
     'process_id': (str, None),
-    #'collection_id': (str, None), # TODO soon - possibly named just 'collection'
-    #'item_id': (str, None), # TODO soon
+    #'collection_id': (str, None),  # TODO - possibly named just 'collection'
+    #'item_id': (str, None),        # TODO
     'start_datetime': (datetime, None),
     'end_datetime': (datetime, None),
     'parent_id': (str, None)
@@ -119,6 +119,26 @@ async def list_jobs(
     sql = build_query(params, limit)
     async with request.app.state.readpool.acquire() as conn:
         jobs = await conn.fetch(sql)
+
+        # jobs -> [ <Record>, <Record>, <Record> ]
+        # we probably want: per a.action_uuid, the latest by (t.created_at or t.last_update) ?
+
+
+# TODO delete me
+#     class StatusInfo(BaseModel):
+#     processID: str | None = None   
+#     type: Type
+#     jobID: str
+#     status: StatusCode
+#     message: str | None = None
+#     created: datetime | None = None
+#     started: datetime | None = None
+#     finished: datetime | None = None
+#     updated: datetime | None = None
+#     progress: conint(ge=0, le=100) | None = None
+#     links: list[Link] | None = None
+#     parentID: str | None = None
+
         print (jobs)
         # TODO ... transform jobs into StatusInfo objects
         #   either do this in the StatusInfo constructor, or use 'as' in the query
@@ -161,6 +181,7 @@ async def get_job_status(
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
         
+        # TODO complete this
         return StatusInfo(
             type='process',
             jobID='jobid',
@@ -235,6 +256,7 @@ async def get_job_payload(
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
         
+        # TODO - implement this later
         return {
             "example": "example payload"
         }

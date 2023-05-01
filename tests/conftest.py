@@ -48,8 +48,8 @@ async def load_data(db_connection_string: str) -> None:
             schema_name='swoop',
             columns=['action_uuid', 'action_type', 'action_name', 'handler_name', 'parent_uuid', 'created_at'],
             records=[
-            ('2595f2da-81a6-423c-84db-935e6791046e','workflow','foo_name','handler_foo',5001,created),
-            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','foo_name','handler_foo',5001,created)
+            ('2595f2da-81a6-423c-84db-935e6791046e','workflow','action_name_1','handler_foo',5001,created),
+            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','action_name_2','handler_foo',5001,created)
             ],
         )
 
