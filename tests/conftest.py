@@ -84,7 +84,14 @@ async def load_data(db_connection_string: str) -> None:
         events = await conn.copy_records_to_table(
             table_name='event',
             schema_name='swoop',
-            columns=['event_time', 'action_uuid', 'status', 'event_source', 'retry_seconds', 'error'],
+            columns=[
+                'event_time',
+                'action_uuid',
+                'status',
+                'event_source',
+                'retry_seconds',
+                'error'
+            ],
             records=[
             #(created,'2595f2da-81a6-423c-84db-935e6791046e','PENDING','swoop-db',300,'none'),
             (queued,'2595f2da-81a6-423c-84db-935e6791046e','QUEUED','swoop-db',300,'none'),
