@@ -170,7 +170,7 @@ CREATE INDEX ON swoop.item_payload (payload_uuid);
 
 CREATE TABLE IF NOT EXISTS swoop.payload_cache (
     cache_uuid uuid NOT NULL DEFAULT gen_random_uuid(),
-    payload_uuid uuid NOT NULL gen_random_uuid(),
+    payload_uuid uuid NOT NULL,
     cache_key text,
     workflow_version smallserial,
     workflow_name text,

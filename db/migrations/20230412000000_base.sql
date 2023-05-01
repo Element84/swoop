@@ -46,11 +46,13 @@ CREATE TABLE IF NOT EXISTS swoop.action (
   CONSTRAINT workflow_or_callback CHECK (
     CASE
       WHEN
-        action_type = 'callback' THEN
-        parent_uuid IS NOT NULL
+        action_type = 'callback'
+        THEN
+          parent_uuid IS NOT NULL
       WHEN
-        action_type = 'workflow' THEN
-        action_name IS NOT NULL
+        action_type = 'workflow'
+        THEN
+          action_name IS NOT NULL
     END
   )
 ) PARTITION BY RANGE (created_at);

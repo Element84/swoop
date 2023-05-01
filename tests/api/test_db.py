@@ -3,10 +3,11 @@ from swoop.api.config import Settings
 from swoop.api.db import connect_to_db, close_db_connection
 import pytest
 
+
 @pytest.mark.asyncio
 async def test_db_connection_pool():
     app: FastAPI = FastAPI()
-    app.state.settings = Settings('.env')
+    app.state.settings = Settings(".env")
     await connect_to_db(app)
 
     connections = []
