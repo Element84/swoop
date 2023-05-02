@@ -54,9 +54,6 @@ status_dict = {
 
 
 def to_status_info(records: list[Record]) -> StatusInfo:
-    print ('To StatusInfo !')
-    print (records)
-
     latest = max(records, key=lambda rec: rec['created_at'])
 
     return StatusInfo(
@@ -124,7 +121,7 @@ def build_query(params, limit=None) -> JobList:
 
     sql = job_query(sql_where, sql_limit)
 
-    print (sql)
+    #print (sql)
     return sql
 
 
