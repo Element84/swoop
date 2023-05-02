@@ -1,7 +1,8 @@
 from __future__ import annotations
 from datetime import datetime
 from pydantic import create_model
-
+from itertools import groupby
+from asyncpg import Record
 from fastapi import APIRouter, Path, Query, Request, Depends, HTTPException
 
 from ..models import (
@@ -30,65 +31,97 @@ router: APIRouter = APIRouter(
 # by certain params, and generating a StatusInfo response object.
 #
 #   process_id -> action.action_name
-#   start_datetime -> thread.created_at = {start_datetime}, and thread.status = 'RUNNING'
-#   end_datetime -> thread.created_at = {end_datetime}, and thread.status = 'COMPLETED'
+#   start_datetime -> event.event_time = {start_datetime}, and event.status = 'RUNNING'
+#   end_datetime -> event.event_time = {end_datetime}, and event.status = 'COMPLETED'
 #   parent_id -> action.parent_uuid
 #   job_id -> action.action_uuid
 
 
-def join_query() -> str:
+status_dict = {
+    'PENDING': 'accepted',
+    'QUEUED': 'running', # ?
+    'RUNNING': 'running',
+    'SUCCESSFUL': 'successful',
+    'FAILED': 'failed',
+    'CANCELED': 'dismissed',
+    'TIMED_OUT': 'failed', # ?
+    'UNKNOWN': 'failed', # ?
+    'BACKOFF': 'failed', # ?
+    'INVALID': 'failed', # ?
+    'RETRIES_EXHAUSTED': 'failed', # ?
+    #'INFO': '?' # ?
+}
+
+
+def to_status_info(records: list[Record]) -> StatusInfo:
+    latest = max(records, key=lambda rec: rec['created_at'])
+
+    return StatusInfo(
+        processID=latest['action_name'],
+        type='process',
+        jobID=str(latest['action_uuid']),
+        status=status_dict[latest['status']],
+        # created = 
+        # started = 
+        # finished =
+        updated=latest['event_time'],
+        parentID=latest['parent_uuid']
+    )
+
+def group_records(records: list[Record]) -> list[list[Record]]:
+    record_groups = groupby(records, lambda r: r['action_uuid'])
+
+    results = []
+    for element, group in record_groups:
+        results.append(list(group))
+
+    return results
+
+def job_query(where, limit) -> str:
     return """
         SELECT 
         *
         FROM swoop.action a
-        INNER JOIN swoop.thread t 
-        ON t.action_uuid = a.action_uuid
-        WHERE a.action_type = 'workflow'  # hmmm ... need to insert more WHERE args here
-        GROUP BY a.action_uuid
-        """
-    ### Do we want to rename anything as part of SELECT?
-    # a.action_name AS processID
-    # a.action_uuid AS jobID
-    # a.parent_uuid AS parentID
+        INNER JOIN swoop.event e 
+        ON e.action_uuid = a.action_uuid
+        WHERE a.action_type = 'workflow' {w} {l} ;
+        """.format(w=where, l=limit)
 
-def build_query(params, limit) -> JobList:
-    params_dict = params.dict(exclude_none=True)
-    sql = join_query()
 
-    if len(params_dict) > 0:
+def build_query(params, limit=None) -> JobList:
+    sql_where = ''
+    sql_limit = f"LIMIT {limit}" if limit else ''
 
-        for key,value in params_dict.items():
+    if len(params) > 0:
+
+        for key,value in params.items():
             
             if key == 'process_id':
-                key = f'a.action_name'
+                key = 'a.action_name'
 
             if key == 'parent_id':
-                key = f'a.parent_uuid'
+                key = 'a.parent_uuid'
 
             if key == 'job_id':
-                key = f'a.action_uuid'
+                key = 'a.action_uuid'
 
             if key == 'start_datetime':
-                key = f't.created_at'
-                sql += " AND t.status = 'RUNNING'"
+                key = 'e.event_time'
+                sql_where += "AND e.status = 'RUNNING' "
 
             if key == 'end_datetime':
-                key = f't.created_at'
-                sql += " AND t.status = 'COMPLETED'"
+                key = 'e.event_time'
+                sql_where += "AND e.status = 'COMPLETED' "
 
             if ',' in value:
                 quoted = value.replace(",", "', '")
-                sql += f" AND {key} in ('{quoted}')" # List
+                sql_where += f"AND {key} in ('{quoted}') " # List
             else:
-                sql += f" AND {key} = '{value}'" # Single Value
+                sql_where += f"AND {key} = '{value}' " # Single Value
 
-    if limit:
-        sql += f" LIMIT {limit}"
-    sql += ';'
+    sql = job_query(sql_where, sql_limit)
 
-    # call build_query here ... pass it {where} and {limit}, insert them
-
-    print (sql)
+    #print (sql)
     return sql
 
 
@@ -116,41 +149,17 @@ async def list_jobs(
     """
     retrieve the list of jobs.
     """
-    sql = build_query(params, limit)
+    sql = build_query(params.dict(exclude_none=True), limit)
     async with request.app.state.readpool.acquire() as conn:
-        jobs = await conn.fetch(sql)
+        record_groups = group_records(await conn.fetch(sql))
 
-        # jobs -> [ <Record>, <Record>, <Record> ]
-        # we probably want: per a.action_uuid, the latest by (t.created_at or t.last_update) ?
+        statusinfo_list = []
 
+        for group in record_groups:
+            statusinfo_list.append(to_status_info(group))
 
-# TODO delete me
-#     class StatusInfo(BaseModel):
-#     processID: str | None = None   
-#     type: Type
-#     jobID: str
-#     status: StatusCode
-#     message: str | None = None
-#     created: datetime | None = None
-#     started: datetime | None = None
-#     finished: datetime | None = None
-#     updated: datetime | None = None
-#     progress: conint(ge=0, le=100) | None = None
-#     links: list[Link] | None = None
-#     parentID: str | None = None
-
-        print (jobs)
-        # TODO ... transform jobs into StatusInfo objects
-        #   either do this in the StatusInfo constructor, or use 'as' in the query
-        #   consider the other /jobs requests ... which option would they share best?
         return JobList(
-            jobs=[
-                StatusInfo(
-                    type='process',
-                    jobID='jobid',
-                    status='running'
-                )
-            ],
+            jobs=statusinfo_list,
             links=[
                 Link(
                     href='http://www.example.com',
@@ -175,18 +184,13 @@ async def get_job_status(
     retrieve the status of a job
     """
     async with request.app.state.readpool.acquire() as conn:
-        sql = f"SELECT 1 FROM swoop.action WHERE action_type = 'workflow' AND action_uuid = '{job_id}';"
-        job = await conn.fetch(sql)
+        sql = build_query({ 'job_id': job_id })
+        records = await conn.fetch(sql)
 
-        if not job:
+        if not records:
             raise HTTPException(status_code=404, detail="Job not found")
-        
-        # TODO complete this
-        return StatusInfo(
-            type='process',
-            jobID='jobid',
-            status='running'
-        )
+
+        return to_status_info(records)
 
 
 @router.delete(
@@ -222,18 +226,19 @@ async def get_job_result(
     retrieve the result(s) of a job
     """
     async with request.app.state.readpool.acquire() as conn:
-        sql = f"SELECT 1 FROM swoop.action WHERE action_type = 'workflow' AND action_uuid = '{job_id}';"
-        job = await conn.fetch(sql)
+        sql = build_query({ 'job_id': job_id })
+        records = await conn.fetch(sql)
 
-        if not job:
+        if not records:
             raise HTTPException(status_code=404, detail="Job not found")
         
-        # TODO - This isn't valid. I don't understand the Results model schema
-        #        Fix this, and then uncomment the test for it
-        return Results({})
+        # TODO - Fix this with correct Results data
+        #return Results({})
+        return {
+            "example": "example results"
+        }
 
 
-# TODO: model payload, use here for response
 @router.get(
     "/{job_id}/payload",
     response_model=dict,
@@ -249,8 +254,11 @@ async def get_job_payload(
     """
     retrieve the input payload of a job
     """
-    async with request.app.state.readpool.acquire() as conn:
-        sql = f"SELECT 1 FROM swoop.action WHERE action_type = 'workflow' AND action_uuid = '{job_id}';"
+    async with request.app.state.readpool.acquire() as conn:    
+        sql = """
+            SELECT 1 FROM swoop.action WHERE action_type = 'workflow' 
+            AND action_uuid = '{j}';
+            """.format(j = job_id)
         job = await conn.fetch(sql)
 
         if not job:
