@@ -1,3 +1,4 @@
+import logging
 from __future__ import annotations
 from datetime import datetime
 from pydantic import create_model
@@ -15,6 +16,8 @@ from ..models import (
 )
 
 
+logger = logging.getLogger("uvicorn")
+logger.setLevel(logging.INFO)
 DEFAULT_JOB_LIMIT = 1000
 
 router: APIRouter = APIRouter(
@@ -121,7 +124,7 @@ def build_query(params, limit=None) -> JobList:
 
     sql = job_query(sql_where, sql_limit)
 
-    #print (sql)
+    logger.debug(sql)
     return sql
 
 

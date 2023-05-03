@@ -1,7 +1,7 @@
 import asyncio
 import random
 import string
-
+import logging
 import asyncpg
 import pytest
 from datetime import datetime
@@ -13,6 +13,8 @@ import pytest_asyncio
 from swoop.api.config import Settings
 from swoop.api.main import app
 
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def get_db_connection(db_connection_string: str) -> None:
@@ -100,9 +102,9 @@ async def load_data(db_connection_string: str) -> None:
             ],
         )
 
-        print (f'Inserted Actions: {actions}')
-        print (f'Inserted Threads: {threads}')
-        print (f'Inserted Events: {events}')
+        logger.info(f'Inserted Actions: {actions}')
+        logger.info(f'Inserted Threads: {threads}')
+        logger.info(f'Inserted Events: {events}')
 
 
 async def drop_database(db_name: str, db_connection_string: str) -> None:
