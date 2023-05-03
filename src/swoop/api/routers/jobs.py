@@ -125,15 +125,13 @@ def build_query(params, limit=None) -> JobList:
     return sql
 
 
-params = {
-    'process_id': (str, None),
-    #'collection_id': (str, None),  # TODO - possibly named just 'collection'
-    #'item_id': (str, None),        # TODO
-    'start_datetime': (datetime, None),
-    'end_datetime': (datetime, None),
-    'parent_id': (str, None)
-}
-jobs_list_params = create_model("Query", **params)
+class Params(BaseModel)
+    process_id: str
+    #collection_id: str  # TODO - possibly named just 'collection'
+    #item_id: str        # TODO
+    start_datetime: datetime
+    end_datetime: datetime
+    parent_id: str
 
 
 @router.get(
