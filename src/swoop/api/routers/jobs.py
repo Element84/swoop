@@ -151,19 +151,14 @@ async def list_jobs(
     async with request.app.state.readpool.acquire() as conn:
         record_groups = group_records(await conn.fetch(sql))
 
-        statusinfo_list = []
-
-        for group in record_groups:
-            statusinfo_list.append(to_status_info(group))
-
-        return JobList(
-            jobs=statusinfo_list,
-            links=[
-                Link(
-                    href='http://www.example.com',
-                )
-            ]
-        )
+    return JobList(
+        jobs=[to_status_info(group) for group in record_groups],
+        links=[
+            Link(
+                href='http://www.example.com',
+            )
+        ]
+    )
 
 
 @router.get(
