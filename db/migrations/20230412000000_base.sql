@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS swoop.action (
   action_type text NOT NULL CHECK (action_type IN ('callback', 'workflow')),
   action_name text,
   handler_name text NOT NULL,
-  parent_uuid bigint, -- reference omitted, we don't need referential integrity
+  parent_uuid uuid, -- reference omitted, we don't need referential integrity
   created_at timestamptz NOT NULL DEFAULT now(),
   priority smallint DEFAULT 100,
 
