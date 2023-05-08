@@ -216,6 +216,18 @@ def test_error_same_path_inc_exc():
         transform_payload(payload_2, includes, excludes)
 
 
+def test_badkey_intindex():
+    includes = [
+        "process.workflow",
+        "features[*].id",
+        "features[*].collection",
+        'features[*]."crazy_key[0]"[0]',
+    ]
+    excludes = ["*"]
+    with pytest.raises(ValueError):
+        transform_payload(payload_4, includes, excludes)
+
+
 payload_1 = {
     "id": "test",
     "type": "FeatureCollection",
@@ -319,4 +331,26 @@ payload_3 = {
         },
         "tasks": {"copy-assets": {"assets": ["thumbnail"], "drop_assets": ["image"]}},
     },
+}
+
+
+payload_4 = {
+    "features": [
+        {
+            "id": "b-item",
+            "collection": "collection-b",
+            '"crazy_key[0]"': [
+                {"city": "la", "state": "ca"},
+                {"city": "sf", "state": "ca"},
+            ],
+        },
+        {
+            "id": "a_item",
+            "collection": "collection-a",
+            '"crazy_key[0]"': [
+                {"city": "aus", "state": "tx"},
+                {"city": "dal", "state": "tx"},
+            ],
+        },
+    ]
 }

@@ -198,18 +198,40 @@ def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -
     # or if the same path is in includes and excludes lists
 
     for i in includes:
-        indices = [m.start() for m in re.finditer(r"\[\d+\]", i)]
-        if len(indices) > 0:
-            raise ValueError("The includes list cannot contain integer list indices.")
+        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", i)]
+        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
+        # If an integer index is outside the quotes (if any), return a ValueError
+        if len(quote_indices) > 0:
+            for ind in index_indices:
+                if ind < quote_indices[0] or ind > quote_indices[1]:
+                    raise ValueError(
+                        "The includes list cannot contain integer list indices."
+                    )
+        else:
+            if len(index_indices) > 0:
+                raise ValueError(
+                    "The includes list cannot contain integer list indices."
+                )
         if i in excludes:
             raise ValueError(
                 "The same path cannot be used in both includes and excludes lists."
             )
 
     for e in excludes:
-        indices = [m.start() for m in re.finditer(r"\[\d+\]", e)]
-        if len(indices) > 0:
-            raise ValueError("The excludes list cannot contain integer list indices.")
+        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", e)]
+        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
+        # If an integer index is outside the quotes (if any), return a ValueError
+        if len(quote_indices) > 0:
+            for ind in index_indices:
+                if ind < quote_indices[0] or ind > quote_indices[1]:
+                    raise ValueError(
+                        "The excludes list cannot contain integer list indices."
+                    )
+        else:
+            if len(index_indices) > 0:
+                raise ValueError(
+                    "The excludes list cannot contain integer list indices."
+                )
 
     # This is an formatted list of all paths in the payload (using dot notation)
     path_list = [path for path, node in traverse(payload)]
@@ -219,8 +241,6 @@ def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -
 
     for i in includes:
         for e in excludes:
-            if i in e:
-                pass
             if e in i:
                 excludes.remove(e)
 
