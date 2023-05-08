@@ -228,6 +228,18 @@ def test_badkey_intindex():
         transform_payload(payload_4, includes, excludes)
 
 
+def test_badkey_rangeindex():
+    includes = [
+        "process.workflow",
+        "features[*].id",
+        "features[*].collection",
+        'features[*]."crazy_key[0]"[0:1]',
+    ]
+    excludes = ["*"]
+    with pytest.raises(ValueError):
+        transform_payload(payload_4, includes, excludes)
+
+
 payload_1 = {
     "id": "test",
     "type": "FeatureCollection",

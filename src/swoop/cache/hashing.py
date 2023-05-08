@@ -177,6 +177,44 @@ def exclude_paths(payload: Dict, process_list: List[str]) -> Dict:
     return exc_payload
 
 
+def check_int_range_index(input: List, type: str):
+    """
+    Checks if the includes or excludes lists contains list range indices.
+    For example, features[0:1].
+
+    Parameters:
+            input (List): The includes or excludes list to parse.
+            type (str): The type of the input list. Either 'includes' or 'excludes'.
+
+    Returns:
+            None
+    """
+
+    for i in input:
+        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", i)]
+        range_indices = [m.start() for m in re.finditer(r"\[\d+:\d+\]", i)]
+        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
+        # If an integer index is outside the quotes (if any), return a ValueError
+        if len(quote_indices) > 0:
+            for ind in index_indices:
+                if ind > quote_indices[1]:
+                    raise ValueError(
+                        f"The {type} list cannot contain list integer indices."
+                    )
+            for ind in range_indices:
+                if ind > quote_indices[1]:
+                    raise ValueError(
+                        f"The {type} list cannot contain list range indices."
+                    )
+        else:
+            if len(index_indices) > 0 or len(range_indices) > 0:
+                raise ValueError(
+                    "The {} list cannot contain list integer or range indices.".format(
+                        type
+                    )
+                )
+
+
 def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -> Dict:
     """
     Master function that transforms an input payload based on paths specified in
@@ -194,44 +232,19 @@ def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -
                                 and excludes filters.
     """
 
-    # Raise ValueError if includes and/or excludes lists contains an integer list index
-    # or if the same path is in includes and excludes lists
+    # Raise ValueError if includes and/or excludes lists contains a list integer index,
+    # or a list range index
+
+    check_int_range_index(includes, "includes")
+    check_int_range_index(excludes, "excludes")
+
+    # Check if the same path is in includes and excludes lists
 
     for i in includes:
-        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", i)]
-        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
-        # If an integer index is outside the quotes (if any), return a ValueError
-        if len(quote_indices) > 0:
-            for ind in index_indices:
-                if ind < quote_indices[0] or ind > quote_indices[1]:
-                    raise ValueError(
-                        "The includes list cannot contain integer list indices."
-                    )
-        else:
-            if len(index_indices) > 0:
-                raise ValueError(
-                    "The includes list cannot contain integer list indices."
-                )
         if i in excludes:
             raise ValueError(
                 "The same path cannot be used in both includes and excludes lists."
             )
-
-    for e in excludes:
-        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", e)]
-        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
-        # If an integer index is outside the quotes (if any), return a ValueError
-        if len(quote_indices) > 0:
-            for ind in index_indices:
-                if ind < quote_indices[0] or ind > quote_indices[1]:
-                    raise ValueError(
-                        "The excludes list cannot contain integer list indices."
-                    )
-        else:
-            if len(index_indices) > 0:
-                raise ValueError(
-                    "The excludes list cannot contain integer list indices."
-                )
 
     # This is an formatted list of all paths in the payload (using dot notation)
     path_list = [path for path, node in traverse(payload)]
