@@ -241,3 +241,14 @@ async def test_get_job_payload(test_app):
 
         response = app_client.get("/jobs/00000000-1111-2222-3333-444444444444/payload")
         assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_job_status(test_app, single_job):
+    with TestClient(test_app) as app_client:
+        response = app_client.get("/jobs/2595f2da-81a6-423c-84db-935e6791046e")
+        assert response.status_code == 200
+        assert response.json() == single_job["jobs"][0]
+
+        response = app_client.get("/jobs/00000000-1111-2222-3333-444444444444")
+        assert response.status_code == 404
