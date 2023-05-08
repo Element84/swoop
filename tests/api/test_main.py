@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
+import pytest
 
-from swoop.api.main import app
 
-
-def test_read_main():
-    with TestClient(app) as client:
+@pytest.mark.asyncio
+async def test_read_main(test_app):
+    with TestClient(test_app) as client:
         response = client.get("/")
         assert response.status_code == 200
         assert response.json() == {

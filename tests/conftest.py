@@ -4,7 +4,7 @@ import string
 import logging
 import asyncpg
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from contextlib import asynccontextmanager
@@ -15,6 +15,7 @@ from swoop.api.main import app
 
 
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def get_db_connection(db_connection_string: str) -> None:
@@ -39,72 +40,122 @@ async def load_schema(schema: Path, db_connection_string: str) -> None:
 
 async def load_data(db_connection_string: str) -> None:
     async with get_db_connection(db_connection_string) as conn:
-        created = datetime(2023,4,28,15,49,0)
-        queued = datetime(2023,4,28,15,49,1)
-        started = datetime(2023,4,28,15,49,2)
-        completed = datetime(2023,4,28,15,49,3)
-        retry_at = datetime(2023,4,28,15,49,10)
+        created = datetime(2023, 4, 28, 15, 49, 0, tzinfo=timezone.utc)
+        queued = datetime(2023, 4, 28, 15, 49, 1, tzinfo=timezone.utc)
+        started = datetime(2023, 4, 28, 15, 49, 2, tzinfo=timezone.utc)
+        completed = datetime(2023, 4, 28, 15, 49, 3, tzinfo=timezone.utc)
+        retry_at = datetime(2023, 4, 28, 15, 49, 10, tzinfo=timezone.utc)
 
         actions = await conn.copy_records_to_table(
-            table_name='action',
-            schema_name='swoop',
+            table_name="action",
+            schema_name="swoop",
             columns=[
-                'action_uuid',
-                'action_type',
-                'action_name',
-                'handler_name',
-                'parent_uuid',
-                'created_at'
+                "action_uuid",
+                "action_type",
+                "action_name",
+                "handler_name",
+                "parent_uuid",
+                "created_at",
             ],
             records=[
-            ('2595f2da-81a6-423c-84db-935e6791046e','workflow','action_1','handler_foo',5001,created),
-            ('81842304-0aa9-4609-89f0-1c86819b0752','workflow','action_2','handler_foo',5002,created)
+                (
+                    "2595f2da-81a6-423c-84db-935e6791046e",
+                    "workflow",
+                    "action_1",
+                    "handler_foo",
+                    5001,
+                    created,
+                ),
+                (
+                    "81842304-0aa9-4609-89f0-1c86819b0752",
+                    "workflow",
+                    "action_2",
+                    "handler_foo",
+                    5002,
+                    created,
+                ),
             ],
         )
 
         threads = await conn.copy_records_to_table(
-            table_name='thread',
-            schema_name='swoop',
+            table_name="thread",
+            schema_name="swoop",
             columns=[
-                'created_at',
-                'last_update',
-                'action_uuid',
-                'handler_name',
-                'priority',
-                'status',
-                'next_attempt_after',
-                'error'
+                "created_at",
+                "last_update",
+                "action_uuid",
+                "handler_name",
+                "priority",
+                "status",
+                "next_attempt_after",
+                "error",
             ],
             records=[
-                (created,created,'81842304-0aa9-4609-89f0-1c86819b0752',
-                 'handler',100,'PENDING',retry_at,'none'),
-                (completed,completed,'2595f2da-81a6-423c-84db-935e6791046e',
-                 'handler',100,'SUCCESSFUL',retry_at,'none')
+                (
+                    created,
+                    created,
+                    "81842304-0aa9-4609-89f0-1c86819b0752",
+                    "handler",
+                    100,
+                    "PENDING",
+                    retry_at,
+                    "none",
+                ),
+                (
+                    completed,
+                    completed,
+                    "2595f2da-81a6-423c-84db-935e6791046e",
+                    "handler",
+                    100,
+                    "SUCCESSFUL",
+                    retry_at,
+                    "none",
+                ),
             ],
         )
 
         events = await conn.copy_records_to_table(
-            table_name='event',
-            schema_name='swoop',
+            table_name="event",
+            schema_name="swoop",
             columns=[
-                'event_time',
-                'action_uuid',
-                'status',
-                'event_source',
-                'retry_seconds',
-                'error'
+                "event_time",
+                "action_uuid",
+                "status",
+                "event_source",
+                "retry_seconds",
+                "error",
             ],
             records=[
-            #(created,'2595f2da-81a6-423c-84db-935e6791046e','PENDING','swoop-db',300,'none'),
-            (queued,'2595f2da-81a6-423c-84db-935e6791046e','QUEUED','swoop-db',300,'none'),
-            (started,'2595f2da-81a6-423c-84db-935e6791046e','RUNNING','swoop-db',300,'none'),
-            (completed,'2595f2da-81a6-423c-84db-935e6791046e','SUCCESSFUL','swoop-db',300,'none')
+                (
+                    queued,
+                    "2595f2da-81a6-423c-84db-935e6791046e",
+                    "QUEUED",
+                    "swoop-db",
+                    300,
+                    "none",
+                ),
+                (
+                    started,
+                    "2595f2da-81a6-423c-84db-935e6791046e",
+                    "RUNNING",
+                    "swoop-db",
+                    300,
+                    "none",
+                ),
+                (
+                    completed,
+                    "2595f2da-81a6-423c-84db-935e6791046e",
+                    "SUCCESSFUL",
+                    "swoop-db",
+                    300,
+                    "none",
+                ),
             ],
         )
 
-        logger.info(f'Inserted Actions: {actions}')
-        logger.info(f'Inserted Threads: {threads}')
-        logger.info(f'Inserted Events: {events}')
+        logger.info(f"Inserted Actions: {actions}")
+        logger.info(f"Inserted Threads: {threads}")
+        logger.info(f"Inserted Events: {events}")
 
 
 async def drop_database(db_name: str, db_connection_string: str) -> None:
@@ -114,31 +165,31 @@ async def drop_database(db_name: str, db_connection_string: str) -> None:
 
 # If using pytest_asyncio fixtures, the event_loop scope must at least match
 # the scope of those fixtures (currently "module")
-@pytest.fixture(scope="module")
+@pytest.fixture
 def event_loop():
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dbschema(pytestconfig) -> Path:
     return pytestconfig.rootpath.joinpath("db", "schema.sql")
 
 
 # Will set a unique database name (settings.database_url) per module
-@pytest.fixture(scope="module")
+@pytest.fixture
 def settings() -> Settings:
     return Settings()
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture
 async def test_app(database):
     app.state.settings.database_url = database
     return app
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture
 async def database(dbschema, settings):
     db_name = (
         settings.database_name

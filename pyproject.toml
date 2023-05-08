@@ -28,6 +28,7 @@ dependencies = [
     "uvicorn >=0.20.0",
     "pydantic >=1.10.7",
     "python-dotenv >= 1.0.0",
+    "buildpg >=0.4",
 ]
 dynamic = [
   "version",
