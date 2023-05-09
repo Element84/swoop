@@ -1,3 +1,4 @@
+from abc import ABC
 from copy import deepcopy
 from typing import Type, Union
 
@@ -5,7 +6,7 @@ from swoop.cache.exceptions import ConfigError, ParsingError
 
 
 # TODO turn into ABC
-class FilterNode:
+class FilterNode(ABC):
     _include_dot = True
 
     def __init__(self, name: str, quoted: bool = False):
