@@ -29,9 +29,9 @@ def parse_expression(expression: str, include: bool):
 
     while lnext():
         current: str = ""
-        quoted = False
+
+        # quoted key identifier
         if char == '"':
-            quoted = True
             escaped = False
             while True:
                 if not lnext():
@@ -46,8 +46,18 @@ def parse_expression(expression: str, include: bool):
                 else:
                     escaped = False
             lnext()
-        else:
-            while char not in (".", "[", "]"):
+            if char not in (".", "["):
+                raise ParsingError(
+                    f"Error pos {index}: unparsable expression: {expression}",
+                )
+
+            node = KeyNode(current, quoted=True)
+            parent = parent.add_node(node)
+
+        # not a slice identifier
+        # should be non-quoted key identifier
+        elif char != "[":
+            while char not in (".", "["):
                 if char == '"':
                     raise ParsingError(
                         f"Error pos {index}: '\"' not allowed unescaped "
@@ -55,15 +65,10 @@ def parse_expression(expression: str, include: bool):
                     )
                 current += char
                 lnext()
+            node = KeyNode(current)
+            parent = parent.add_node(node)
 
-        if char == ".":
-            if not current:
-                raise ParsingError(
-                    f"Error pos {index}: unparsable expression: {expression}",
-                )
-            parent = parent.add_node(KeyNode(current, quoted=quoted))
-
-        elif char == "[":
+        while char == "[" and (current or parent.name == "."):
             _slice = ""
             while True:
                 if not lnext():
@@ -75,11 +80,6 @@ def parse_expression(expression: str, include: bool):
                 _slice += char
 
             lnext()
-
-            if char != ".":
-                raise ParsingError(
-                    f"Error pos {index}: unparsable expression: {expression}",
-                )
 
             # coerce the slice into a start, stop, and step values
             splt: list[int | None] = []
@@ -103,13 +103,11 @@ def parse_expression(expression: str, include: bool):
             # start, stop, step, defaulting to None
             start, stop, step = splt + [None] * (3 - len(splt))
 
-            if current:
-                parent = parent.add_node(KeyNode(current, quoted=quoted))
             # TODO: rename indexnode to slicenode
-            # TODO: what if we have consecutive slices without dots? [][][]...
-            parent = parent.add_node(IndexNode(start, stop, step))
+            node = IndexNode(start, stop, step)
+            parent = parent.add_node(node)
 
-        else:
+        if char != ".":
             raise ParsingError(
                 f"Error pos {index}: unparsable expression: {expression}",
             )

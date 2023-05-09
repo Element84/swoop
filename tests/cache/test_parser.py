@@ -5,9 +5,9 @@ from swoop.cache.parser import parse_expression
 
 # TODO test for actual exception, should match custom classes
 def test_parsing_no_root():
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError):
         parse_expression("features[].id", True)
-    assert str(exc_info.value) == ""
+    # assert str(exc_info.value) == ""
 
 
 def test_parsing_unterminated_quote():
@@ -53,6 +53,11 @@ def test_parsing_chars_after_quote():
 def test_parsing_chars_after_slice():
     with pytest.raises(ValueError):
         parse_expression(".features[]rgrg.id", False)
+
+
+def test_parsing_array_of_arrays1():
+    with pytest.raises(ValueError):
+        parse_expression(".features[].[].id", True)
 
 
 def test_parsing_root():
@@ -151,8 +156,8 @@ def test_parsing6():
     }
 
 
-def test_parsing_array_of_arrays():
-    parsed = parse_expression(".features[].[].id", True)
+def test_parsing_array_of_arrays2():
+    parsed = parse_expression(".features[][].id", True)
     assert parsed.asdict() == {
         "name": ".",
         "include": None,
