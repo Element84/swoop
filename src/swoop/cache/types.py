@@ -11,10 +11,10 @@ class FilterNode:
     def __init__(self, name: str, quoted: bool = False):
         self.name: str = name
         self._include: bool | None = None
-        self.nodes: dict[str, "KeyNode" | "IndexNode"] = {}
+        self.nodes: dict[str, "KeyNode" | "SliceNode"] = {}
         self.parent: "FilterNode" | None = None
         self.quoted = quoted
-        self.nodes_type: Type["KeyNode"] | Type["IndexNode"] | None = None
+        self.nodes_type: Type["KeyNode"] | Type["SliceNode"] | None = None
 
     @property
     def display_name(self):
@@ -46,7 +46,7 @@ class FilterNode:
             raise ConfigError(f"Duplicate expressions for node: '{self.path}")
         self._include = include
 
-    def add_node(self, node: Union["KeyNode", "IndexNode"]):
+    def add_node(self, node: Union["KeyNode", "SliceNode"]):
         if node.name in self.nodes:
             raise ConfigError(
                 f"Cannot add node to '{self.path}': already exists '{node.name}'",
@@ -164,7 +164,7 @@ class KeyNode(FilterNode):
                 _node(val)
 
 
-class IndexNode(FilterNode):
+class SliceNode(FilterNode):
     _include_dot = False
 
     def __init__(

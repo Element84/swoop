@@ -1,4 +1,4 @@
-from swoop.cache.types import KeyNode, IndexNode
+from swoop.cache.types import KeyNode, SliceNode
 from swoop.cache.exceptions import ParsingError
 
 
@@ -51,8 +51,7 @@ def parse_expression(expression: str, include: bool):
                     f"Error pos {index}: unparsable expression: {expression}",
                 )
 
-            node = KeyNode(current, quoted=True)
-            parent = parent.add_node(node)
+            parent = parent.add_node(KeyNode(current, quoted=True))
 
         # not a slice identifier
         # should be non-quoted key identifier
@@ -65,8 +64,7 @@ def parse_expression(expression: str, include: bool):
                     )
                 current += char
                 lnext()
-            node = KeyNode(current)
-            parent = parent.add_node(node)
+            parent = parent.add_node(KeyNode(current))
 
         while char == "[" and (current or parent.name == "."):
             _slice = ""
@@ -102,10 +100,7 @@ def parse_expression(expression: str, include: bool):
             # ensure we end up with a value for each
             # start, stop, step, defaulting to None
             start, stop, step = splt + [None] * (3 - len(splt))
-
-            # TODO: rename indexnode to slicenode
-            node = IndexNode(start, stop, step)
-            parent = parent.add_node(node)
+            parent = parent.add_node(SliceNode(start, stop, step))
 
         if char != ".":
             raise ParsingError(
