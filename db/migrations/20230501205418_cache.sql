@@ -57,22 +57,10 @@ CHECK (
 );
 
 
-
 -- migrate:down
-
-DROP TABLE swoop.input_items;
-DROP TABLE swoop.item_payload;
-DROP TABLE swoop.payload_cache;
-
-ALTER TABLE swoop.action
-DROP COLUMN payload_uuid;
-
-ALTER TABLE swoop.action_template
-DROP COLUMN payload_uuid;
 
 ALTER TABLE swoop.action
 DROP CONSTRAINT workflow_or_callback;
-
 ALTER TABLE swoop.action
 ADD CONSTRAINT workflow_or_callback
 CHECK (
@@ -86,3 +74,10 @@ CHECK (
       action_name IS NOT NULL
   END
 );
+ALTER TABLE swoop.action_template
+DROP COLUMN payload_uuid;
+ALTER TABLE swoop.action
+DROP COLUMN payload_uuid;
+DROP TABLE swoop.item_payload;
+DROP TABLE swoop.payload_cache;
+DROP TABLE swoop.input_items;

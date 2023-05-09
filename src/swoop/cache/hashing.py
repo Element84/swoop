@@ -17,10 +17,7 @@ def hash(input: Dict, hash_fn: Optional[object] = hashlib.sha1) -> bytes:
     Returns:
             hashed (bytes): A hash of the input dictionary object.
     """
-    sha = hash_fn()
-    sha.update(json.dumps(input).encode())
-    hashed = sha.digest()
-    return hashed
+    return hash_fn(json.dumps(input).encode()).digest()
 
 
 def traverse(dict_or_list: Union[Dict, List], path: List = []):
@@ -45,7 +42,9 @@ def traverse(dict_or_list: Union[Dict, List], path: List = []):
             yield from traverse(v, path + [k])
 
 
-def filter_path_list(expressions: List[str], path_list: List[str]) -> List[str]:
+def filter_path_list(
+    expressions: List[str], path_list: List[str], type: str
+) -> List[str]:
     """
     Finds the paths in the path list that match the expressions in
     a list of expressions written in dot notation.
@@ -55,6 +54,8 @@ def filter_path_list(expressions: List[str], path_list: List[str]) -> List[str]:
                 that we want to evaluate
             path_list (List[str]): A list of all paths to all nodes in the input
                                    payload
+            type (str): The type of expressions list provided -
+                        either includes or excludes.
 
     Returns:
             match_list (str): A list of paths in the path_list that match
@@ -65,15 +66,38 @@ def filter_path_list(expressions: List[str], path_list: List[str]) -> List[str]:
 
     for exp in expressions:
         regex = []
-        split_exp = exp.split(".")
+        # Split on dot only if outside double quotes (if present)
+        split_exp = re.split(r'((?:[^."]|"[^"]*")+)', exp)
+        for i in split_exp:
+            if i in ["", "."]:
+                split_exp.remove(i)
+
+        # Split on list bracket if present, but only outside double quotes
         for e in split_exp:
-            if "[" in e:
-                sub = e.split("[")
-                if "[*]" in e:
-                    regex.append(sub[0] + ".\\d+")
+            split_e = re.split(r'((?:[^["]|"[^"]*")+)', e)
+            for elem in split_e:
+                if elem in ["", "["]:
+                    split_e.remove(elem)
+
+            if len(split_e) > 1:
+                to_repl = {"[": "\\[", "]": "\\]", ".": "\\."}
+                for k in to_repl.keys():
+                    split_e[0] = split_e[0].replace(k, to_repl[k])
+
+                if "*" in split_e[1]:
+                    regex.append(split_e[0] + ".\\d+")
+                elif ":" in split_e[1]:
+                    raise ValueError(
+                        f"The {type} list cannot contain list range indices."
+                    )
+                else:
+                    raise ValueError(
+                        f"The {type} list cannot contain list integer indices."
+                    )
             else:
                 regex.append(e)
         reg_join = ".".join(regex)
+
         r = re.compile(reg_join)
         match_list += list(filter(r.match, path_list))
     return match_list
@@ -101,7 +125,11 @@ def include_paths(payload: Dict, process_list: List[str]) -> Dict:
         here = inc_payload
         here_out = out_payload
         key_string = process_list[i]
-        keys = key_string.split(".")
+        # Split on dot only if outside double quotes (if present)
+        keys = re.split(r'((?:[^."]|"[^"]*")+)', key_string)
+        for i in keys:
+            if i in ["", "."]:
+                keys.remove(i)
 
         for i in range(len(keys)):
             curr_key = keys[i]
@@ -157,7 +185,11 @@ def exclude_paths(payload: Dict, process_list: List[str]) -> Dict:
     for i in range(len(process_list)):
         here = exc_payload
         key_string = process_list[i]
-        keys = key_string.split(".")
+        # Split on dot only if outside double quotes (if present)
+        keys = re.split(r'((?:[^."]|"[^"]*")+)', key_string)
+        for i in keys:
+            if i in ["", "."]:
+                keys.remove(i)
 
         # For every key *before* the last one, we concentrate on navigating
         # through the dictionary.
@@ -177,44 +209,6 @@ def exclude_paths(payload: Dict, process_list: List[str]) -> Dict:
     return exc_payload
 
 
-def check_int_range_index(input: List, type: str):
-    """
-    Checks if the includes or excludes lists contains list range indices.
-    For example, features[0:1].
-
-    Parameters:
-            input (List): The includes or excludes list to parse.
-            type (str): The type of the input list. Either 'includes' or 'excludes'.
-
-    Returns:
-            None
-    """
-
-    for i in input:
-        index_indices = [m.start() for m in re.finditer(r"\[\d+\]", i)]
-        range_indices = [m.start() for m in re.finditer(r"\[\d+:\d+\]", i)]
-        quote_indices = [m.start() for m in re.finditer(r"\"", i)]
-        # If an integer index is outside the quotes (if any), return a ValueError
-        if len(quote_indices) > 0:
-            for ind in index_indices:
-                if ind > quote_indices[1]:
-                    raise ValueError(
-                        f"The {type} list cannot contain list integer indices."
-                    )
-            for ind in range_indices:
-                if ind > quote_indices[1]:
-                    raise ValueError(
-                        f"The {type} list cannot contain list range indices."
-                    )
-        else:
-            if len(index_indices) > 0 or len(range_indices) > 0:
-                raise ValueError(
-                    "The {} list cannot contain list integer or range indices.".format(
-                        type
-                    )
-                )
-
-
 def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -> Dict:
     """
     Master function that transforms an input payload based on paths specified in
@@ -231,12 +225,6 @@ def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -
             out_payload (Dict): The resulting payload object after applying includes
                                 and excludes filters.
     """
-
-    # Raise ValueError if includes and/or excludes lists contains a list integer index,
-    # or a list range index
-
-    check_int_range_index(includes, "includes")
-    check_int_range_index(excludes, "excludes")
 
     # Check if the same path is in includes and excludes lists
 
@@ -257,8 +245,8 @@ def transform_payload(payload: Dict, includes: List[str], excludes: List[str]) -
             if e in i:
                 excludes.remove(e)
 
-    inc_list = filter_path_list(includes, path_list)
-    exc_list = filter_path_list(excludes, path_list)
+    inc_list = filter_path_list(includes, path_list, "includes")
+    exc_list = filter_path_list(excludes, path_list, "excludes")
     mod_inp_payload = include_paths(payload, inc_list)
     mod_exc_payload = exclude_paths(mod_inp_payload, exc_list)
     return mod_exc_payload

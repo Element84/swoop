@@ -240,6 +240,20 @@ def test_badkey_rangeindex():
         transform_payload(payload_4, includes, excludes)
 
 
+def test_badkey_specialchar():
+    includes = [
+        'features[*]."crazy.key[0]"[*]',
+    ]
+    excludes = ["*"]
+    result = transform_payload(payload_4, includes, excludes)
+    assert result == {
+        "features": [
+            {'"crazy.key[0]"': [{"city": "la"}]},
+            {'"crazy.key[0]"': [{"city": "aus"}]},
+        ]
+    }
+
+
 payload_1 = {
     "id": "test",
     "type": "FeatureCollection",
@@ -351,18 +365,12 @@ payload_4 = {
         {
             "id": "b-item",
             "collection": "collection-b",
-            '"crazy_key[0]"': [
-                {"city": "la", "state": "ca"},
-                {"city": "sf", "state": "ca"},
-            ],
+            '"crazy.key[0]"': [{"city": "la"}],
         },
         {
             "id": "a_item",
             "collection": "collection-a",
-            '"crazy_key[0]"': [
-                {"city": "aus", "state": "tx"},
-                {"city": "dal", "state": "tx"},
-            ],
+            '"crazy.key[0]"': [{"city": "aus"}],
         },
     ]
 }
