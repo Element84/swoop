@@ -19,7 +19,7 @@ def get_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event():
-        """Connect to database and read workflows config file on startup."""
+        """Connect to database on startup."""
         await connect_to_db(app)
         init_workflows_config(app)
 

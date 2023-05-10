@@ -25,21 +25,6 @@ router: APIRouter = APIRouter(
 )
 
 
-### Query Param Mapping Guide
-#
-# Job requests contain params that may not directly map to a DB field.
-# Below is an explanation of what each query param maps to.
-#
-# A join between the 'action' and 'thread' tables is necessary before filtering
-# by certain params, and generating a StatusInfo response object.
-#
-#   process_id -> action.action_name
-#   start_datetime -> event.event_time = {start_datetime}, and event.status = 'RUNNING'
-#   end_datetime -> event.event_time = {end_datetime}, and event.status = 'COMPLETED'
-#   parent_id -> action.parent_uuid
-#   job_id -> action.action_uuid
-
-
 status_dict = {
     "PENDING": "accepted",
     "QUEUED": "running",  # ?
