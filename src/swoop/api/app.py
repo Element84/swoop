@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from swoop.api.db import close_db_connection, connect_to_db
+from swoop.api.workflows import init_workflows_config
 from swoop.api.config import Settings
 
 from swoop.api.routers import (
@@ -19,6 +20,7 @@ def get_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event():
         """Connect to database on startup."""
+        init_workflows_config(app)
         await connect_to_db(app)
 
     @app.on_event("shutdown")
