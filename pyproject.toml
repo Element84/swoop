@@ -30,7 +30,7 @@ dependencies = [
     "python-dotenv >= 1.0.0",
     "buildpg >=0.4",
     "contextvars >=2.4",
-    "dataclasses >=0.6",
+    "dataclasses >=0.8",
     "pyyaml >=6.0",
 ]
 dynamic = [
