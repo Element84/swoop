@@ -31,6 +31,12 @@ pre-commit checks, this can be done with:
 git commit -m "message" --no-verify
 ```
 
+Start the swoop api by running:
+
+```commandline
+uvicorn swoop.api.main:app --host 0.0.0.0 --port 8000
+```
+
 ## Testing
 
 Tests are run using `pytest`. Put pytest python modules and other resource in

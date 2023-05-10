@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_pass: str
     database_name: str
     database_url_extra: str = ""
+    database_url: str | None=None
 
     db_min_conn_size: int = 2
     db_max_conn_size: int = 2
@@ -37,11 +38,15 @@ class Settings(BaseSettings):
     @property
     def reader_connection_string(self):
         """Create reader psql connection string."""
+        if self.database_url:
+            return self.database_url
         return self.build_db_connection_string()
 
     @property
     def writer_connection_string(self):
         """Create writer psql connection string."""
+        if self.database_url:
+            return self.database_url
         return self.build_db_connection_string()
 
     class Config:
