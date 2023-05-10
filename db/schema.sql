@@ -37,23 +37,38 @@ INSERT INTO swoop.event_state (name, description) VALUES
 ('INFO', 'Event is informational and does not change thread state');
 
 
+CREATE TABLE IF NOT EXISTS swoop.payload_cache (
+  payload_uuid uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  payload_hash bytea,
+  workflow_version smallint,
+  workflow_name text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  invalid_after timestamptz
+);
+
+CREATE INDEX ON swoop.payload_cache (payload_hash);
+
+
 CREATE TABLE swoop.action (
   action_uuid uuid NOT NULL DEFAULT gen_random_uuid(),
   action_type text NOT NULL CHECK (action_type IN ('callback', 'workflow')),
   action_name text,
   handler_name text NOT NULL,
-  parent_uuid bigint, -- reference omitted, we don't need referential integrity
+  parent_uuid uuid, -- reference omitted, we don't need referential integrity
   created_at timestamptz NOT NULL DEFAULT now(),
   priority smallint DEFAULT 100,
+  payload_uuid uuid REFERENCES swoop.payload_cache ON DELETE RESTRICT,
 
   CONSTRAINT workflow_or_callback CHECK (
     CASE
       WHEN
         action_type = 'callback' THEN
-        parent_uuid IS NOT NULL
+        parent_uuid IS NOT NULL AND
+        payload_uuid IS NULL
       WHEN
         action_type = 'workflow' THEN
-        action_name IS NOT NULL
+        action_name IS NOT NULL AND
+        payload_uuid IS NOT NULL
     END
   )
 ) PARTITION BY RANGE (created_at);
@@ -148,6 +163,26 @@ SELECT partman.create_parent(
   'monthly',
   p_template_table => 'swoop.event_template'
 );
+
+
+CREATE TABLE IF NOT EXISTS swoop.input_item (
+  item_id text,
+  collection text,
+  PRIMARY KEY (item_id, collection)
+);
+
+CREATE TABLE IF NOT EXISTS swoop.item_payload (
+  item_id text NOT NULL,
+  collection text NOT NULL,
+  payload_uuid uuid NOT NULL REFERENCES swoop.payload_cache ON DELETE CASCADE,
+  FOREIGN KEY (
+    item_id,
+    collection
+  ) REFERENCES swoop.input_item ON DELETE RESTRICT,
+  UNIQUE (item_id, collection, payload_uuid)
+);
+
+CREATE INDEX ON swoop.item_payload (item_id, collection);
 
 
 CREATE FUNCTION swoop.add_pending_event()

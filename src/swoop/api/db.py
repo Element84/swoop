@@ -6,9 +6,11 @@ from swoop.api.config import Settings
 async def connect_to_db(app: FastAPI) -> None:
     """Connect to Database."""
     app.state.readpool = await create_pool(
-        app.state.settings.reader_connection_string, app.state.settings)
+        app.state.settings.reader_connection_string, app.state.settings
+    )
     app.state.writepool = await create_pool(
-        app.state.settings.writer_connection_string, app.state.settings)
+        app.state.settings.writer_connection_string, app.state.settings
+    )
 
 
 async def close_db_connection(app: FastAPI) -> None:

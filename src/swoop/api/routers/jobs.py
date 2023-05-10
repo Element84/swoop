@@ -48,7 +48,7 @@ def to_status_info(records: list[Record]) -> StatusInfo:
         jobID=str(records["action_uuid"]),
         status=status_dict[records["status"]],
         updated=records["last_update"],
-        parentID=records["parent_uuid"],
+        parentID=str(records["parent_uuid"]),
     )
 
 
@@ -56,6 +56,7 @@ class Params(BaseModel):
     process_id: str | None
     # collection_id: str | None  # TODO - possibly named just 'collection'
     # item_id: str | None        # TODO
+    # payload_id: str | None        # TODO
     start_datetime: datetime | None
     end_datetime: datetime | None
     parent_id: str | None
@@ -85,7 +86,7 @@ INNER JOIN swoop.thread t
 ON t.action_uuid = a.action_uuid
 WHERE a.action_type = 'workflow'
 AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
-AND (:parent_id::bigint IS NULL OR a.parent_uuid = :parent_id::bigint)
+AND (:parent_id::uuid IS NULL OR a.parent_uuid = :parent_id::uuid)
 AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
 AND (
 (a.created_at >= :start_datetime::TIMESTAMPTZ
@@ -98,9 +99,7 @@ LIMIT :limit::integer;
             process_id=queryparams.get(
                 "process_id"
             ),  # we should account for non-existent keys
-            parent_id=int(queryparams.get("parent_id"))
-            if queryparams.get("parent_id")
-            else None,
+            parent_id=queryparams.get("parent_id"),
             job_id=queryparams.get("job_id"),
             start_datetime=queryparams.get("start_datetime"),
             end_datetime=queryparams.get("end_datetime"),
