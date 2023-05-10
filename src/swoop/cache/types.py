@@ -71,7 +71,6 @@ class FilterNode(ABC):
             pass
 
     def update(self, node: "FilterNode"):
-        # maybe this isn't possible?
         if not isinstance(self, node.__class__):
             raise ConfigError(
                 f"Invalid mixed types: '{self.path}', '{node.display_name}'"
@@ -117,7 +116,7 @@ class KeyNode(FilterNode):
 
         if is_list:
             raise RuntimeError(
-                f"Filter error: cannot filter list with {node.nodes_type}",
+                f"Filter error: cannot filter list with {node.nodes_type.__name__}",
             )
 
         if not is_dict:
@@ -201,7 +200,7 @@ class SliceNode(FilterNode):
 
         if is_dict:
             raise RuntimeError(
-                f"Filter error: cannot filter dict with {node.nodes_type}",
+                f"Filter error: cannot filter dict with {node.nodes_type.__name__}",
             )
 
         if not is_list:
@@ -233,6 +232,23 @@ class SliceNode(FilterNode):
 
 class JSONFilter(KeyNode):
     def __init__(self, include_patterns: list[str], exclude_patterns: list[str]):
+        """
+        Parses the includes and excludes lists and returns errors if there are
+        any conflicts between the two lists or within any one list. Then, normalizes
+        the expressions to remove any overlapping expressions that contain the same
+        scope.
+
+        Parameters:
+                include_patterns (List[str]): A list of expressions written in
+                                            dot notation to include from the
+                                            input payload.
+                exclude_patterns (List[str]): A list of expressions written in
+                                            dot notation to exclude from the
+                                            input payload.
+
+        Returns:
+                None
+        """
         super().__init__(".")
         self._add_patterns(include_patterns, True)
         self._add_patterns(exclude_patterns, False)

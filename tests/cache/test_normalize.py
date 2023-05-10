@@ -1,6 +1,6 @@
 import pytest
-import json
-from swoop.cache.types import JSONFilter
+from swoop.cache.types import JSONFilter, SliceNode
+from swoop.cache.exceptions import ParsingError, ConfigError
 
 
 def test_exclude():
@@ -13,7 +13,6 @@ def test_exclude():
         ".features[].id.value",
     ]
     f = JSONFilter(includes, excludes)
-    print(json.dumps(f.asdict(), indent=4))
     assert f.asdict() == {
         "name": ".",
         "include": False,
@@ -54,7 +53,6 @@ def test_pruning():
         ".features[:].collection",
     ]
     f = JSONFilter(includes, [])
-    print(json.dumps(f.asdict(), indent=4))
     assert f.asdict() == {
         "name": ".",
         "include": False,
@@ -78,4 +76,43 @@ def test_duplicates2():
         JSONFilter(includes, excludes)
 
 
-# TODO need a test for each exception in types.py
+def test_invalidslice():
+    start = 1
+    stop = 5
+    step = 2
+    with pytest.raises(ParsingError) as exc_info:
+        SliceNode(start, stop, step)
+    assert (
+        str(exc_info.value)
+        == "Invalid slice '[1:5:2]'; supported values: '[]', '[:]', '[::]', '[::1]'"
+    )
+
+
+def test_invalidslice2():
+    includes = [".features[1:5:2].workflow"]
+    excludes = []
+    with pytest.raises(ParsingError) as exc_info:
+        JSONFilter(includes, excludes)
+    assert (
+        str(exc_info.value)
+        == "Invalid slice '[1:5:2]'; supported values: '[]', '[:]', '[::]', '[::1]'"
+    )
+
+
+def test_keyarray():
+    includes = [".features[::].workflow", ".[::]"]
+    excludes = []
+    with pytest.raises(ConfigError) as exc_info:
+        JSONFilter(includes, excludes)
+    assert (
+        str(exc_info.value)
+        == "Invalid mixed types: cannot mix keys and arrays under '.'"
+    )
+
+
+def test_keyarray2():
+    includes = ['."::1"', ".[::]"]
+    excludes = []
+    with pytest.raises(ConfigError) as exc_info:
+        JSONFilter(includes, excludes)
+    assert str(exc_info.value) == """Invalid mixed types: '."::1"', '[::1]'"""

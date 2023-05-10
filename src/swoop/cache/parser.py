@@ -3,6 +3,19 @@ from swoop.cache.exceptions import ParsingError
 
 
 def parse_expression(expression: str, include: bool):
+    """
+    Parses an input expression written in dot notation to determine
+    whether it is an appropriately written expression, else returns
+    ParsingError exceptions.
+
+    Parameters:
+            expression (str): An expression to parse for any errors.
+            include: A boolean value.
+
+    Returns:
+            None
+    """
+
     i = iter(expression)
 
     # we do not support an array directly under the root
@@ -60,7 +73,7 @@ def parse_expression(expression: str, include: bool):
                 if char == '"':
                     raise ParsingError(
                         f"Error pos {index}: '\"' not allowed unescaped "
-                        "outside quoted identifier: {expression}",
+                        f"outside quoted identifier: {expression}",
                     )
                 current += char
                 lnext()

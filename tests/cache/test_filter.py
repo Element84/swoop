@@ -1,5 +1,6 @@
 # ruff: noqa: E501
 import json
+import pytest
 
 from swoop.cache.types import JSONFilter
 
@@ -248,6 +249,28 @@ def test_outer_array():
             {"id": "id3"},
         ]
     )
+
+
+def test_incompatible_types():
+    includes = [
+        ".[]",
+    ]
+    excludes = []
+    f = JSONFilter(includes, excludes)
+    with pytest.raises(RuntimeError) as exc_info:
+        f({"id": "id1", "excluded": "value"})
+    assert str(exc_info.value) == "Filter error: cannot filter dict with SliceNode"
+
+
+def test_incompatible_types2():
+    includes = [
+        ".features",
+    ]
+    excludes = []
+    f = JSONFilter(includes, excludes)
+    with pytest.raises(RuntimeError) as exc_info:
+        f([{"id": "id1", "excluded": "value"}])
+    assert str(exc_info.value) == "Filter error: cannot filter list with KeyNode"
 
 
 payload_1 = {
