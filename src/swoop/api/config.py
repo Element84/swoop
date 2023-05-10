@@ -12,12 +12,14 @@ class Settings(BaseSettings):
     database_pass: str
     database_name: str
     database_url_extra: str = ""
-    database_url: str | None=None
+    database_url: str | None = None
 
     db_min_conn_size: int = 2
     db_max_conn_size: int = 2
     db_max_queries: int = 50000
     db_max_inactive_conn_lifetime: float = 300
+
+    workflow_config_file: str
 
     def build_db_connection_string(self, **kwargs):
         """Build a DB connection string from setttings, with optional overrides"""
