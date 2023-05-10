@@ -16,10 +16,6 @@ dataclasses==0.6
     # via swoop (pyproject.toml)
 pyyaml==6.0
     # via swoop (pyproject.toml)
-dataclasses==0.6
-    # via swoop (pyproject.toml)
-pyyaml==6.0
-    # via swoop (pyproject.toml)
 click==8.1.3
     # via uvicorn
 fastapi==0.95.1
