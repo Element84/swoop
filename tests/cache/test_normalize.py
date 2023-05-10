@@ -1,5 +1,5 @@
 import pytest
-from swoop.cache.types import JSONFilter, SliceNode
+from swoop.cache.types import JSONFilter
 from swoop.cache.exceptions import ParsingError, ConfigError
 
 
@@ -77,18 +77,6 @@ def test_duplicates2():
 
 
 def test_invalidslice():
-    start = 1
-    stop = 5
-    step = 2
-    with pytest.raises(ParsingError) as exc_info:
-        SliceNode(start, stop, step)
-    assert (
-        str(exc_info.value)
-        == "Invalid slice '[1:5:2]'; supported values: '[]', '[:]', '[::]', '[::1]'"
-    )
-
-
-def test_invalidslice2():
     includes = [".features[1:5:2].workflow"]
     excludes = []
     with pytest.raises(ParsingError) as exc_info:
