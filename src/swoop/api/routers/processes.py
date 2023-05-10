@@ -1,8 +1,7 @@
 from __future__ import annotations
-from datetime import datetime
+from pydantic import BaseModel
 
-
-from fastapi import APIRouter, Path, Query, Request
+from fastapi import APIRouter, Path, Query, Request, Depends, HTTPException
 
 from swoop.api.models import (
     Exception as APIException,
@@ -10,7 +9,9 @@ from swoop.api.models import (
     InlineResponse200,
     Process,
     ProcessList,
+    Link,
     StatusInfo,
+    ProcessSummary,
 )
 
 
@@ -21,12 +22,38 @@ router: APIRouter = APIRouter(
 )
 
 
-# TODO - REMOVE ME - Temporary example, for basic testing
-@router.get("/test")
-async def test(request: Request):
-    async with request.app.state.readpool.acquire() as conn:
-       rows = await conn.fetch("SELECT * FROM swoop.action")
-       return [dict(r) for r in rows]
+class Params(BaseModel):
+    process_id: str | None
+    version: str | None
+    title: str | None
+    description: str | None
+    handler: str | None
+    argo_template: str | None = None
+    cache_enabled: bool | None = None
+
+
+def to_process_summary(workflowConfig: list[dict]) -> Process:
+    return ProcessSummary(
+        id=workflowConfig["name"],
+        title=workflowConfig["name"],
+        name=workflowConfig["name"],
+        processID=workflowConfig["name"],
+        version=workflowConfig["version"],
+        description=workflowConfig.get("description"),
+        handler=workflowConfig.get("handler"),
+        argoTemplate=workflowConfig.get("argo_template"),
+        cacheEnabled=workflowConfig.get("cache_enabled"),
+        cacheKeyHashIncludes=workflowConfig.get("cache_key_hash_includes"),
+        cacheKeyHashExcludes=workflowConfig.get("cache_key_hash_excludes"),
+    )
+
+
+def processes_parameter_translation(workflowConfig: dict) -> dict:
+    if workflowConfig.get("process_id"):
+        workflowConfig["name"] = workflowConfig.pop("process_id")
+    if workflowConfig.get("version"):
+        workflowConfig["version"] = int(workflowConfig["version"])
+    return workflowConfig
 
 
 @router.get(
@@ -34,19 +61,39 @@ async def test(request: Request):
     response_model=ProcessList,
     responses={"404": {"model": APIException}},
 )
-def list_processes(
+async def list_processes(
+    request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
-    process_id: list[str] | None = Query(default=None),
-    collection_id: list[str] | None = Query(default=None),
-    item_id: list[str] | None = Query(default=None),
-    start_datetime: datetime | None = None,
-    end_datetime: datetime | None = None,
-    parent_id: list[str] | None = Query(default=None),
+    params: Params = Depends(),
 ) -> ProcessList | APIException:
     """
-    retrieve the list of available processes
+    retrieve the list of jobs.
     """
-    pass
+    queryparams = processes_parameter_translation(params.dict(exclude_none=True))
+    workflows = (
+        request.app.state.workflows.get("workflows")
+        if request.app.state.workflows.get("workflows")
+        else []
+    )
+
+    if queryparams and len(workflows) > 0:
+        workflows = list(
+            filter(
+                lambda x: queryparams.items() <= x.items(),
+                request.app.state.workflows["workflows"],
+            )
+        )
+    if limit and limit < len(workflows):
+        workflows = workflows[:limit]
+
+    return ProcessList(
+        processes=[to_process_summary(workflow) for workflow in workflows],
+        links=[
+            Link(
+                href="http://www.example.com",
+            )
+        ],
+    )
 
 
 @router.get(
@@ -57,13 +104,29 @@ def list_processes(
         "500": {"model": APIException},
     },
 )
-def get_process_description(
-    process_id: str = Path(..., alias="processID")
-) -> Process | APIException:
+async def get_process_description(
+    request: Request, process_id
+) -> ProcessSummary | APIException:
     """
     retrieve a process description
     """
-    pass
+    workflows = (
+        request.app.state.workflows.get("workflows")
+        if request.app.state.workflows.get("workflows")
+        else []
+    )
+
+    if process_id and len(workflows) > 0:
+        workflows = list(
+            filter(
+                lambda x: process_id == x["name"],
+                request.app.state.workflows["workflows"],
+            )
+        )
+    if not workflows:
+        raise HTTPException(status_code=404, detail="Process not found")
+
+    return to_process_summary(workflows[0])
 
 
 @router.get("/{process_id}/definition")
