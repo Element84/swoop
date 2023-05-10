@@ -10,7 +10,7 @@ asyncpg==0.27.0
     # via swoop (pyproject.toml)
 buildpg==0.4
     # via swoop (pyproject.toml)
-contextvars==2.4
+pyyaml==6.0
     # via swoop (pyproject.toml)
 dataclasses==0.6
     # via swoop (pyproject.toml)
