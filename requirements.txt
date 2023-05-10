@@ -12,7 +12,7 @@ buildpg==0.4
     # via swoop (pyproject.toml)
 contextvars==2.4
     # via swoop (pyproject.toml)
-dataclasses==0.8
+dataclasses==0.6
     # via swoop (pyproject.toml)
 pyyaml==6.0
     # via swoop (pyproject.toml)
