@@ -29,6 +29,7 @@ dependencies = [
     "pydantic >=1.10.7",
     "python-dotenv >= 1.0.0",
     "buildpg >=0.4",
+    "contextvars >=2.4",
 ]
 dynamic = [
   "version",
