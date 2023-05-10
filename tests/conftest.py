@@ -44,7 +44,6 @@ async def load_data(db_connection_string: str) -> None:
         queued = datetime(2023, 4, 28, 15, 49, 1, tzinfo=timezone.utc)
         started = datetime(2023, 4, 28, 15, 49, 2, tzinfo=timezone.utc)
         completed = datetime(2023, 4, 28, 15, 49, 3, tzinfo=timezone.utc)
-        retry_at = datetime(2023, 4, 28, 15, 49, 10, tzinfo=timezone.utc)
 
         actions = await conn.copy_records_to_table(
             table_name="action",
@@ -73,43 +72,6 @@ async def load_data(db_connection_string: str) -> None:
                     "handler_foo",
                     5002,
                     created,
-                ),
-            ],
-        )
-
-        threads = await conn.copy_records_to_table(
-            table_name="thread",
-            schema_name="swoop",
-            columns=[
-                "created_at",
-                "last_update",
-                "action_uuid",
-                "handler_name",
-                "priority",
-                "status",
-                "next_attempt_after",
-                "error",
-            ],
-            records=[
-                (
-                    created,
-                    created,
-                    "81842304-0aa9-4609-89f0-1c86819b0752",
-                    "handler",
-                    100,
-                    "PENDING",
-                    retry_at,
-                    "none",
-                ),
-                (
-                    completed,
-                    completed,
-                    "2595f2da-81a6-423c-84db-935e6791046e",
-                    "handler",
-                    100,
-                    "SUCCESSFUL",
-                    retry_at,
-                    "none",
                 ),
             ],
         )
@@ -154,7 +116,6 @@ async def load_data(db_connection_string: str) -> None:
         )
 
         logger.info(f"Inserted Actions: {actions}")
-        logger.info(f"Inserted Threads: {threads}")
         logger.info(f"Inserted Events: {events}")
 
 
