@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from pydantic import create_model
+from pydantic import BaseModel
 from asyncpg import Record
 from buildpg import render
 from fastapi import APIRouter, Path, Query, Request, Depends, HTTPException
@@ -67,15 +67,13 @@ def to_status_info(records: list[Record]) -> StatusInfo:
     )
 
 
-params = {
-    "process_id": (str, None),
-    #'collection_id': (str, None),  # TODO - possibly named just 'collection'
-    #'item_id': (str, None),        # TODO
-    "start_datetime": (datetime, None),
-    "end_datetime": (datetime, None),
-    "parent_id": (str, None),
-}
-jobs_list_params = create_model("Query", **params)
+class Params(BaseModel):
+    process_id: str | None
+    # collection_id: str | None  # TODO - possibly named just 'collection'
+    # item_id: str | None        # TODO
+    start_datetime: datetime | None
+    end_datetime: datetime | None
+    parent_id: str | None
 
 
 @router.get(
@@ -86,7 +84,7 @@ jobs_list_params = create_model("Query", **params)
 async def list_jobs(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
-    params: jobs_list_params = Depends(),
+    params: Params = Depends(),
 ) -> JobList | APIException:
     """
     retrieve the list of jobs.
