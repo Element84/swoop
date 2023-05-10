@@ -1,4 +1,3 @@
-from fastapi.testclient import TestClient
 import pytest
 
 
@@ -16,7 +15,7 @@ def single_process():
                 "version": "2",
                 "name": "mirror",
                 "processID": "mirror",
-                "jobControlOptions": ["sync-execute"],
+                "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
                 "argoTemplate": "workflowtemplate/mirror-workflow",
@@ -52,7 +51,7 @@ def all_processes():
                 "version": "2",
                 "name": "mirror",
                 "processID": "mirror",
-                "jobControlOptions": ["sync-execute"],
+                "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
                 "argoTemplate": "workflowtemplate/mirror-workflow",
@@ -71,7 +70,7 @@ def all_processes():
                 "version": "1",
                 "name": "cirrus-example",
                 "processID": "cirrus-example",
-                "jobControlOptions": ["sync-execute"],
+                "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "cirrus-workflow",
                 "argoTemplate": None,
@@ -121,7 +120,7 @@ def mirror_workflow_process():
         "version": "2",
         "name": "mirror",
         "processID": "mirror",
-        "jobControlOptions": ["sync-execute"],
+        "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
         "handler": "argo-workflow",
         "argoTemplate": "workflowtemplate/mirror-workflow",
@@ -174,6 +173,7 @@ async def test_get_process_by_process_id(test_client, mirror_workflow_process):
     response = test_client.get("/processes/mirror")
     assert response.status_code == 200
     assert response.json() == mirror_workflow_process
+
 
 @pytest.mark.asyncio
 async def test_get_process_by_process_id_404(test_client):

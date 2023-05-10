@@ -71,8 +71,8 @@ class StatusCode(Enum):
 # asynchronously, but we may want to return cached results immediately,
 # as though the execution had run synchronously.
 class JobControlOptions(Enum):
-    sync_execute = "sync-execute"
-    # async_execute = "async-execute"
+    # sync_execute = "sync-execute"
+    async_execute = "async-execute"
     # dismiss = "dismiss"
 
 
