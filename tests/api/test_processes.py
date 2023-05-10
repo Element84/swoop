@@ -170,11 +170,12 @@ async def test_get_all_processes_none(test_client, no_processes):
 
 
 @pytest.mark.asyncio
-async def test_get_process_by_process_id(test_app, mirror_workflow_process):
-    with TestClient(test_app) as app_client:
-        response = app_client.get("/processes/mirror")
-        assert response.status_code == 200
-        assert response.json() == mirror_workflow_process
+async def test_get_process_by_process_id(test_client, mirror_workflow_process):
+    response = test_client.get("/processes/mirror")
+    assert response.status_code == 200
+    assert response.json() == mirror_workflow_process
 
-        response = app_client.get("/processes/mirror-test")
-        assert response.status_code == 404
+@pytest.mark.asyncio
+async def test_get_process_by_process_id_404(test_client):
+    response = test_client.get("/processes/mirror-test")
+    assert response.status_code == 404
