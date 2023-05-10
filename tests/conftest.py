@@ -4,21 +4,25 @@ import string
 import logging
 import asyncpg
 import pytest
-from datetime import datetime, timezone
+import inspect
 from pathlib import Path
 
 from contextlib import asynccontextmanager
+from fastapi.testclient import TestClient
 
-import pytest_asyncio
 from swoop.api.config import Settings
-from swoop.api.main import app
+from swoop.api.app import get_app
 
 
 logger = logging.getLogger(__name__)
 
 
+def syncrun(coroutine, *args, **kwargs):
+    return asyncio.run(coroutine(*args, **kwargs))
+
+
 @asynccontextmanager
-async def get_db_connection(db_connection_string: str) -> None:
+async def get_db_connection(db_connection_string: str):
     conn = None
     try:
         conn = await asyncpg.connect(db_connection_string)
@@ -33,133 +37,83 @@ async def create_database(db_name: str, db_connection_string: str) -> None:
         await conn.execute(f'CREATE DATABASE "{db_name}";')
 
 
-async def load_schema(schema: Path, db_connection_string: str) -> None:
-    async with get_db_connection(db_connection_string) as conn:
-        await conn.execute(schema.read_text())
-
-
-async def load_data(db_connection_string: str) -> None:
-    async with get_db_connection(db_connection_string) as conn:
-        created = datetime(2023, 4, 28, 15, 49, 0, tzinfo=timezone.utc)
-        queued = datetime(2023, 4, 28, 15, 49, 1, tzinfo=timezone.utc)
-        started = datetime(2023, 4, 28, 15, 49, 2, tzinfo=timezone.utc)
-        completed = datetime(2023, 4, 28, 15, 49, 3, tzinfo=timezone.utc)
-
-        actions = await conn.copy_records_to_table(
-            table_name="action",
-            schema_name="swoop",
-            columns=[
-                "action_uuid",
-                "action_type",
-                "action_name",
-                "handler_name",
-                "parent_uuid",
-                "created_at",
-            ],
-            records=[
-                (
-                    "2595f2da-81a6-423c-84db-935e6791046e",
-                    "workflow",
-                    "action_1",
-                    "handler_foo",
-                    5001,
-                    created,
-                ),
-                (
-                    "81842304-0aa9-4609-89f0-1c86819b0752",
-                    "workflow",
-                    "action_2",
-                    "handler_foo",
-                    5002,
-                    created,
-                ),
-            ],
-        )
-
-        events = await conn.copy_records_to_table(
-            table_name="event",
-            schema_name="swoop",
-            columns=[
-                "event_time",
-                "action_uuid",
-                "status",
-                "event_source",
-                "retry_seconds",
-                "error",
-            ],
-            records=[
-                (
-                    queued,
-                    "2595f2da-81a6-423c-84db-935e6791046e",
-                    "QUEUED",
-                    "swoop-db",
-                    300,
-                    "none",
-                ),
-                (
-                    started,
-                    "2595f2da-81a6-423c-84db-935e6791046e",
-                    "RUNNING",
-                    "swoop-db",
-                    300,
-                    "none",
-                ),
-                (
-                    completed,
-                    "2595f2da-81a6-423c-84db-935e6791046e",
-                    "SUCCESSFUL",
-                    "swoop-db",
-                    300,
-                    "none",
-                ),
-            ],
-        )
-
-        logger.info(f"Inserted Actions: {actions}")
-        logger.info(f"Inserted Events: {events}")
-
-
 async def drop_database(db_name: str, db_connection_string: str) -> None:
     async with get_db_connection(db_connection_string) as conn:
         await conn.execute(f'DROP DATABASE "{db_name}";')
 
 
-# If using pytest_asyncio fixtures, the event_loop scope must at least match
-# the scope of those fixtures (currently "module")
-@pytest.fixture
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
+async def load_sqlfile(conn, sqlfile: Path) -> None:
+    await conn.execute(sqlfile.read_text())
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def dbschema(pytestconfig) -> Path:
     return pytestconfig.rootpath.joinpath("db", "schema.sql")
 
 
-# Will set a unique database name (settings.database_url) per module
-@pytest.fixture
+@pytest.fixture(scope="session")
+def db_fixture_dir(pytestconfig) -> Path:
+    return pytestconfig.rootpath.joinpath("db", "fixtures")
+
+
+@pytest.fixture(scope="session")
 def settings() -> Settings:
     return Settings()
 
 
-@pytest_asyncio.fixture
-async def test_app(database):
+def generate_db_fixture(fixtures, db_postfix=None, scope="module"):
+    @pytest.fixture(scope=scope)
+    def db_fixture(dbschema, db_fixture_dir, settings):
+        nonlocal db_postfix
+        nonlocal fixtures
+
+        db_postfix = (
+            "".join(random.choices(string.ascii_letters, k=5))
+            if not db_postfix
+            else db_postfix
+        )
+        db_name = settings.database_name + "_" + db_postfix
+        pg_conn_string = settings.build_db_connection_string(name="")
+        conn_string = settings.build_db_connection_string(name=db_name)
+
+        async def setup_db():
+            async with get_db_connection(conn_string) as conn:
+                await load_sqlfile(conn, dbschema)
+                for fixture_name in fixtures:
+                    path = db_fixture_dir.joinpath(fixture_name + ".sql")
+                    if not path.is_file():
+                        raise ValueError(f"Unknown fixture '{fixture_name}'")
+                    await load_sqlfile(conn, path)
+
+        try:
+            syncrun(create_database, db_name, pg_conn_string)
+            syncrun(setup_db)
+            yield conn_string
+        finally:
+            syncrun(drop_database, db_name, pg_conn_string)
+
+    return db_fixture
+
+
+def inject_database_fixture(data_fixtures, db_postfix=None, scope="module"):
+    # we need the caller's global scope for this hack to work
+    # hence the use of the inspect module
+    caller_globals = inspect.stack()[1].frame.f_globals
+    # for an explanation of this trick and why it works go here:
+    # https://github.com/pytest-dev/pytest/issues/2424
+    caller_globals["database"] = generate_db_fixture(
+        data_fixtures, db_postfix=db_postfix, scope=scope
+    )
+
+
+@pytest.fixture
+def test_app(database):
+    app = get_app()
     app.state.settings.database_url = database
     return app
 
 
-@pytest_asyncio.fixture
-async def database(dbschema, settings):
-    db_name = (
-        settings.database_name
-        + "_"
-        + "".join(random.choices(string.ascii_letters, k=5))
-    )
-    await create_database(db_name, settings.build_db_connection_string(name=""))
-    conn_string = settings.build_db_connection_string(name=db_name)
-    await load_schema(dbschema, conn_string)
-    await load_data(conn_string)
-    yield conn_string
-    await drop_database(db_name, settings.build_db_connection_string(name=""))
+@pytest.fixture
+def test_client(test_app):
+    with TestClient(test_app) as client:
+        yield client
