@@ -165,7 +165,7 @@ SELECT partman.create_parent(
 );
 
 
-CREATE TABLE IF NOT EXISTS swoop.input_items (
+CREATE TABLE IF NOT EXISTS swoop.input_item (
   item_id text,
   collection text,
   PRIMARY KEY (item_id, collection)
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS swoop.item_payload (
   FOREIGN KEY (
     item_id,
     collection
-  ) REFERENCES swoop.input_items ON DELETE RESTRICT,
+  ) REFERENCES swoop.input_item ON DELETE RESTRICT,
   UNIQUE (item_id, collection, payload_uuid)
 );
 

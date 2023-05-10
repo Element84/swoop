@@ -23,7 +23,7 @@ def single_job():
                 "updated": "2023-04-28T15:49:03+00:00",
                 "progress": None,
                 "links": None,
-                "parentID": "5001",
+                "parentID": "cf8ff7f0-ce5d-4de6-8026-4e551787385f",
             }
         ],
         "links": [
@@ -70,7 +70,7 @@ def all_jobs():
                 "updated": "2023-04-28T15:49:00+00:00",
                 "progress": None,
                 "links": None,
-                "parentID": "5002",
+                "parentID": "2595f2da-81a6-423c-84db-935e6791046e",
             },
             {
                 "processID": "action_1",
@@ -84,7 +84,7 @@ def all_jobs():
                 "updated": "2023-04-28T15:49:03+00:00",
                 "progress": None,
                 "links": None,
-                "parentID": "5001",
+                "parentID": "cf8ff7f0-ce5d-4de6-8026-4e551787385f",
             },
         ],
         "links": [
@@ -108,7 +108,9 @@ async def test_get_all_jobs(test_client, all_jobs):
 
 @pytest.mark.asyncio
 async def test_get_single_job(test_client, single_job):
-    response = test_client.get("/jobs?limit=1&process_id=action_1&parent_id=5001")
+    response = test_client.get(
+        "/jobs?limit=1&process_id=action_1&parent_id=cf8ff7f0-ce5d-4de6-8026-4e551787385f"
+    )
     assert response.status_code == 200
     assert response.json() == single_job
 
@@ -151,7 +153,7 @@ async def test_get_job_by_process(test_client, single_job):
 
 @pytest.mark.asyncio
 async def test_get_job_by_parent_id(test_client, single_job):
-    response = test_client.get("/jobs?parent_id=5001")
+    response = test_client.get("/jobs?parent_id=cf8ff7f0-ce5d-4de6-8026-4e551787385f")
     assert response.status_code == 200
     assert response.json() == single_job
 

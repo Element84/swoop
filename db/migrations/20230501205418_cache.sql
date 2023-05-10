@@ -1,6 +1,6 @@
 -- migrate:up
 
-CREATE TABLE IF NOT EXISTS swoop.input_items (
+CREATE TABLE IF NOT EXISTS swoop.input_item (
   item_id text,
   collection text,
   PRIMARY KEY (item_id, collection)
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS swoop.item_payload (
   FOREIGN KEY (
     item_id,
     collection
-  ) REFERENCES swoop.input_items ON DELETE RESTRICT,
+  ) REFERENCES swoop.input_item ON DELETE RESTRICT,
   UNIQUE (item_id, collection, payload_uuid)
 );
 
@@ -80,4 +80,4 @@ ALTER TABLE swoop.action
 DROP COLUMN payload_uuid;
 DROP TABLE swoop.item_payload;
 DROP TABLE swoop.payload_cache;
-DROP TABLE swoop.input_items;
+DROP TABLE swoop.input_item;
