@@ -5,7 +5,6 @@ from typing import Type, Union
 from swoop.cache.exceptions import ConfigError, ParsingError
 
 
-# TODO turn into ABC
 class FilterNode(ABC):
     _include_dot = True
 
