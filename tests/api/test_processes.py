@@ -149,6 +149,10 @@ async def test_get_all_processes(test_app, single_process, all_processes, no_pro
         assert response.status_code == 200
         assert response.json() == single_process
 
+        response = app_client.get("/processes?limit=1")
+        assert response.status_code == 200
+        assert response.json() == single_process
+
         response = app_client.get("/processes?version=3")
         assert response.status_code == 200
         assert response.json() == no_processes

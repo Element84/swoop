@@ -67,7 +67,7 @@ async def list_processes(
     params: Params = Depends(),
 ) -> ProcessList | APIException:
     """
-    retrieve the list of jobs.
+    retrieve the list of available processes
     """
     queryparams = processes_parameter_translation(params.dict(exclude_none=True))
     workflows = (
