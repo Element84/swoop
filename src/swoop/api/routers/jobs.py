@@ -103,7 +103,7 @@ AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
 AND (:parent_id::bigint IS NULL OR a.parent_uuid = :parent_id::bigint)
 AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
 AND (
-(a.created_at >= DATE(:start_datetime::TIMESTAMPTZ)
+(a.created_at >= :start_datetime::TIMESTAMPTZ
 OR :start_datetime::TIMESTAMPTZ IS NULL)
 AND
 (a.created_at <= :end_datetime::TIMESTAMPTZ OR :end_datetime::TIMESTAMPTZ IS NULL)
