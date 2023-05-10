@@ -135,27 +135,38 @@ def mirror_workflow_process():
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes(test_app, single_process, all_processes, no_processes):
-    with TestClient(test_app) as app_client:
-        response = app_client.get("/processes")
-        assert response.status_code == 200
-        assert response.json() == all_processes
+async def test_get_all_processes(test_client, all_processes):
+    response = test_client.get("/processes")
+    assert response.status_code == 200
+    assert response.json() == all_processes
 
-        response = app_client.get("/processes?limit=1&process_id=mirror")
-        assert response.status_code == 200
-        assert response.json() == single_process
 
-        response = app_client.get("/processes?process_id=mirror")
-        assert response.status_code == 200
-        assert response.json() == single_process
+@pytest.mark.asyncio
+async def test_get_all_processes_limit_filter(test_client, single_process):
+    response = test_client.get("/processes?limit=1&process_id=mirror")
+    assert response.status_code == 200
+    assert response.json() == single_process
 
-        response = app_client.get("/processes?limit=1")
-        assert response.status_code == 200
-        assert response.json() == single_process
 
-        response = app_client.get("/processes?version=3")
-        assert response.status_code == 200
-        assert response.json() == no_processes
+@pytest.mark.asyncio
+async def test_get_all_processes_filter(test_client, single_process):
+    response = test_client.get("/processes?process_id=mirror")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_limit(test_client, single_process):
+    response = test_client.get("/processes?limit=1")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_none(test_client, no_processes):
+    response = test_client.get("/processes?version=3")
+    assert response.status_code == 200
+    assert response.json() == no_processes
 
 
 @pytest.mark.asyncio
