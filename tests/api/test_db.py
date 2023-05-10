@@ -1,24 +1,31 @@
-from fastapi import FastAPI
-from swoop.api.config import Settings
-from swoop.api.db import connect_to_db, close_db_connection
 import pytest
+
+from fastapi import FastAPI
+
+from swoop.api.app import get_app
+from swoop.api.db import connect_to_db, close_db_connection
+
+from ..conftest import inject_database_fixture
+
+
+inject_database_fixture(["base_01"], __name__)
+
 
 
 @pytest.mark.asyncio
-async def test_db_connection_pool():
-    app: FastAPI = FastAPI()
-    app.state.settings = Settings(".env")
+async def test_db_connection_pool() -> None:
+    app: FastAPI = get_app()
     await connect_to_db(app)
 
     connections = []
 
     # Saturate the connection pool
-    for i in range(app.state.settings.db_max_conn_size):
+    for _ in range(app.state.settings.db_max_conn_size):
         connections.append(await app.state.readpool.acquire())
 
     # Expecting a Timeout (after 1s), with no connections available
     with pytest.raises(TimeoutError):
-        connections.append(await app.state.readpool.acquire(timeout=1))
+        connections.append(await app.state.readpool.acquire(timeout=0.1))
 
     # Release all connections
     for c in connections:
