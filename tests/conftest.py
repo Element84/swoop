@@ -106,6 +106,9 @@ def inject_database_fixture(data_fixtures, db_postfix=None, scope="module"):
     )
 
 
+inject_database_fixture(["base_01"], __name__)
+
+
 @pytest.fixture
 def test_app(database):
     app = get_app()
