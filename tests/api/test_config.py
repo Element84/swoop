@@ -7,4 +7,4 @@ def test_loads_from_env_file():
     env file.
     """
     settings = Settings(".env")
-    assert settings.database_name == "swoop"
+    assert settings.db_name == "swoop"
