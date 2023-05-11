@@ -1,8 +1,8 @@
-import pytest
 import urllib.parse
 
-from ..conftest import inject_database_fixture
+import pytest
 
+from ..conftest import inject_database_fixture
 
 inject_database_fixture(["base_01"], __name__)
 

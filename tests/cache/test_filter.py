@@ -1,5 +1,6 @@
 # ruff: noqa: E501
 import json
+
 import pytest
 
 from swoop.cache.types import JSONFilter

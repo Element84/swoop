@@ -1,12 +1,10 @@
 import pytest
-
 from fastapi import FastAPI
 
 from swoop.api.app import get_app
-from swoop.api.db import connect_to_db, close_db_connection
+from swoop.api.db import close_db_connection, connect_to_db
 
 from ..conftest import inject_database_fixture
-
 
 inject_database_fixture(["base_01"], __name__)
 

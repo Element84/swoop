@@ -1,5 +1,5 @@
-from swoop.cache.types import KeyNode, SliceNode
 from swoop.cache.exceptions import ParsingError
+from swoop.cache.types import KeyNode, SliceNode
 
 
 def parse_expression(expression: str, include: bool):

@@ -1,16 +1,9 @@
 from __future__ import annotations
 
-
 from fastapi import APIRouter, Path, Query
 
-from ..models import (
-    Exception as APIException,
-    PayloadList,
-    PayloadInfo,
-    StatusInfo,
-    InlineResponse200,
-)
-
+from ..models import Exception as APIException
+from ..models import InlineResponse200, PayloadInfo, PayloadList, StatusInfo
 
 DEFAULT_JOB_LIMIT = 1000
 
