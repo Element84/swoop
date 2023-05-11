@@ -71,9 +71,9 @@ class StatusCode(Enum):
 # asynchronously, but we may want to return cached results immediately,
 # as though the execution had run synchronously.
 class JobControlOptions(Enum):
-    sync_execute = "sync-execute"
+    # sync_execute = "sync-execute"
     async_execute = "async-execute"
-    dismiss = "dismiss"
+    # dismiss = "dismiss"
 
 
 class TransmissionMode(Enum):
@@ -186,8 +186,16 @@ class JobList(BaseModel):
 class ProcessSummary(DescriptionType):
     id: str
     version: str
-    jobControlOptions: list[JobControlOptions] | None = None
+    name: str
+    processID: str
+    jobControlOptions: list[JobControlOptions] | None = list(JobControlOptions)
     outputTransmission: list[TransmissionMode] | None = None
+    description: str | None = None
+    handler: str | None = None
+    argoTemplate: str | None = None
+    cacheEnabled: bool | None = None
+    cacheKeyHashIncludes: list[str] | None = None
+    cacheKeyHashExcludes: list[str] | None = None
     links: list[Link] | None = None
 
 
