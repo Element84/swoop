@@ -1,42 +1,25 @@
 # SWOOP: STAC Workflow Open Orchestration Platform
 
-## Pre-requisites<br>
+This repo contains the database schema/migrations/tooling and API code for SWOOP.
 
-Install [Dbmate](https://github.com/amacneil/dbmate), to create and manage database schema:
-```
-brew install dbmate
-```
-<br>
+This project is a work in progress. More information about this project and how
+to use it will be coming as development progresses.
 
 ## Database Setup / Migrations
 
-Instructions for this can be found in the Database README, found at:  `/db/README.md`
+Instructions for this can be found in [the database `README.md`](./db/README.md)
 
 ## Environment Setup and Testing
 
-Refer to [Contributing.md](./CONTRIBUTING.md) for environment setup and testing instructions.
-
-<br>
+Refer to [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup and
+testing instructions.
 
 ## Settings Management
 
-Settings are managed using [Pydantic](https://docs.pydantic.dev/usage/settings/#dotenv-env-support)'s `BaseSettings` approach to creating and setting app specific configuration. Values can be loaded from:
+All settings are managed via environment variables. See the API
+[Settings](./src/swoop/api/config.py) class for SWOOP-specific settings. Many
+database connection settings are specified via [libpq environment
+variables](https://www.postgresql.org/docs/current/libpq-envars.html).
 
-- A dotenv file (or any file really as long as you tell the [Settings](./src/swoop/api/config.py) class which file to load).
-- An explicit environment variable (e.g. `export DATABASE_NAME="foo"`).
-- Both! The explicit environment variable will take precedence over the value in a dotenv file.
-
-To get a settings object configured from a specific dotenv file:
-
-```python
-from swoop.api.config import Settings
-settings = Settings('.env')
-```
-
-If you don't provide an env file in `Settings` swoop will default to (in this order):
-
-- A `DOTENV` environment variable
-- '.env'
-
-<br><br><br>
-This project is a work in progress.
+For testing purposes, one can source the [the `.env` file](./.env), which will
+set all required env vars in the local shell environment.
