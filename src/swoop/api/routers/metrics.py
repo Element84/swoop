@@ -1,15 +1,11 @@
 from __future__ import annotations
-from datetime import datetime
 
+from datetime import datetime
 
 from fastapi import APIRouter, Query
 
-from ..models import (
-    Exception as APIException,
-    Counts,
-    Events,
-)
-
+from ..models import Counts, Events
+from ..models import Exception as APIException
 
 DEFAULT_JOB_LIMIT = 1000
 

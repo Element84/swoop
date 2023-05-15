@@ -40,7 +40,9 @@ uvicorn swoop.api.main:app --host 0.0.0.0 --port 8000
 ## Testing
 
 Tests are run using `pytest`. Put pytest python modules and other resource in
-the `/tests` directory.
+the `/tests` directory. Run postgres for testing using the docker compose as
+documented in [the database `README.md`](./db/README.md). Ensure to source
+`./.env` before running the tests.
 
 ## Adding/updating dependencies
 

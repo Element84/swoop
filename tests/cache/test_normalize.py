@@ -1,6 +1,7 @@
 import pytest
+
+from swoop.cache.exceptions import ConfigError, ParsingError
 from swoop.cache.types import JSONFilter
-from swoop.cache.exceptions import ParsingError, ConfigError
 
 
 def test_exclude():

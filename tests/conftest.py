@@ -1,18 +1,17 @@
 import asyncio
+import inspect
+import logging
 import random
 import string
-import logging
-import asyncpg
-import pytest
-import inspect
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from contextlib import asynccontextmanager
+import asyncpg
+import pytest
 from fastapi.testclient import TestClient
 
-from swoop.api.config import Settings
 from swoop.api.app import get_app
-
+from swoop.api.config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,23 +21,23 @@ def syncrun(coroutine, *args, **kwargs):
 
 
 @asynccontextmanager
-async def get_db_connection(db_connection_string: str):
+async def get_db_connection(**kwargs):
     conn = None
     try:
-        conn = await asyncpg.connect(db_connection_string)
+        conn = await asyncpg.connect(**kwargs)
         yield conn
     finally:
         if conn:
             await conn.close()
 
 
-async def create_database(db_name: str, db_connection_string: str) -> None:
-    async with get_db_connection(db_connection_string) as conn:
+async def create_database(db_name: str) -> None:
+    async with get_db_connection(database=None) as conn:
         await conn.execute(f'CREATE DATABASE "{db_name}";')
 
 
-async def drop_database(db_name: str, db_connection_string: str) -> None:
-    async with get_db_connection(db_connection_string) as conn:
+async def drop_database(db_name: str) -> None:
+    async with get_db_connection(database=None) as conn:
         await conn.execute(f'DROP DATABASE "{db_name}";')
 
 
@@ -72,12 +71,10 @@ def generate_db_fixture(fixtures, db_postfix=None, scope="module"):
             if not db_postfix
             else db_postfix
         )
-        db_name = settings.database_name + "_" + db_postfix
-        pg_conn_string = settings.build_db_connection_string(name="")
-        conn_string = settings.build_db_connection_string(name=db_name)
+        db_name = settings.db_name + "_" + db_postfix
 
         async def setup_db():
-            async with get_db_connection(conn_string) as conn:
+            async with get_db_connection(database=db_name) as conn:
                 await load_sqlfile(conn, dbschema)
                 for fixture_name in fixtures:
                     path = db_fixture_dir.joinpath(fixture_name + ".sql")
@@ -86,11 +83,11 @@ def generate_db_fixture(fixtures, db_postfix=None, scope="module"):
                     await load_sqlfile(conn, path)
 
         try:
-            syncrun(create_database, db_name, pg_conn_string)
+            syncrun(create_database, db_name)
             syncrun(setup_db)
-            yield conn_string
+            yield db_name
         finally:
-            syncrun(drop_database, db_name, pg_conn_string)
+            syncrun(drop_database, db_name)
 
     return db_fixture
 
@@ -112,7 +109,8 @@ inject_database_fixture(["base_01"], __name__)
 @pytest.fixture
 def test_app(database):
     app = get_app()
-    app.state.settings.database_url = database
+    app.state.settings.db_name = database
+    print(app.state.settings)
     return app
 
 

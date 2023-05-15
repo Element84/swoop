@@ -30,8 +30,13 @@ jobs:
           pip install '.[dev]'
 
       - name: Lint with ruff
-        run: |
-          ruff check .
+        run: ruff check .
+
+      - name: Load .env file into environment
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: '.env'
+          expand: true
 
       - name: Create DB Container
         run: docker compose up --build -V -d

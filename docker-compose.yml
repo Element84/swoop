@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      POSTGRES_DB: "${DATABASE_NAME:-postgres}"
-      POSTGRES_PASSWORD: "${DATABASE_PASS:-password}"
-      POSTGRES_USER: "${DATABASE_USER:-postgres}"
+      POSTGRES_DB: "${PGDATABASE:-postgres}"
+      POSTGRES_PASSWORD: "${PGPASSWORD:-password}"
+      POSTGRES_USER: "${PGUSER:-postgres}"
       POSTGRES_HOST_AUTH_METHOD: "trust"
     ports:
       - "${DATABASE_PORT:-5432}:5432"

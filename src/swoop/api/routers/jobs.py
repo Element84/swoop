@@ -1,19 +1,15 @@
 from __future__ import annotations
+
+import logging
 from datetime import datetime
-from pydantic import BaseModel
+
 from asyncpg import Record
 from buildpg import render
-from fastapi import APIRouter, Path, Query, Request, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from pydantic import BaseModel
 
-from ..models import (
-    Exception as APIException,
-    JobList,
-    Link,
-    Results,
-    StatusInfo,
-    InlineResponse200,
-)
-import logging
+from ..models import Exception as APIException
+from ..models import InlineResponse200, JobList, Link, Results, StatusInfo
 
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)

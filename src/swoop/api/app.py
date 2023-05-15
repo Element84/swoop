@@ -1,15 +1,9 @@
 from fastapi import FastAPI
-from swoop.api.db import close_db_connection, connect_to_db
-from swoop.api.workflows import init_workflows_config
-from swoop.api.config import Settings
 
-from swoop.api.routers import (
-    jobs,
-    metrics,
-    payloads,
-    processes,
-    root,
-)
+from swoop.api.config import Settings
+from swoop.api.db import close_db_connection, connect_to_db
+from swoop.api.routers import jobs, metrics, payloads, processes, root
+from swoop.api.workflows import init_workflows_config
 
 
 def get_app() -> FastAPI:

@@ -1,7 +1,7 @@
 import pytest
 
-from swoop.cache.parser import parse_expression
 from swoop.cache.exceptions import ParsingError
+from swoop.cache.parser import parse_expression
 
 
 def test_parsing_no_root():
