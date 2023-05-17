@@ -86,3 +86,25 @@ class IOClient:
                     result.object_name, result.etag, result.version_id
                 )
             )
+
+    def delete_object(self, object_name: str):
+        if (
+            object_name
+            and self.bucket_name
+            and self.client.bucket_exists(self.bucket_name)
+        ):
+            self.client.remove_object(self.bucket_name, object_name)
+            logger.debug(f"deleted object: {object_name}")
+
+    def create_bucket(self, bucket_name=None):
+        self.bucket_name = bucket_name if bucket_name else self.bucket_name
+        if self.bucket_name and not self.client.bucket_exists(self.bucket_name):
+            self.client.make_bucket(self.bucket_name)
+            logger.debug(f"created bucket: {self.bucket_name}")
+
+    def delete_bucket(self, bucket_name=None):
+        self.bucket_name = bucket_name if bucket_name else self.bucket_name
+        if self.bucket_name and self.client.bucket_exists(self.bucket_name):
+            self.client.remove_bucket(self.bucket_name)
+            logger.debug(f"deleted bucket: {self.bucket_name}")
+            self.bucket_name = None
