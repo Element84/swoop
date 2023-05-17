@@ -31,6 +31,27 @@ async def get_db_connection(**kwargs):
             await conn.close()
 
 
+# @asynccontextmanager
+# async def get_io_connection(**kwargs):
+#     conn = None
+#     try:
+#         conn = Minio(**kwargs)
+#         yield conn
+#     finally:
+#         if conn:
+#             await conn.close()
+#             await conn.release_conn()
+
+# async def create_bucket(bucket_name: str) -> None:
+#     async with get_io_connection(bucket_name=None) as conn:
+#         await conn.make_bucket(bucket_name)
+
+
+# async def remove_bucket(bucket_name: str) -> None:
+#     async with get_io_connection(bucket_name=None) as conn:
+#         await conn.remove_bucket(bucket_name)
+
+
 async def create_database(db_name: str) -> None:
     async with get_db_connection(database=None) as conn:
         await conn.execute(f'CREATE DATABASE "{db_name}";')

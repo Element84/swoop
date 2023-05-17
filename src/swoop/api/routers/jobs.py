@@ -177,25 +177,12 @@ async def get_job_result(
     """
     retrieve the result(s) of a job
     """
-    async with request.app.state.readpool.acquire() as conn:
-        q, p = render(
-            """
-                SELECT
-                *
-                FROM swoop.action a
-                INNER JOIN swoop.thread t
-                ON t.action_uuid = a.action_uuid
-                WHERE a.action_type = 'workflow'
-                AND a.action_uuid = :job_id::uuid;
-            """,
-            job_id=job_id,
-        )
-        record = await conn.fetchrow(q, *p)
-        if not record:
-            raise HTTPException(status_code=404, detail="Job not found")
+    results = request.app.state.io.get_object("/execution/%s/output.json" % job_id)
 
-        # TODO - Fix this with correct Results data
-        return {"example": "example results"}
+    if not results:
+        raise HTTPException(status_code=404, detail="Job output not found")
+
+    return results
 
 
 @router.get(
@@ -210,24 +197,12 @@ async def get_job_payload(request: Request, job_id) -> dict | APIException:
     """
     retrieve the input payload of a job
     """
-    async with request.app.state.readpool.acquire() as conn:
-        q, p = render(
-            """
-                SELECT
-                1
-                FROM swoop.action a
-                WHERE a.action_type = 'workflow'
-                AND a.action_uuid = :job_id::uuid;
-            """,
-            job_id=job_id,
-        )
-        job = await conn.fetchval(q, *p)
+    payload = request.app.state.io.get_object("/execution/%s/input.json" % job_id)
 
-        if not job:
-            raise HTTPException(status_code=404, detail="Job not found")
+    if not payload:
+        raise HTTPException(status_code=404, detail="Job input payload not found")
 
-        # TODO - implement this later
-        return {"example": "example payload"}
+    return payload
 
 
 @router.post(
