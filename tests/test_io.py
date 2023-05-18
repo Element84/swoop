@@ -28,11 +28,15 @@ def test_hasbucket(test_app, bucket_name):
     assert test_app.state.io.bucket_exists(bucket_name) is True
 
 
-def test_add_remove_object(test_app, single_object):
+def test_add_object(test_app, single_object):
     test_app.state.io.put_object(
         "/execution/2595f2da-81a6-423c-84db-935e6791046e/io.json",
         json.dumps(single_object),
     )
+    assert True
+
+
+def test_remove_object(test_app):
     test_app.state.io.delete_object(
         "/execution/2595f2da-81a6-423c-84db-935e6791046e/io.json"
     )
