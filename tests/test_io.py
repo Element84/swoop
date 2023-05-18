@@ -25,7 +25,7 @@ def single_object():
 
 
 def test_hasbucket(test_client, bucket_name):
-    assert  test_client.app.state.io.bucket_exists(bucket_name) is True
+    assert test_client.app.state.io.bucket_exists(bucket_name) is True
 
 
 def test_add_object(test_client, single_object):
