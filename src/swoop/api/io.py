@@ -36,17 +36,14 @@ class IOClient:
             and self.client.bucket_exists(self.bucket_name)
         ):
             try:
-                try:
-                    response = self.client.get_object(self.bucket_name, object_name)
-                    object_response = response.json()
-                    logger.debug(f"retrieved object content: {object_response}")
-                except S3Error as err:
-                    logger.debug(err)
-                finally:
-                    response.close()
-                    response.release_conn()
-            except UnboundLocalError as err:
+                response = self.client.get_object(self.bucket_name, object_name)
+                object_response = response.json()
+                logger.debug(f"retrieved object content: {object_response}")
+            except (S3Error, UnboundLocalError) as err:
                 logger.debug(err)
+            else:
+                response.close()
+                response.release_conn()
 
         return object_response
 
