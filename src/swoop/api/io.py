@@ -29,20 +29,21 @@ class IOClient:
     def get_object(self, object_name: str):
         """Retrieve from object storage."""
         object_response = None
-        if (
-            object_name
-            and self.bucket_name
-            and self.client.bucket_exists(self.bucket_name)
-        ):
-            try:
-                response = self.client.get_object(self.bucket_name, object_name)
-                object_response = response.json()
-                logger.debug(f"retrieved object content: {object_response}")
-            except (S3Error, UnboundLocalError) as err:
-                logger.debug(err)
-            else:
-                response.close()
-                response.release_conn()
+        if not object_name:
+            raise ValueError("object_name cannot be empty"
+
+        try:
+            response = self.client.get_object(self.bucket_name, object_name)
+            object_response = response.json()
+            logger.debug(f"retrieved object content: {object_response}")
+        except (S3Error, UnboundLocalError) as err:
+            logger.debug(err)
+        finally:
+            response.close()
+            response.release_conn()
+        else:
+            object_response = response.json()
+            logger.debug("retrieved object content: %s", object_response)
 
         return object_response
 
