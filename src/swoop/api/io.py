@@ -105,3 +105,6 @@ class IOClient:
             self.client.remove_bucket(self.bucket_name)
             logger.debug(f"deleted bucket: {self.bucket_name}")
             self.bucket_name = None
+
+    def bucket_exists(self, bucket_name: str):
+        return bucket_name and self.client.bucket_exists(bucket_name)
