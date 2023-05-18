@@ -11,9 +11,12 @@ logger.setLevel(logging.INFO)
 class IOClient:
 
     def __init__(
-        self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name=None
+        self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
     ):
         """Initialize IO Client."""
+        if not bucket_name:
+            raise ValueError("Bucket name cannot be empty")
+        
         self.client = Minio(
             s3_endpoint.split("//").pop() if "http" in s3_endpoint else s3_endpoint,
             access_key=access_key,
@@ -21,6 +24,7 @@ class IOClient:
             secure="http://" not in s3_endpoint,
         )
         self.bucket_name = bucket_name
+        self.create_bucket()
 
     def get_object(self, object_name: str):
         """Retrieve from object storage."""
