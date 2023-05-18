@@ -9,8 +9,6 @@ logger.setLevel(logging.INFO)
 
 
 class IOClient:
-    client = None
-    bucket_name = None
 
     def __init__(
         self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name=None
