@@ -135,7 +135,7 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
             for fixture in fixtures:
                 path = io_fixture_dir.joinpath(fixture["source"])
                 if not path.is_dir():
-                    raise ValueError(f"Unknown fixture '{str(path)}'")
+                    raise ValueError(f"Unknown fixture '{path}'")
                 files = Path(path).glob("*")
                 for file in files:
                     if file.is_file():
