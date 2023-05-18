@@ -32,28 +32,6 @@ async def get_db_connection(**kwargs):
             await conn.close()
 
 
-def create_bucket(
-    s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
-) -> None:
-    ioclient = IOClient(s3_endpoint, access_key, secret_key, bucket_name)
-    ioclient.create_bucket(bucket_name)
-
-
-def remove_bucket(
-    s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
-) -> None:
-    ioclient = IOClient(s3_endpoint, access_key, secret_key, bucket_name)
-    ioclient.delete_bucket(bucket_name)
-
-
-def remove_object(ioclient, object_name: str) -> None:
-    ioclient.delete_object(object_name)
-
-
-def load_jsonfile(ioclient, object_name: str, file_name: str) -> None:
-    ioclient.put_file_object(object_name, file_name)
-
-
 async def create_database(db_name: str) -> None:
     async with get_db_connection(database=None) as conn:
         await conn.execute(f'CREATE DATABASE "{db_name}";')
@@ -80,7 +58,7 @@ def db_fixture_dir(pytestconfig) -> Path:
 
 @pytest.fixture(scope="session")
 def io_fixture_dir(pytestconfig) -> Path:
-    return pytestconfig.rootpath.joinpath("io", "fixtures")
+    return pytestconfig.rootpath.joinpath("tests", "fixtures", "io")
 
 
 @pytest.fixture(scope="session")
@@ -105,13 +83,14 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
             .replace("_", "-")
         )
 
-        def setup_io():
-            ioclient = IOClient(
-                settings.s3_endpoint,
-                settings.access_key_id,
-                settings.secret_access_key,
-                bucket_name,
-            )
+        ioclient = IOClient(
+            settings.s3_endpoint,
+            settings.access_key_id,
+            settings.secret_access_key,
+            bucket_name,
+        )
+
+        def setup_io(ioclient):
             for fixture in fixtures:
                 path = io_fixture_dir.joinpath(fixture["source"])
                 if not path.is_dir():
@@ -125,40 +104,16 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
                         str(file),
                     )
 
-        def cleanup_io():
-            ioclient = IOClient(
-                settings.s3_endpoint,
-                settings.access_key_id,
-                settings.secret_access_key,
-                bucket_name,
-            )
-            for fixture in fixtures:
-                path = io_fixture_dir.joinpath(fixture["source"])
-                if not path.is_dir():
-                    raise ValueError(f"Unknown fixture '{path}'")
-                files = Path(path).glob("*")
-                for file in files:
-                    if file.is_file():
-                        ioclient.delete_object(
-                            "{}/{}".format(fixture["destination"], file.name)
-                        )
-
         try:
-            create_bucket(
-                settings.s3_endpoint,
-                settings.access_key_id,
-                settings.secret_access_key,
-                bucket_name,
+            ioclient.create_bucket(
+                bucket_name
             )
-            setup_io()
+            setup_io(ioclient)
             yield bucket_name
         finally:
-            cleanup_io()
-            remove_bucket(
-                settings.s3_endpoint,
-                settings.access_key_id,
-                settings.secret_access_key,
-                bucket_name,
+            ioclient.delete_objects()
+            ioclient.delete_bucket(
+                bucket_name
             )
 
     return io_fixture
@@ -239,12 +194,6 @@ def test_app(database, bucket_name):
     app = get_app()
     app.state.settings.db_name = database
     app.state.settings.bucket_name = bucket_name
-    app.state.io = IOClient(
-        app.state.settings.s3_endpoint,
-        app.state.settings.access_key_id,
-        app.state.settings.secret_access_key,
-        app.state.settings.bucket_name,
-    )
     print(app.state.settings)
     return app
 

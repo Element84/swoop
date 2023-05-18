@@ -30,7 +30,7 @@ class IOClient:
         """Retrieve from object storage."""
         object_response = None
         if not object_name:
-            raise ValueError("object_name cannot be empty"
+            raise ValueError("object_name cannot be empty")
 
         try:
             response = self.client.get_object(self.bucket_name, object_name)
@@ -38,12 +38,11 @@ class IOClient:
             logger.debug(f"retrieved object content: {object_response}")
         except (S3Error, UnboundLocalError) as err:
             logger.debug(err)
-        finally:
+        else:
             response.close()
             response.release_conn()
-        else:
-            object_response = response.json()
-            logger.debug("retrieved object content: %s", object_response)
+
+        return object_response
 
         return object_response
 
@@ -108,3 +107,8 @@ class IOClient:
 
     def bucket_exists(self, bucket_name: str):
         return bucket_name and self.client.bucket_exists(bucket_name)
+
+    def delete_objects(self, prefix="", recursive=True):
+        objects_to_delete = self.client.list_objects(self.bucket_name, prefix=prefix, recursive=True)
+        for obj in objects_to_delete:
+            self.client.remove_object(self.bucket_name, obj.object_name)
