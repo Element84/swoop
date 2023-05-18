@@ -9,14 +9,13 @@ logger.setLevel(logging.INFO)
 
 
 class IOClient:
-
     def __init__(
         self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
     ):
         """Initialize IO Client."""
         if not bucket_name:
             raise ValueError("Bucket name cannot be empty")
-        
+
         self.client = Minio(
             s3_endpoint.split("//").pop() if "http" in s3_endpoint else s3_endpoint,
             access_key=access_key,
@@ -41,8 +40,6 @@ class IOClient:
         else:
             response.close()
             response.release_conn()
-
-        return object_response
 
         return object_response
 
@@ -109,6 +106,8 @@ class IOClient:
         return bucket_name and self.client.bucket_exists(bucket_name)
 
     def delete_objects(self, prefix="", recursive=True):
-        objects_to_delete = self.client.list_objects(self.bucket_name, prefix=prefix, recursive=True)
+        objects_to_delete = self.client.list_objects(
+            self.bucket_name, prefix=prefix, recursive=True
+        )
         for obj in objects_to_delete:
             self.client.remove_object(self.bucket_name, obj.object_name)
