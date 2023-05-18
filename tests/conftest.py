@@ -120,8 +120,7 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
                 for file in files:
                     if not file.is_file():
                         raise ValueError(f"Unknown fixture file '{str(file)}'")
-                    load_jsonfile(
-                        ioclient,
+                    ioclient.put_file_object(
                         "{}/{}".format(fixture["destination"], file.name),
                         str(file),
                     )
