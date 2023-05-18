@@ -44,50 +44,42 @@ class IOClient:
         return object_response
 
     def put_file_object(self, object_name: str, file_name: str):
-        if (
-            object_name
-            and file_name
-            and self.bucket_name
-            and self.client.bucket_exists(self.bucket_name)
-        ):
-            result = self.client.fput_object(self.bucket_name, object_name, file_name)
-            logger.debug(
-                "created {} object; etag: {}, version-id: {}".format(
-                    result.object_name, result.etag, result.version_id
-                )
+        if not object_name:
+            raise ValueError("object_name cannot be empty")
+        if not file_name:
+            raise ValueError("file_name cannot be empty")
+        result = self.client.fput_object(self.bucket_name, object_name, file_name)
+        logger.debug(
+            "created {} object; etag: {}, version-id: {}".format(
+                result.object_name, result.etag, result.version_id
             )
+        )
 
     def put_object(
         self, object_name: str, object_content: str, content_type="application/json"
     ):
-        if (
-            object_name
-            and object_content
-            and content_type
-            and self.bucket_name
-            and self.client.bucket_exists(self.bucket_name)
-        ):
-            result = self.client.put_object(
-                self.bucket_name,
-                object_name,
-                io.BytesIO(object_content.encode("utf-8")),
-                len(object_content.encode("utf-8")),
-                content_type,
+        if not object_name:
+            raise ValueError("object_name cannot be empty")
+        if not object_content:
+            raise ValueError("object_content cannot be empty")
+        result = self.client.put_object(
+            self.bucket_name,
+            object_name,
+            io.BytesIO(object_content.encode("utf-8")),
+            len(object_content.encode("utf-8")),
+            content_type,
+        )
+        logger.debug(
+            "created {} object; etag: {}, version-id: {}".format(
+                result.object_name, result.etag, result.version_id
             )
-            logger.debug(
-                "created {} object; etag: {}, version-id: {}".format(
-                    result.object_name, result.etag, result.version_id
-                )
-            )
+        )
 
     def delete_object(self, object_name: str):
-        if (
-            object_name
-            and self.bucket_name
-            and self.client.bucket_exists(self.bucket_name)
-        ):
-            self.client.remove_object(self.bucket_name, object_name)
-            logger.debug(f"deleted object: {object_name}")
+        if not object_name:
+            raise ValueError("object_name cannot be empty")
+        self.client.remove_object(self.bucket_name, object_name)
+        logger.debug(f"deleted object: {object_name}")
 
     def create_bucket(self, bucket_name=None):
         self.bucket_name = bucket_name if bucket_name else self.bucket_name
@@ -107,7 +99,7 @@ class IOClient:
 
     def delete_objects(self, prefix="", recursive=True):
         objects_to_delete = self.client.list_objects(
-            self.bucket_name, prefix=prefix, recursive=True
+            self.bucket_name, prefix=prefix, recursive=recursive
         )
         for obj in objects_to_delete:
             self.client.remove_object(self.bucket_name, obj.object_name)
