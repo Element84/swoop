@@ -139,8 +139,8 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
                 files = Path(path).glob("*")
                 for file in files:
                     if file.is_file():
-                        remove_object(
-                            ioclient, "{}/{}".format(fixture["destination"], file.name)
+                        ioclient.delete_object(
+                            "{}/{}".format(fixture["destination"], file.name)
                         )
 
         try:
