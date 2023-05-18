@@ -1,16 +1,17 @@
 workflows:
-  - name: mirror
+  mirror:
     description: "A workflow to copy STAC items into a local mirror"
     version: 2
     handler: argo-workflow
     argo_template: workflowtemplate/mirror-workflow
-    cache_enabled: true
     cache_key_hash_includes:
       - features[*].properties.version
     cache_key_hash_excludes: []
-  - name: cirrus-example
+  cirrus-example:
     description: "An example workflow config for a cirrus workflow"
     version: 1
     handler: cirrus-workflow
     sfn_arn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
-    cache_enabled: false
+    cache_key_hash_includes:
+      - features[*].properties.version
+    cache_key_hash_excludes: []

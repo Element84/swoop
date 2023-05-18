@@ -131,7 +131,6 @@ inject_database_fixture(["base_01"], __name__)
 def test_app(database):
     app = get_app()
     app.state.settings.db_name = database
-    print(app.state.settings)
     return app
 
 

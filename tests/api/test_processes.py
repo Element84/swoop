@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 
@@ -18,8 +20,7 @@ def single_process():
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
-                "argoTemplate": "workflowtemplate/mirror-workflow",
-                "cacheEnabled": True,
+                "argoTemplate": None,
                 "cacheKeyHashIncludes": ["features[*].properties.version"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
@@ -54,8 +55,7 @@ def all_processes():
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
-                "argoTemplate": "workflowtemplate/mirror-workflow",
-                "cacheEnabled": True,
+                "argoTemplate": None,
                 "cacheKeyHashIncludes": ["features[*].properties.version"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
@@ -74,9 +74,8 @@ def all_processes():
                 "outputTransmission": None,
                 "handler": "cirrus-workflow",
                 "argoTemplate": None,
-                "cacheEnabled": False,
-                "cacheKeyHashIncludes": None,
-                "cacheKeyHashExcludes": None,
+                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "cacheKeyHashExcludes": [],
                 "links": None,
             },
         ],
@@ -123,13 +122,66 @@ def mirror_workflow_process():
         "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
         "handler": "argo-workflow",
-        "argoTemplate": "workflowtemplate/mirror-workflow",
-        "cacheEnabled": True,
+        "argoTemplate": None,
         "cacheKeyHashIncludes": ["features[*].properties.version"],
         "cacheKeyHashExcludes": [],
         "links": None,
         "inputs": None,
         "outputs": None,
+    }
+
+
+@pytest.fixture
+def process_payload_valid():
+    return {
+        "inputs": {
+            "payload": {
+                "id": "string",
+                "type": "FeatureCollection",
+                "features": [{"id": "string", "collection": "string"}],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
+def process_payload_invalid():
+    return {
+        "inputs": {
+            "payload": {
+                "id": 2,
+                "type": "FeatureCollection",
+                "features": [{"id": "string", "collection": 250}],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                    }
+                ],
+            }
+        },
+        "response": "document",
     }
 
 
@@ -179,3 +231,35 @@ async def test_get_process_by_process_id(test_client, mirror_workflow_process):
 async def test_get_process_by_process_id_404(test_client):
     response = test_client.get("/processes/mirror-test")
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_post_valid_name_valid_payload(test_client, process_payload_valid):
+    response = test_client.post(
+        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_post_valid_name_invalid_payload(test_client, process_payload_invalid):
+    response = test_client.post(
+        "/processes/mirror/execution", data=json.dumps(process_payload_invalid)
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_post_invalid_name_valid_payload(test_client, process_payload_valid):
+    response = test_client.post(
+        "/processes/invalid/execution", data=json.dumps(process_payload_valid)
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_post_invalid_name_invalid_payload(test_client, process_payload_invalid):
+    response = test_client.post(
+        "/processes/invalid/execution", data=json.dumps(process_payload_invalid)
+    )
+    assert response.status_code == 422
