@@ -105,16 +105,12 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
                     )
 
         try:
-            ioclient.create_bucket(
-                bucket_name
-            )
+            ioclient.create_bucket(bucket_name)
             setup_io(ioclient)
             yield bucket_name
         finally:
             ioclient.delete_objects()
-            ioclient.delete_bucket(
-                bucket_name
-            )
+            ioclient.delete_bucket(bucket_name)
 
     return io_fixture
 

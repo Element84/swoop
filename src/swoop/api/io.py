@@ -13,9 +13,6 @@ class IOClient:
         self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
     ):
         """Initialize IO Client."""
-        if not bucket_name:
-            raise ValueError("Bucket name cannot be empty")
-
         self.client = Minio(
             s3_endpoint.split("//").pop() if "http" in s3_endpoint else s3_endpoint,
             access_key=access_key,
@@ -28,9 +25,6 @@ class IOClient:
     def get_object(self, object_name: str):
         """Retrieve from object storage."""
         object_response = None
-        if not object_name:
-            raise ValueError("object_name cannot be empty")
-
         try:
             response = self.client.get_object(self.bucket_name, object_name)
             object_response = response.json()
@@ -44,10 +38,6 @@ class IOClient:
         return object_response
 
     def put_file_object(self, object_name: str, file_name: str):
-        if not object_name:
-            raise ValueError("object_name cannot be empty")
-        if not file_name:
-            raise ValueError("file_name cannot be empty")
         result = self.client.fput_object(self.bucket_name, object_name, file_name)
         logger.debug(
             "created {} object; etag: {}, version-id: {}".format(
@@ -58,10 +48,6 @@ class IOClient:
     def put_object(
         self, object_name: str, object_content: str, content_type="application/json"
     ):
-        if not object_name:
-            raise ValueError("object_name cannot be empty")
-        if not object_content:
-            raise ValueError("object_content cannot be empty")
         result = self.client.put_object(
             self.bucket_name,
             object_name,
@@ -76,8 +62,6 @@ class IOClient:
         )
 
     def delete_object(self, object_name: str):
-        if not object_name:
-            raise ValueError("object_name cannot be empty")
         self.client.remove_object(self.bucket_name, object_name)
         logger.debug(f"deleted object: {object_name}")
 
