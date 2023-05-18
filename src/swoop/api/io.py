@@ -24,9 +24,6 @@ class IOClient:
         )
         self.bucket_name = bucket_name
 
-    def set_bucket_name(self, bucket_name: str):
-        self.bucket_name = bucket_name
-
     def get_object(self, object_name: str):
         """Retrieve from object storage."""
         object_response = None
