@@ -27,11 +27,11 @@ class IOClient:
         object_response = None
         try:
             response = self.client.get_object(self.bucket_name, object_name)
-            object_response = response.json()
-            logger.debug(f"retrieved object content: {object_response}")
-        except (S3Error, UnboundLocalError) as err:
+        except S3Error as err:
             logger.debug(err)
         else:
+            object_response = response.json()
+            logger.debug(f"retrieved object content: {object_response}")
             response.close()
             response.release_conn()
 
