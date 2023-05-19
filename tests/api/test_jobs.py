@@ -2,9 +2,22 @@ import urllib.parse
 
 import pytest
 
-from ..conftest import inject_database_fixture
+from ..conftest import inject_database_fixture, inject_io_fixture
 
 inject_database_fixture(["base_01"], __name__)
+inject_io_fixture(
+    [
+        {
+            "source": "base_01",
+            "destination": "/execution/2595f2da-81a6-423c-84db-935e6791046e",
+        },
+        {
+            "source": "base_02",
+            "destination": "/execution/81842304-0aa9-4609-89f0-1c86819b0752",
+        },
+    ],
+    __name__,
+)
 
 
 @pytest.fixture
@@ -175,7 +188,10 @@ async def test_get_job_by_job_id_404(test_client):
 async def test_get_job_results(test_client):
     response = test_client.get("/jobs/2595f2da-81a6-423c-84db-935e6791046e/results")
     assert response.status_code == 200
-    assert response.json() == {"example": "example results"}
+    assert response.json() == {
+        "process_id": "2595f2da-81a6-423c-84db-935e6791046e",
+        "payload": "test_output",
+    }
 
 
 @pytest.mark.asyncio
@@ -188,7 +204,10 @@ async def test_get_job_results_404(test_client):
 async def test_get_job_payload(test_client):
     response = test_client.get("/jobs/2595f2da-81a6-423c-84db-935e6791046e/payload")
     assert response.status_code == 200
-    assert response.json() == {"example": "example payload"}
+    assert response.json() == {
+        "process_id": "2595f2da-81a6-423c-84db-935e6791046e",
+        "payload": "test_input",
+    }
 
 
 @pytest.mark.asyncio
