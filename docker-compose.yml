@@ -23,7 +23,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: "${AWS_ACCESS_KEY_ID:-minio}"
-      MINIO_ROOT_PASSWORD: "${AWS_SECRET_ACCESS_KEY:-password}"
+      MINIO_ROOT_USER: "${SWOOP_ACCESS_KEY_ID:-minio}"
+      MINIO_ROOT_PASSWORD: "${SWOOP_SECRET_ACCESS_KEY:-password}"
       SWOOP_BUCKET_NAME: "${SWOOP_BUCKET_NAME:-swoop}"
     entrypoint: bash -c 'mkdir -p "$${1}/${SWOOP_BUCKET_NAME}" && exec minio server --console-address ":9001" "$${1}"' -- "/tmp/minio"
