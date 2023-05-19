@@ -234,7 +234,7 @@ async def test_post_valid_name_valid_payload(test_client, process_payload_valid)
     response = test_client.post(
         "/processes/mirror/execution", data=json.dumps(process_payload_valid)
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.asyncio

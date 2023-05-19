@@ -129,6 +129,7 @@ async def get_process_definition(process_id: str = Path(..., alias="processID"))
         "404": {"model": APIException},
         "422": {"model": APIException},
     },
+    status_code=201,
 )
 async def execute_process(
     process_id: str, request: Request, body: Execute
