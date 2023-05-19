@@ -51,22 +51,6 @@ def processes_parameter_translation(workflowConfig: dict) -> dict:
     return workflowConfig
 
 
-def create_workflows_dict(workflowConfig: dict) -> dict:
-    workflows = {"workflows": {}}
-    for key in workflowConfig["workflows"].keys():
-        w = workflowConfig["workflows"][key]
-        wf = Workflow(
-            name=key,
-            description=w["description"],
-            version=w["version"],
-            handler=w["handler"],
-            cacheKeyHashIncludes=w["cache_key_hash_includes"],
-            cacheKeyHashExcludes=w["cache_key_hash_excludes"],
-        )
-        workflows["workflows"][key] = wf
-    return workflows
-
-
 @router.get(
     "/",
     response_model=ProcessList,
