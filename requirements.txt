@@ -10,27 +10,31 @@ asyncpg==0.27.0
     # via swoop (pyproject.toml)
 buildpg==0.4
     # via swoop (pyproject.toml)
+certifi==2023.5.7
+    # via minio
+click==8.1.3
+    # via uvicorn
 contextvars==2.4
     # via swoop (pyproject.toml)
 dataclasses==0.6
     # via swoop (pyproject.toml)
-pyyaml==6.0
-    # via swoop (pyproject.toml)
-minio==7.1.14
-    # via swoop (pyproject.toml)
-click==8.1.3
-    # via uvicorn
-fastapi==0.95.1
+fastapi==0.95.2
     # via swoop (pyproject.toml)
 h11==0.14.0
     # via uvicorn
 idna==3.4
     # via anyio
+immutables==0.19
+    # via contextvars
+minio==7.1.14
+    # via swoop (pyproject.toml)
 pydantic==1.10.7
     # via
     #   fastapi
     #   swoop (pyproject.toml)
 python-dotenv==1.0.0
+    # via swoop (pyproject.toml)
+pyyaml==6.0
     # via swoop (pyproject.toml)
 sniffio==1.3.0
     # via anyio
@@ -38,5 +42,7 @@ starlette==0.27.0
     # via fastapi
 typing-extensions==4.5.0
     # via pydantic
-uvicorn==0.21.1
+urllib3==2.0.2
+    # via minio
+uvicorn==0.22.0
     # via swoop (pyproject.toml)
