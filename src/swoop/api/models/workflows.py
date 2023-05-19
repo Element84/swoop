@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from abc import ABC
 from enum import Enum
 from pathlib import Path
+from typing import Literal
 
 import yaml
-from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
+
+from swoop.api.exceptions import WorkflowConfigError
 
 
 class Response(Enum):
@@ -12,21 +16,26 @@ class Response(Enum):
     document = "document"
 
 
-class Workflow(BaseModel):
+class BaseWorkflow(BaseModel, ABC):
     name: StrictStr
     description: StrictStr
     version: StrictInt
-    handler: StrictStr | None = None
-    cacheKeyHashIncludes: list[StrictStr] | None = None
-    cacheKeyHashExcludes: list[StrictStr] | None = None
+    cacheKeyHashIncludes: list[StrictStr] = []
+    cacheKeyHashExcludes: list[StrictStr] = []
 
 
-class ArgoWorkflow(Workflow):
-    workflow_template: StrictStr
+class ArgoWorkflow(BaseWorkflow):
+    handler: Literal["argo-workflow"]
+    argo_template: StrictStr
 
 
-class CirrusWorkflow(Workflow):
+class CirrusWorkflow(BaseWorkflow):
+    handler: Literal["cirrus-workflow"]
     sfn_arn: StrictStr
+
+
+class Workflow(BaseModel):
+    __root__: ArgoWorkflow | CirrusWorkflow = Field(..., discriminator="handler")
 
 
 class Feature(BaseModel):
@@ -67,13 +76,20 @@ class Execute(BaseModel):
     # TODO: We should likely omit the ability to specify outputs
     # outputs: dict[str, Output] | None = None
     # TODO: Response isn't really to be supported, all results are json
-    response: Response | None = "document"
+    response: Literal["document"] = "document"
     # subscriber: Subscriber | None = None
 
 
-class Workflows(dict):
+class Workflows(BaseModel):
+    __root__: dict[str, Workflow]
+
     @classmethod
-    def from_yaml(cls, path: Path) -> dict:
-        with open(path) as f:
-            workflows = yaml.safe_load(f)
-            return workflows
+    def from_yaml(cls, path: Path) -> dict[str, Workflow]:
+        try:
+            # with open(path) as f:
+            workflows = yaml.safe_load(path.read_text())["workflows"]
+            for name, workflow in workflows.items():
+                workflow["name"] = name
+            return Workflows(__root__=workflows).__root__
+        except Exception as e:
+            raise WorkflowConfigError("Could not load workflow configuration") from e
