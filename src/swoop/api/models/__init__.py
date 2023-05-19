@@ -186,7 +186,6 @@ class ProcessSummary(DescriptionType):
     outputTransmission: list[TransmissionMode] | None = None
     description: str | None = None
     handler: str | None = None
-    argoTemplate: str | None = None
     cacheKeyHashIncludes: list[str] | None = None
     cacheKeyHashExcludes: list[str] | None = None
     links: list[Link] | None = None

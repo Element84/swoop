@@ -20,8 +20,8 @@ class BaseWorkflow(BaseModel, ABC):
     name: StrictStr
     description: StrictStr
     version: StrictInt
-    cacheKeyHashIncludes: list[StrictStr] = []
-    cacheKeyHashExcludes: list[StrictStr] = []
+    cache_key_hash_includes: list[StrictStr] = []
+    cache_key_hash_excludes: list[StrictStr] = []
 
 
 class ArgoWorkflow(BaseWorkflow):
@@ -86,7 +86,6 @@ class Workflows(BaseModel):
     @classmethod
     def from_yaml(cls, path: Path) -> dict[str, Workflow]:
         try:
-            # with open(path) as f:
             workflows = yaml.safe_load(path.read_text())["workflows"]
             for name, workflow in workflows.items():
                 workflow["name"] = name

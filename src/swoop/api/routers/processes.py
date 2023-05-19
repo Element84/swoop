@@ -25,7 +25,6 @@ class Params(BaseModel):
     title: str | None
     description: str | None
     handler: str | None
-    argo_template: str | None = None
 
 
 def to_process_summary(workflowConfig: Workflow) -> Process:
@@ -37,9 +36,8 @@ def to_process_summary(workflowConfig: Workflow) -> Process:
         version=workflowConfig.version,
         description=workflowConfig.description,
         handler=workflowConfig.handler,
-        # argoTemplate=workflowConfig.workflow_template,
-        cacheKeyHashIncludes=workflowConfig.cacheKeyHashIncludes,
-        cacheKeyHashExcludes=workflowConfig.cacheKeyHashExcludes,
+        cacheKeyHashIncludes=workflowConfig.cache_key_hash_includes,
+        cacheKeyHashExcludes=workflowConfig.cache_key_hash_excludes,
     )
 
 
@@ -65,18 +63,14 @@ async def list_processes(
     retrieve the list of available processes
     """
     queryparams = processes_parameter_translation(params.dict(exclude_none=True))
-    workflows = (
-        request.app.state.workflows.get("workflows")
-        if request.app.state.workflows.get("workflows")
-        else {}
-    )
+    workflows = request.app.state.workflows
 
     workflows = list(workflows.values())
 
     if queryparams and len(workflows) > 0:
         workflows = list(
             filter(
-                lambda x: queryparams.items() <= vars(x).items(),
+                lambda x: queryparams.items() <= x.__root__.dict().items(),
                 workflows,
             )
         )
@@ -85,7 +79,7 @@ async def list_processes(
         workflows = workflows[:limit]
 
     return ProcessList(
-        processes=[to_process_summary(workflow) for workflow in workflows],
+        processes=[to_process_summary(workflow.__root__) for workflow in workflows],
         links=[
             Link(
                 href="http://www.example.com",
@@ -108,11 +102,7 @@ async def get_process_description(
     """
     retrieve a process description
     """
-    workflows = (
-        request.app.state.workflows.get("workflows")
-        if request.app.state.workflows.get("workflows")
-        else {}
-    )
+    workflows = request.app.state.workflows
 
     if process_id and len(workflows.keys()) > 0:
         if process_id in workflows:
@@ -120,7 +110,7 @@ async def get_process_description(
         else:
             raise HTTPException(status_code=404, detail="Process not found")
 
-    return to_process_summary(workflow)
+    return to_process_summary(workflow.__root__)
 
 
 @router.get("/{process_id}/definition")
@@ -146,12 +136,7 @@ async def execute_process(
     """
     execute a process.
     """
-
-    workflows = (
-        request.app.state.workflows.get("workflows")
-        if request.app.state.workflows.get("workflows")
-        else {}
-    )
+    workflows = request.app.state.workflows
 
     if process_id and len(workflows.keys()) > 0:
         if process_id in workflows:
@@ -175,21 +160,32 @@ async def execute_process(
         pl_uuid = "debeb36c-e09e-41c3-bdc5-596287fe724a"
 
         q, p = render(
-            f"""
+            """
                 INSERT INTO swoop.payload_cache(payload_uuid,
                     workflow_version, workflow_name)
-                VALUES ('{pl_uuid}',2,'mirror');
+                VALUES (:payload_uuid::uuid,:workflow_version::smallint,
+                :workflow_name::text);
             """,
+            payload_uuid=pl_uuid,
+            workflow_version=2,
+            workflow_name="mirror",
         )
+
         await conn.fetchrow(q, *p)
 
         q, p = render(
-            f"""
+            """
                 INSERT INTO swoop.action(action_uuid, action_type,
                     action_name, handler_name, parent_uuid, payload_uuid)
-                VALUES ('{action_uuid}','workflow','{workflow.name}',
-                '{workflow.handler}','{uuid.uuid4()}','{pl_uuid}');
+                VALUES (:action_uuid::uuid,:action_type::text,:action_name::text,
+                :handler_name::text,:parent_uuid::uuid,:payload_uuid::uuid);
             """,
+            action_uuid=action_uuid,
+            action_type="workflow",
+            action_name=workflow.__root__.name,
+            handler_name=workflow.__root__.handler,
+            parent_uuid=uuid.uuid4(),
+            payload_uuid=pl_uuid,
         )
         await conn.fetchrow(q, *p)
 
