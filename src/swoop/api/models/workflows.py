@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal, Union
 
 import yaml
 from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
@@ -34,8 +34,13 @@ class CirrusWorkflow(BaseWorkflow):
     sfn_arn: StrictStr
 
 
-class Workflow(BaseModel):
-    __root__: ArgoWorkflow | CirrusWorkflow = Field(..., discriminator="handler")
+Workflow = Annotated[
+    Union[
+        ArgoWorkflow,
+        CirrusWorkflow,
+    ],
+    Field(discriminator="handler"),
+]
 
 
 class Feature(BaseModel):
@@ -80,15 +85,16 @@ class Execute(BaseModel):
     # subscriber: Subscriber | None = None
 
 
-class Workflows(BaseModel):
-    __root__: dict[str, Workflow]
+class Workflows(dict[str, Workflow]):
+    class _type(BaseModel):
+        __root__: dict[str, Workflow]
 
     @classmethod
-    def from_yaml(cls, path: Path) -> dict[str, Workflow]:
+    def from_yaml(cls, path: Path) -> Workflows:
         try:
             workflows = yaml.safe_load(path.read_text())["workflows"]
             for name, workflow in workflows.items():
                 workflow["name"] = name
-            return Workflows(__root__=workflows).__root__
+            return cls(cls._type.parse_obj(workflows).__root__)
         except Exception as e:
             raise WorkflowConfigError("Could not load workflow configuration") from e

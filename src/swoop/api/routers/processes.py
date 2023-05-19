@@ -4,7 +4,7 @@ import json
 import uuid
 
 from buildpg import render
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from swoop.api.models import Exception as APIException
@@ -27,13 +27,13 @@ class Params(BaseModel):
     handler: str | None
 
 
-def to_process_summary(workflowConfig: Workflow) -> Process:
+def to_process_summary(workflowConfig: Workflow) -> ProcessSummary:
     return ProcessSummary(
         id=workflowConfig.name,
         title=workflowConfig.name,
         name=workflowConfig.name,
         processID=workflowConfig.name,
-        version=workflowConfig.version,
+        version=str(workflowConfig.version),
         description=workflowConfig.description,
         handler=workflowConfig.handler,
         cacheKeyHashIncludes=workflowConfig.cache_key_hash_includes,
@@ -63,23 +63,16 @@ async def list_processes(
     retrieve the list of available processes
     """
     queryparams = processes_parameter_translation(params.dict(exclude_none=True))
-    workflows = request.app.state.workflows
+    workflows: list[Workflow] = list(request.app.state.workflows.values())
 
-    workflows = list(workflows.values())
-
-    if queryparams and len(workflows) > 0:
-        workflows = list(
-            filter(
-                lambda x: queryparams.items() <= x.__root__.dict().items(),
-                workflows,
-            )
-        )
+    if queryparams:
+        workflows = [wf for wf in workflows if queryparams.items() <= wf.dict().items()]
 
     if limit and limit < len(workflows):
         workflows = workflows[:limit]
 
     return ProcessList(
-        processes=[to_process_summary(workflow.__root__) for workflow in workflows],
+        processes=[to_process_summary(workflow) for workflow in workflows],
         links=[
             Link(
                 href="http://www.example.com",
@@ -104,14 +97,10 @@ async def get_process_description(
     """
     workflows = request.app.state.workflows
 
-    if process_id and len(workflows.keys()) > 0:
-        if process_id in workflows:
-            workflow = workflows[process_id]
-        else:
-            raise HTTPException(status_code=404, detail="Process not found")
-
-    return to_process_summary(workflow.__root__)
-
+    try:
+        workflow = workflows[process_id]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Process not found")
 
 @router.get("/{process_id}/definition")
 async def get_process_definition(process_id: str = Path(..., alias="processID")) -> str:
@@ -139,11 +128,10 @@ async def execute_process(
     """
     workflows = request.app.state.workflows
 
-    if process_id and len(workflows.keys()) > 0:
-        if process_id in workflows:
-            workflow = workflows[process_id]
-        else:
-            raise HTTPException(status_code=404, detail="Process not found")
+    try:
+        workflow = workflows[process_id]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Process not found")
 
     # Generate a UUID
     action_uuid = uuid.uuid4()
