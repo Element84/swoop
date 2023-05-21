@@ -121,6 +121,13 @@ async def execute_process(
     """
     execute a process.
     """
+
+    wf_name = body.dict().get("inputs").get("payload").get("process")[0].get("workflow")
+    if process_id != wf_name:
+        raise HTTPException(
+            status_code=422, detail="Workflow name in payload does not match process ID"
+        )
+
     workflows = request.app.state.workflows
 
     try:

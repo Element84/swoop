@@ -146,6 +146,7 @@ def process_payload_valid():
                             "headers": {},
                             "s3_urls": True,
                         },
+                        "workflow": "mirror",
                     }
                 ],
             }
@@ -173,6 +174,35 @@ def process_payload_invalid():
                             "headers": {},
                             "s3_urls": True,
                         },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
+def process_payload_valid_wf_name_not_in_config():
+    return {
+        "inputs": {
+            "payload": {
+                "id": "string",
+                "type": "FeatureCollection",
+                "features": [{"id": "string", "collection": "string"}],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "hello",
                     }
                 ],
             }
@@ -230,7 +260,7 @@ async def test_get_process_by_process_id_404(test_client):
 
 
 @pytest.mark.asyncio
-async def test_post_valid_name_valid_payload(test_client, process_payload_valid):
+async def test_post_valid_id_valid_payload(test_client, process_payload_valid):
     response = test_client.post(
         "/processes/mirror/execution", data=json.dumps(process_payload_valid)
     )
@@ -238,7 +268,7 @@ async def test_post_valid_name_valid_payload(test_client, process_payload_valid)
 
 
 @pytest.mark.asyncio
-async def test_post_valid_name_invalid_payload(test_client, process_payload_invalid):
+async def test_post_valid_id_invalid_payload(test_client, process_payload_invalid):
     response = test_client.post(
         "/processes/mirror/execution", data=json.dumps(process_payload_invalid)
     )
@@ -246,16 +276,19 @@ async def test_post_valid_name_invalid_payload(test_client, process_payload_inva
 
 
 @pytest.mark.asyncio
-async def test_post_invalid_name_valid_payload(test_client, process_payload_valid):
+async def test_post_invalid_id_valid_payload(test_client, process_payload_valid):
     response = test_client.post(
         "/processes/invalid/execution", data=json.dumps(process_payload_valid)
     )
-    assert response.status_code == 404
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_post_invalid_name_invalid_payload(test_client, process_payload_invalid):
+async def test_post_process_id_not_found_in_config(
+    test_client, process_payload_valid_wf_name_not_in_config
+):
     response = test_client.post(
-        "/processes/invalid/execution", data=json.dumps(process_payload_invalid)
+        "/processes/hello/execution",
+        data=json.dumps(process_payload_valid_wf_name_not_in_config),
     )
-    assert response.status_code == 422
+    assert response.status_code == 404

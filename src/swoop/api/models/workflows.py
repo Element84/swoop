@@ -61,6 +61,7 @@ class Process(BaseModel):
     tasks: dict
     # input_collections: Optional[list[StrictStr]] = None
     upload_options: UploadOptions
+    workflow: StrictStr
 
 
 class Payload(BaseModel):
