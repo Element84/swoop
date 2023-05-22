@@ -1,12 +1,12 @@
-FROM python:3.11.3-alpine3.16
+FROM alpine:3.18.0
 
 WORKDIR /app
 
 COPY . /app
 
-RUN apk --update add gcc build-base
+RUN apk add --no-cache gcc build-base musl-dev python3-dev py3-pip
 
-RUN python -m pip install --upgrade pip && \
+RUN python3 -m pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install '.[dev]'
 
