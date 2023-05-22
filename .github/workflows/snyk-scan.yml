@@ -71,12 +71,11 @@ jobs:
           args: --file=db/Dockerfile
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
 
-      #   Python 3.11 currently has unresolved critical vulnerabilities
-      # - name: Snyk SWOOP API Docker gatekeeper
-      #   uses: snyk/actions/docker@master
-      #   env:
-      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      #   with:
-      #     image: python
-      #     args: --file=Dockerfile
-      #       --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
+      - name: Snyk SWOOP API Docker gatekeeper
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: python
+          args: --file=Dockerfile
+            --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
