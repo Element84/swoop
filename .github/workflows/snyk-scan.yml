@@ -46,7 +46,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: api
-          args: --file=./Dockerfile
+          args: --file=Dockerfile
             --sarif-file-output=snyk.sarif
 
         # Push the Snyk Code results into GitHub Code Scanning tab
@@ -77,5 +77,5 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: api
-          args: --file=./Dockerfile
+          args: --file=Dockerfile
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities

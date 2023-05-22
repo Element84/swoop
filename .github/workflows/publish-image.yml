@@ -2,7 +2,7 @@ name: Publish SWOOP API Image to Quay
 on:
   push:
     branches:
-      - main
+      - '*'
     tags:
       - '*'
     paths:
