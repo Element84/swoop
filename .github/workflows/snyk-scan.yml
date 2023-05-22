@@ -45,7 +45,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: api
+          image: python
           args: --file=Dockerfile
             --sarif-file-output=snyk.sarif
 
@@ -76,6 +76,6 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: api
+          image: python
           args: --file=Dockerfile
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
