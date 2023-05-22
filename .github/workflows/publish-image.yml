@@ -1,4 +1,4 @@
-name: Publish SWOOP API Image to Quay
+name: Publish Image
 on:
   push:
     branches:
@@ -7,9 +7,6 @@ on:
       - '*'
     paths:
       - ./version.json
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
