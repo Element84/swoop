@@ -29,7 +29,7 @@ jobs:
         with:
           args: --sarif-file-output=snyk.sarif
 
-      - name: Snyk Docker report vulnerabilities
+      - name: Snyk Postgres Docker report vulnerabilities
         uses: snyk/actions/docker@master
         continue-on-error: true # To make sure that SARIF upload gets called
         env:
@@ -37,6 +37,16 @@ jobs:
         with:
           image: postgres
           args: --file=db/Dockerfile
+            --sarif-file-output=snyk.sarif
+
+      - name: Snyk API Docker report vulnerabilities
+        uses: snyk/actions/docker@master
+        continue-on-error: true # To make sure that SARIF upload gets called
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: api
+          args: --file=./Dockerfile
             --sarif-file-output=snyk.sarif
 
         # Push the Snyk Code results into GitHub Code Scanning tab
@@ -52,11 +62,20 @@ jobs:
         with:
           args: --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
 
-      - name: Snyk Docker gatekeeper
+      - name: Snyk Postgres Docker gatekeeper
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: postgres
           args: --file=db/Dockerfile
+            --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
+
+      - name: Snyk SWOOP API Docker gatekeeper
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: api
+          args: --file=./Dockerfile
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
