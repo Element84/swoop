@@ -30,6 +30,7 @@ services:
 
   api:
     build: .
+    restart: always
     environment:
       SWOOP_ACCESS_KEY_ID: "${SWOOP_ACCESS_KEY_ID:-minio}"
       SWOOP_SECRET_ACCESS_KEY: "${SWOOP_SECRET_ACCESS_KEY:-password}"
