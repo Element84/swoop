@@ -1,14 +1,16 @@
-FROM alpine:3.18.0
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
 COPY . /app
 
-RUN apk add --no-cache gcc build-base musl-dev python3-dev py3-pip aom>=3.6.1-r0 curl>=8.1.1-r0
+RUN apt-get update
 
-RUN python -m pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install '.[dev]'
+RUN apt-get install -y gcc musl-dev python3-dev python3-pip
+
+RUN python3 -m pip install --break-system-packages --upgrade pip && \
+    pip install  --break-system-packages -r requirements.txt && \
+    pip install  --break-system-packages '.[dev]'
 
 ENV SWOOP_ACCESS_KEY_ID=$SWOOP_ACCESS_KEY_ID  \
     SWOOP_SECRET_ACCESS_KEY=$SWOOP_ACCESS_KEY_ID  \
