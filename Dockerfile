@@ -1,10 +1,8 @@
-FROM python:3.11.3-alpine3.18
+FROM quay.io/element84/python3.11.3-alpine3.18-patch:latest
 
 WORKDIR /app
 
 COPY . /app
-
-RUN apk --update add gcc build-base aom>=3.6.1-r0 curl>=8.1.1-r0
 
 RUN python -m pip install --upgrade pip && \
     pip install -r requirements.txt && \
