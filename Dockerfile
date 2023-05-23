@@ -1,8 +1,10 @@
-FROM quay.io/element84/python3.11.3-alpine3.18-patch:latest
+FROM alpine:3.18.0
 
 WORKDIR /app
 
 COPY . /app
+
+RUN apk add --no-cache gcc build-base musl-dev python3-dev py3-pip aom>=3.6.1-r0 curl>=8.1.1-r0
 
 RUN python -m pip install --upgrade pip && \
     pip install -r requirements.txt && \
