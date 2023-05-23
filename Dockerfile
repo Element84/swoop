@@ -1,16 +1,12 @@
-FROM debian:bookworm-slim
+FROM python:3.11.3-slim
 
 WORKDIR /app
 
 COPY . /app
 
-RUN apt-get update
-
-RUN apt-get install -y gcc musl-dev python3-dev python3-pip
-
-RUN python3 -m pip install --break-system-packages --upgrade pip && \
-    pip install  --break-system-packages -r requirements.txt && \
-    pip install  --break-system-packages '.[dev]'
+RUN python -m pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install '.[dev]'
 
 ENV SWOOP_ACCESS_KEY_ID=$SWOOP_ACCESS_KEY_ID  \
     SWOOP_SECRET_ACCESS_KEY=$SWOOP_ACCESS_KEY_ID  \
