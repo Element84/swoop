@@ -1,21 +1,8 @@
-FROM debian:bookworm-slim
+FROM quay.io/element84/python3.11-bookworm-slim:latest
 
 WORKDIR /app
 
 COPY . /app
-
-RUN apt-get update
-
-RUN apt-get install -y gcc musl-dev python3-dev python3-pip
-
-# Resolving libcurl vulnerability https://security-tracker.debian.org/tracker/CVE-2023-23914
-RUN apt-get install -y libcurl4>=7.88.1-9 curl>=7.88.1-9
-
-# Resolving libaom vulnerabilities:
-#  - https://security-tracker.debian.org/tracker/CVE-2021-30473
-#  - https://security-tracker.debian.org/tracker/CVE-2021-30474
-#  - https://security-tracker.debian.org/tracker/CVE-2021-30475
-RUN apt-get install -y libaom-dev>=3.6.0-1
 
 RUN python3 -m pip install --break-system-packages --upgrade pip && \
     pip install  --break-system-packages -r requirements.txt && \
