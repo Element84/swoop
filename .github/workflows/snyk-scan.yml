@@ -28,6 +28,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
 
       - name: Snyk Postgres Docker report vulnerabilities
         uses: snyk/actions/docker@master
@@ -38,6 +39,7 @@ jobs:
           image: postgres
           args: --file=db/Dockerfile
             --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
 
       - name: Snyk API Docker report vulnerabilities
         uses: snyk/actions/docker@master
@@ -48,6 +50,7 @@ jobs:
           image: python
           args: --file=Dockerfile
             --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
 
         # Push the Snyk Code results into GitHub Code Scanning tab
       - name: Upload result to GitHub Code Scanning
@@ -60,7 +63,8 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
+          args: --policy-path=.snyk
+            --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
 
       - name: Snyk Postgres Docker gatekeeper
         uses: snyk/actions/docker@master
@@ -69,6 +73,7 @@ jobs:
         with:
           image: postgres
           args: --file=db/Dockerfile
+            --policy-path=.snyk
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
 
       - name: Snyk SWOOP API Docker gatekeeper
@@ -78,4 +83,5 @@ jobs:
         with:
           image: python
           args: --file=Dockerfile
+            --policy-path=.snyk
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
