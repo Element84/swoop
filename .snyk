@@ -18,5 +18,3 @@ ignore:
     - '*':
         reason: Patched by using debian bookworm (12) and installing recommended libaom libraries.
         expires: 2023-06-30T17:33:45.004Z
-
-patch: {}
