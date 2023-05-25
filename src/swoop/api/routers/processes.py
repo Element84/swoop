@@ -122,7 +122,9 @@ async def execute_process(
     execute a process.
     """
 
-    wf_name = body.dict().get("inputs").get("payload").get("process")[0].get("workflow")
+    payload = body.dict().get("inputs").get("payload")
+
+    wf_name = payload.get("process")[0].get("workflow")
     if process_id != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
@@ -142,7 +144,7 @@ async def execute_process(
 
     request.app.state.io.put_object(
         object_name=f"executions/{action_uuid}/input.json",
-        object_content=json.dumps(body.dict()["inputs"]),
+        object_content=json.dumps(payload),
     )
 
     async with request.app.state.readpool.acquire() as conn:
