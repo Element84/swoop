@@ -1,0 +1,22 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.22.1
+
+ignore:
+  SNYK-DEBIAN11-CURL-3320493:
+    - '*':
+        reason: Patched by using debian bookworm (12) and installing recommended libcurl libraries.
+        expires: 2023-06-30T17:33:45.004Z
+  SNYK-DEBIAN11-AOM-1290331:
+    - '*':
+        reason: Patched by using debian bookworm (12) and installing recommended libaom libraries.
+        expires: 2023-06-30T17:33:45.004Z
+  SNYK-DEBIAN11-AOM-1298721:
+    - '*':
+        reason: Patched by using debian bookworm (12) and installing recommended libaom libraries.
+        expires: 2023-06-30T17:33:45.004Z
+  SNYK-DEBIAN11-AOM-1300249:
+    - '*':
+        reason: Patched by using debian bookworm (12) and installing recommended libaom libraries.
+        expires: 2023-06-30T17:33:45.004Z
+
+patch: {}

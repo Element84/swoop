@@ -28,8 +28,9 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
 
-      - name: Snyk Docker report vulnerabilities
+      - name: Snyk Postgres Docker report vulnerabilities
         uses: snyk/actions/docker@master
         continue-on-error: true # To make sure that SARIF upload gets called
         env:
@@ -38,6 +39,18 @@ jobs:
           image: postgres
           args: --file=db/Dockerfile
             --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
+
+      - name: Snyk API Docker report vulnerabilities
+        uses: snyk/actions/docker@master
+        continue-on-error: true # To make sure that SARIF upload gets called
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: python
+          args: --file=Dockerfile
+            --sarif-file-output=snyk.sarif
+            --policy-path=.snyk
 
         # Push the Snyk Code results into GitHub Code Scanning tab
       - name: Upload result to GitHub Code Scanning
@@ -50,13 +63,25 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
+          args: --policy-path=.snyk
+            --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
 
-      - name: Snyk Docker gatekeeper
+      - name: Snyk Postgres Docker gatekeeper
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: postgres
           args: --file=db/Dockerfile
+            --policy-path=.snyk
+            --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
+
+      - name: Snyk SWOOP API Docker gatekeeper
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: python
+          args: --file=Dockerfile
+            --policy-path=.snyk
             --severity-threshold=critical # Forces fail on critical-severity vulnerabilities
