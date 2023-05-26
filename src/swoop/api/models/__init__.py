@@ -30,11 +30,6 @@ class ConfClasses(BaseModel):
     conformsTo: list[str]
 
 
-class Response(Enum):
-    raw = "raw"
-    document = "document"
-
-
 class Type(Enum):
     process = "process"
 
@@ -191,8 +186,6 @@ class ProcessSummary(DescriptionType):
     outputTransmission: list[TransmissionMode] | None = None
     description: str | None = None
     handler: str | None = None
-    argoTemplate: str | None = None
-    cacheEnabled: bool | None = None
     cacheKeyHashIncludes: list[str] | None = None
     cacheKeyHashExcludes: list[str] | None = None
     links: list[Link] | None = None
@@ -209,16 +202,6 @@ class ProcessList(BaseModel):
 
 class InlineOrRefData(BaseModel):
     __root__: InputValueNoObject | QualifiedInputValue | Link
-
-
-class Execute(BaseModel):
-    # TODO: I believe this is where we need to specify the input payload schema
-    inputs: dict[str, InlineOrRefData | list[InlineOrRefData]] | None = None
-    # TODO: We should likely omit the ability to specify outputs
-    outputs: dict[str, Output] | None = None
-    # TODO: Response isn't really to be supported, all results are json
-    response: Response | None = "raw"
-    subscriber: Subscriber | None = None
 
 
 class Results(BaseModel):

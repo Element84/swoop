@@ -33,12 +33,12 @@ async def get_db_connection(**kwargs):
 
 
 async def create_database(db_name: str) -> None:
-    async with get_db_connection(database=None) as conn:
+    async with get_db_connection(database="") as conn:
         await conn.execute(f'CREATE DATABASE "{db_name}";')
 
 
 async def drop_database(db_name: str) -> None:
-    async with get_db_connection(database=None) as conn:
+    async with get_db_connection(database="") as conn:
         await conn.execute(f'DROP DATABASE "{db_name}";')
 
 

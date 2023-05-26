@@ -1,5 +1,4 @@
 # ruff: noqa: E501
-import json
 
 from swoop.cache.hashing import hash_dict
 from swoop.cache.types import JSONFilter
@@ -17,7 +16,6 @@ def test_hashing():
     ]
     f = JSONFilter(includes, excludes)
     result = f(payload_3)
-    print(json.dumps(result, indent=4))
     hashed = hash_dict(result)
     assert hashed == b'>\xca\x96\xc5\xd2\xa3\x02:\xd5\xd7\xe0nyy\xc0KW\x16"\x15'
 

@@ -39,9 +39,9 @@ INSERT INTO swoop.event_state (name, description) VALUES
 
 CREATE TABLE IF NOT EXISTS swoop.payload_cache (
   payload_uuid uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  payload_hash bytea,
-  workflow_version smallint,
-  workflow_name text,
+  payload_hash bytea UNIQUE,
+  workflow_version smallint NOT NULL,
+  workflow_name text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   invalid_after timestamptz
 );

@@ -34,7 +34,7 @@ git commit -m "message" --no-verify
 Start the swoop api by running:
 
 ```commandline
-uvicorn swoop.api.main:app --host 0.0.0.0 --port 8000
+uvicorn swoop.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Testing
