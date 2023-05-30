@@ -132,7 +132,6 @@ def process_payload_valid():
     return {
         "inputs": {
             "payload": {
-                "id": "string",
                 "type": "FeatureCollection",
                 "features": [{"id": "string", "collection": "string"}],
                 "process": [
@@ -160,7 +159,6 @@ def process_payload_invalid():
     return {
         "inputs": {
             "payload": {
-                "id": 2,
                 "type": "FeatureCollection",
                 "features": [{"id": "string", "collection": 250}],
                 "process": [
@@ -188,7 +186,6 @@ def process_payload_valid_wf_name_not_in_config():
     return {
         "inputs": {
             "payload": {
-                "id": "string",
                 "type": "FeatureCollection",
                 "features": [{"id": "string", "collection": "string"}],
                 "process": [

@@ -65,7 +65,6 @@ class Process(BaseModel):
 
 
 class Payload(BaseModel):
-    id: StrictStr
     type: StrictStr = "FeatureCollection"
     features: list[Feature]
     process: list[Process]

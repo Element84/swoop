@@ -7,10 +7,10 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      POSTGRES_DB: "${PGDATABASE:-postgres}"
+      POSTGRES_DB: "${PGDATABASE:-swoop}"
       POSTGRES_PASSWORD: "${PGPASSWORD:-password}"
       POSTGRES_USER: "${PGUSER:-postgres}"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_HOST_AUTH_METHOD: "${PGAUTHMETHOD:-trust}"
     ports:
       - "${DATABASE_PORT:-5432}:5432"
     volumes:
@@ -27,3 +27,22 @@ services:
       MINIO_ROOT_PASSWORD: "${SWOOP_SECRET_ACCESS_KEY:-password}"
       SWOOP_BUCKET_NAME: "${SWOOP_BUCKET_NAME:-swoop}"
     entrypoint: bash -c 'mkdir -p "$${1}/${SWOOP_BUCKET_NAME}" && exec minio server --console-address ":9001" "$${1}"' -- "/tmp/minio"
+
+  api:
+    build: .
+    restart: always
+    environment:
+      SWOOP_ACCESS_KEY_ID: "${SWOOP_ACCESS_KEY_ID:-minio}"
+      SWOOP_SECRET_ACCESS_KEY: "${SWOOP_SECRET_ACCESS_KEY:-password}"
+      SWOOP_S3_ENDPOINT: "http://minio:9000"
+      SWOOP_BUCKET_NAME: "${SWOOP_BUCKET_NAME:-swoop}"
+      SWOOP_EXECUTION_DIR: "${SWOOP_EXECUTION_DIR:-s3://swoop/execution}"
+      SWOOP_WORKFLOW_CONFIG_FILE: "${SWOOP_WORKFLOW_CONFIG_FILE:-workflow-config.yml}"
+      PGDATABASE: "${PGDATABASE:-swoop}"
+      PGHOST: "postgres"
+      PGUSER: "${PGUSER:-postgres}"
+    ports:
+      - "${SWOOP_API_PORT:-8000}:8000"
+    depends_on:
+      - postgres
+      - minio
