@@ -7,6 +7,14 @@ INSERT INTO swoop.input_item VALUES (
   'id2',
   'collection1'
 );
+INSERT INTO swoop.input_item VALUES (
+  'id3',
+  'collection2'
+);
+INSERT INTO swoop.input_item VALUES (
+  'id4',
+  'collection2'
+);
 
 -- payloads
 INSERT INTO swoop.payload_cache VALUES (
@@ -22,6 +30,24 @@ INSERT INTO swoop.payload_cache VALUES (
 INSERT INTO swoop.item_payload VALUES (
   'id1',
   'collection1',
+  'ade69fe7-1d7d-472e-9f36-7242cc2aca77'
+);
+
+INSERT INTO swoop.item_payload VALUES (
+  'id2',
+  'collection1',
+  'ade69fe7-1d7d-472e-9f36-7242cc2aca77'
+);
+
+INSERT INTO swoop.item_payload VALUES (
+  'id3',
+  'collection2',
+  'ade69fe7-1d7d-472e-9f36-7242cc2aca77'
+);
+
+INSERT INTO swoop.item_payload VALUES (
+  'id4',
+  'collection2',
   'ade69fe7-1d7d-472e-9f36-7242cc2aca77'
 );
 
