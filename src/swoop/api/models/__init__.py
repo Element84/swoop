@@ -295,9 +295,33 @@ class Events(BaseModel):
     pass
 
 
+class PayloadDetails(BaseModel):
+    payload_uuid: str | None = None
+
+
 class PayloadList(BaseModel):
-    pass
+    payloads: list[PayloadDetails]
+    links: list[Link]
+
+
+class Action(BaseModel):
+    action_uuid: str | None = None
+    action_type: str | None = None
+    action_name: str | None = None
+    handler_name: str | None = None
+    parent_uuid: str | None = None
+    created_at: datetime | None = None
+    priority: int | None = None
+    payload_uuid: str | None = None
 
 
 class PayloadInfo(BaseModel):
-    pass
+    payload_uuid: str | None = None
+    payload_hash: bytes | None = None
+    workflow_version: int | None = None
+    workflow_name: str | None = None
+    created_at: datetime | None = None
+    invalid_after: datetime | None = None
+    collections: list[str] | None = None
+    items: list[str] | None = None
+    actions: list[Action] | None = None
