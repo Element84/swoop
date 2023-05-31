@@ -24,7 +24,7 @@ router: APIRouter = APIRouter(
 
 def to_payload_details(record: Record) -> PayloadDetails:
     return PayloadDetails(
-        payload_uuid=record["payload_uuid"],
+        payload_uuid=str(record["payload_uuid"]),
     )
 
 
