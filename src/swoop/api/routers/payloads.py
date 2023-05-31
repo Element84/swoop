@@ -15,7 +15,7 @@ from ..models import (
     StatusInfo,
 )
 
-DEFAULT_JOB_LIMIT = 1000
+DEFAULT_PAYLOAD_LIMIT = 1000
 
 router: APIRouter = APIRouter(
     tags=["Payloads"],
@@ -52,7 +52,7 @@ def to_action(record) -> Action:
 )
 async def list_payloads(
     request: Request,
-    limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
+    limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
     process_id: list[str] | None = Query(default=None),
     collection_id: list[str] | None = Query(default=None),
     item_id: list[str] | None = Query(default=None),
@@ -76,6 +76,7 @@ async def list_payloads(
                 WHERE (:processes::text[] IS NULL OR :proc_where)
                 AND (:collections::text[] IS NULL OR :coll_where)
                 AND (:items::text[] IS NULL OR :item_where)
+                LIMIT :limit::integer;
             """,
             processes=process_id,
             collections=collection_id,
@@ -83,6 +84,7 @@ async def list_payloads(
             proc_where=proc_clause,
             coll_where=coll_clause,
             item_where=item_clause,
+            limit=limit,
         )
 
         records = await conn.fetch(q, *p)
@@ -91,9 +93,6 @@ async def list_payloads(
             raise HTTPException(
                 status_code=404, detail="No payloads that match query parameters found"
             )
-
-        if limit and limit < len(records):
-            records = records[:limit]
 
         return PayloadList(
             payloads=[to_payload_details(pl) for pl in records],
@@ -114,7 +113,7 @@ async def list_payloads(
     },
 )
 async def get_payload_status(
-    request: Request, payload_id: str
+    request: Request, payload_id
 ) -> PayloadInfo | APIException:
     """
     retrieve info for a payload
