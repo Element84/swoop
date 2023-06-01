@@ -3,12 +3,11 @@ import inspect
 import logging
 import random
 import string
-from contextlib import asynccontextmanager
 from pathlib import Path
 
-import asyncpg
 import pytest
 from fastapi.testclient import TestClient
+from swoop.db import SwoopDB
 
 from swoop.api.app import get_app
 from swoop.api.config import Settings
@@ -17,43 +16,8 @@ from swoop.api.io import IOClient
 logger = logging.getLogger(__name__)
 
 
-def syncrun(coroutine, *args, **kwargs):
-    return asyncio.run(coroutine(*args, **kwargs))
-
-
-@asynccontextmanager
-async def get_db_connection(**kwargs):
-    conn = None
-    try:
-        conn = await asyncpg.connect(**kwargs)
-        yield conn
-    finally:
-        if conn:
-            await conn.close()
-
-
-async def create_database(db_name: str) -> None:
-    async with get_db_connection(database="") as conn:
-        await conn.execute(f'CREATE DATABASE "{db_name}";')
-
-
-async def drop_database(db_name: str) -> None:
-    async with get_db_connection(database="") as conn:
-        await conn.execute(f'DROP DATABASE "{db_name}";')
-
-
-async def load_sqlfile(conn, sqlfile: Path) -> None:
-    await conn.execute(sqlfile.read_text())
-
-
-@pytest.fixture(scope="session")
-def dbschema(pytestconfig) -> Path:
-    return pytestconfig.rootpath.joinpath("db", "schema.sql")
-
-
-@pytest.fixture(scope="session")
-def db_fixture_dir(pytestconfig) -> Path:
-    return pytestconfig.rootpath.joinpath("db", "fixtures")
+def syncrun(coroutine):
+    return asyncio.run(coroutine)
 
 
 @pytest.fixture(scope="session")
@@ -117,9 +81,10 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
 
 def generate_db_fixture(fixtures, db_postfix=None, scope="module"):
     @pytest.fixture(scope=scope)
-    def db_fixture(dbschema, db_fixture_dir, settings):
+    def db_fixture(settings):
         nonlocal db_postfix
         nonlocal fixtures
+        swoopdb = SwoopDB()
 
         db_postfix = (
             "".join(random.choices(string.ascii_letters, k=5))
@@ -129,20 +94,17 @@ def generate_db_fixture(fixtures, db_postfix=None, scope="module"):
         db_name = settings.db_name + "_" + db_postfix
 
         async def setup_db():
-            async with get_db_connection(database=db_name) as conn:
-                await load_sqlfile(conn, dbschema)
-                for fixture_name in fixtures:
-                    path = db_fixture_dir.joinpath(fixture_name + ".sql")
-                    if not path.is_file():
-                        raise ValueError(f"Unknown fixture '{fixture_name}'")
-                    await load_sqlfile(conn, path)
+            async with swoopdb.get_db_connection(database=db_name) as conn:
+                await swoopdb.load_schema(conn=conn)
+                for fixture in fixtures:
+                    await swoopdb.load_fixture(fixture, conn=conn)
 
         try:
-            syncrun(create_database, db_name)
-            syncrun(setup_db)
+            syncrun(swoopdb.create_database(db_name))
+            syncrun(setup_db())
             yield db_name
         finally:
-            syncrun(drop_database, db_name)
+            syncrun(swoopdb.drop_database(db_name))
 
     return db_fixture
 
