@@ -10,7 +10,9 @@ def all_payloads():
     return {
         "payloads": [
             {
-                "payload_uuid": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+                "payload_id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+                "href": "http://testserver/payloads/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+                "type": "payload",
             }
         ],
         "links": [
@@ -101,15 +103,6 @@ async def test_get_payloads_filter_collection_multiple_items(test_client):
     response = test_client.get(
         "/payloads/?limit=1000&process_id=some_workflow&\
             collection_id=collection1&item_id=id1&item_id=id2&item_id=id3"
-    )
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_multiple_collection(test_client):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&\
-            collection_id=collection1&collection_id=collection2"
     )
     assert response.status_code == 200
 

@@ -4,16 +4,9 @@ from asyncpg import Record
 from buildpg import V, funcs, render
 from fastapi import APIRouter, HTTPException, Path, Query, Request
 
-from ..models import Action
 from ..models import Exception as APIException
-from ..models import (
-    InlineResponse200,
-    Link,
-    PayloadDetails,
-    PayloadInfo,
-    PayloadList,
-    StatusInfo,
-)
+from ..models import InlineResponse200, JobSummary, Link, StatusInfo
+from ..models.payloads import Item, PayloadInfo, PayloadList, PayloadSummary
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -22,21 +15,21 @@ router: APIRouter = APIRouter(
 )
 
 
-def to_payload_details(record: Record) -> PayloadDetails:
-    return PayloadDetails(
-        payload_uuid=str(record["payload_uuid"]),
+def to_payload_summary(record: Record, request: Request) -> PayloadSummary:
+    return PayloadSummary(
+        payload_id=str(record["payload_uuid"]),
+        href=str(
+            request.url_for("get_payload_status", payload_id=record["payload_uuid"])
+        ),
+        type="payload",
     )
 
 
-def to_action(record) -> Action:
-    return Action(
-        action_uuid=str(record["action_uuid"]),
-        action_type=record["action_type"],
-        action_name=record["action_name"],
-        handler_name=record["handler_name"],
-        parent_uuid=str(record["parent_uuid"]),
-        created_at=record["created_at"],
-        priority=record["priority"],
+def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
+    return JobSummary(
+        job_id=action_uuid,
+        href=str(request.url_for("get_job_status", job_id=action_uuid)),
+        type="job",
     )
 
 
@@ -67,16 +60,22 @@ async def list_payloads(
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-                SELECT DISTINCT(c.payload_uuid)
-                FROM swoop.item_payload i
-                INNER JOIN swoop.payload_cache c
-                ON c.payload_uuid = i.payload_uuid
-                INNER JOIN swoop.action a
-                ON c.payload_uuid = a.payload_uuid
-                WHERE (:processes::text[] IS NULL OR :proc_where)
-                AND (:collections::text[] IS NULL OR :coll_where)
-                AND (:items::text[] IS NULL OR :item_where)
-                LIMIT :limit::integer;
+                WITH item_cache AS (
+                    SELECT c.payload_uuid
+                    FROM swoop.item_payload p
+                    INNER JOIN swoop.payload_cache c
+                    ON c.payload_uuid = p.payload_uuid
+                    INNER JOIN swoop.input_item i
+                    ON p.item_uuid = i.item_uuid
+                    WHERE (:processes::text[] IS NULL OR :proc_where)
+                    AND (:collections::text[] IS NULL OR :coll_where)
+                    AND (:items::text[] IS NULL OR :item_where)
+                    LIMIT :limit::integer
+                )
+                SELECT
+                    DISTINCT(payload_uuid)
+                FROM
+                    item_cache;
             """,
             processes=process_id,
             collections=collection_id,
@@ -95,7 +94,7 @@ async def list_payloads(
             )
 
         return PayloadList(
-            payloads=[to_payload_details(pl) for pl in records],
+            payloads=[to_payload_summary(record, request) for record in records],
             links=[
                 Link(
                     href="http://www.example.com",
@@ -122,15 +121,18 @@ async def get_payload_status(
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-                    SELECT
-                    *
-                    FROM swoop.payload_cache c
-                    INNER JOIN swoop.item_payload i
-                    ON c.payload_uuid = i.payload_uuid
-                    INNER JOIN swoop.action a
-                    ON c.payload_uuid = a.payload_uuid
-                    WHERE c.payload_uuid = :payload_id::uuid;
-                """,
+                SELECT
+                c.payload_uuid, payload_hash, workflow_version, workflow_name,
+                c.created_at, invalid_after, item_id, collection, action_uuid
+                FROM swoop.payload_cache c
+                INNER JOIN swoop.item_payload p
+                ON c.payload_uuid = p.payload_uuid
+                INNER JOIN swoop.action a
+                ON c.payload_uuid = a.payload_uuid
+                INNER JOIN swoop.input_item i
+                ON p.item_uuid = i.item_uuid
+                WHERE c.payload_uuid = :payload_id::uuid;
+            """,
             payload_id=payload_id,
         )
         records = await conn.fetch(q, *p)
@@ -140,21 +142,20 @@ async def get_payload_status(
                 status_code=404, detail="No payload that matches payload uuid found"
             )
 
+        actionids = {str(record["action_uuid"]) for record in records}
+        item_coll = list(
+            {(record["item_id"], record["collection"]) for record in records}
+        )
+
         return PayloadInfo(
-            payload_uuid=payload_id,
+            payload_id=payload_id,
             payload_hash=str(records[0]["payload_hash"]),
             workflow_version=records[0]["workflow_version"],
             workflow_name=records[0]["workflow_name"],
             created_at=records[0]["created_at"],
             invalid_after=records[0]["invalid_after"],
-            collections=list({record["collection"] for record in records}),
-            items=list({record["item_id"] for record in records}),
-            actions=[
-                to_action(a)
-                for a in list(
-                    {record["action_uuid"]: record for record in records}.values()
-                )
-            ],
+            items=[Item(item_id=i[0], collection=i[1]) for i in item_coll],
+            jobs=[to_job_summary(a, request) for a in actionids],
         )
 
 
