@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    build:
-      context: ./db
-      dockerfile: Dockerfile
+    image: quay.io/element84/swoop-db:latest
     restart: always
     environment:
       POSTGRES_DB: "${PGDATABASE:-swoop}"

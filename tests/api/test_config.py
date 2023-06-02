@@ -5,10 +5,9 @@ from swoop.api.config import Settings
 
 def test_loads_from_env_vars():
     """
-    Simple test to verify we can load settings from a
-    env variables.
+    Simple test to verify we can load settings from env.
     """
-    settings = Settings(".env")
+    settings = Settings()
     assert settings.db_name == "swoop"
 
 
