@@ -1,6 +1,17 @@
 import json
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(scope="session")
+def workflow_config_cache_key_change(api_fixtures_path) -> Path:
+    return api_fixtures_path.joinpath("workflow-config-cache-key-change.yml")
+
+
+@pytest.fixture(scope="session")
+def workflow_config_version_increment(api_fixtures_path) -> Path:
+    return api_fixtures_path.joinpath("workflow-config-version-inc.yml")
 
 
 @pytest.fixture
@@ -20,7 +31,7 @@ def single_process():
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             }
@@ -54,7 +65,7 @@ def all_processes():
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "argo-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             },
@@ -71,7 +82,7 @@ def all_processes():
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
                 "handler": "cirrus-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             },
@@ -119,7 +130,7 @@ def mirror_workflow_process():
         "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
         "handler": "argo-workflow",
-        "cacheKeyHashIncludes": ["features[*].properties.version"],
+        "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
         "cacheKeyHashExcludes": [],
         "links": None,
         "inputs": None,
@@ -133,7 +144,13 @@ def process_payload_valid():
         "inputs": {
             "payload": {
                 "type": "FeatureCollection",
-                "features": [{"id": "string", "collection": "string"}],
+                "features": [
+                    {
+                        "id": "string",
+                        "collection": "string",
+                        "properties": {"version": 2},
+                    }
+                ],
                 "process": [
                     {
                         "description": "string",

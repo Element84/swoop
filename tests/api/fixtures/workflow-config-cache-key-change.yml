@@ -5,15 +5,15 @@ workflows:
     handler: argo-workflow
     argo_template: workflowtemplate/mirror-workflow
     cache_key_hash_includes:
+      - .features[]
+    cache_key_hash_excludes:
       - .features[].id
-      - .features[].collection
-    cache_key_hash_excludes: []
   cirrus-example:
     description: "An example workflow config for a cirrus workflow"
     version: 1
     handler: cirrus-workflow
     sfn_arn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
     cache_key_hash_includes:
+      - .features[]
+    cache_key_hash_excludes:
       - .features[].id
-      - .features[].collection
-    cache_key_hash_excludes: []

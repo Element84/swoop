@@ -9,6 +9,8 @@ import yaml
 from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 
 from swoop.api.exceptions import WorkflowConfigError
+from swoop.cache.hashing import hash_dict
+from swoop.cache.types import JSONFilter
 
 
 class Response(Enum):
@@ -22,6 +24,13 @@ class BaseWorkflow(BaseModel, ABC):
     version: StrictInt
     cache_key_hash_includes: list[StrictStr] = []
     cache_key_hash_excludes: list[StrictStr] = []
+
+    def hash_payload(self, payload):
+        json_filter = JSONFilter(
+            self.cache_key_hash_includes, self.cache_key_hash_excludes
+        )
+        result = json_filter(payload)
+        return hash_dict(result)
 
 
 class ArgoWorkflow(BaseWorkflow):

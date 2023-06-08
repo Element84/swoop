@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import uuid
+from datetime import datetime
 
 from buildpg import Values, render
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from swoop.api.models import Exception as APIException
@@ -110,6 +111,7 @@ async def get_process_description(
     response_model=StatusInfo,
     responses={
         "201": {"model": StatusInfo},
+        "303": {"model": StatusInfo},
         "404": {"model": APIException},
         "422": {"model": APIException},
     },
@@ -137,43 +139,43 @@ async def execute_process(
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
-    # Generate a UUID
-    action_uuid = uuid.uuid4()
-
-    # Write to object storage
-
-    request.app.state.io.put_object(
-        object_name=f"executions/{action_uuid}/input.json",
-        object_content=json.dumps(payload),
-    )
+    hashed_pl = workflow.hash_payload(payload=payload)
 
     async with request.app.state.readpool.acquire() as conn:
         async with conn.transaction():
-            # Insert a dummy row into payload_cache table
-            # To be removed later
-            pl_uuid = "debeb36c-e09e-41c3-bdc5-596287fe724a"
-
             q, p = render(
-                "INSERT INTO swoop.payload_cache (:values__names) VALUES :values",
-                values=Values(
-                    payload_uuid=pl_uuid,
-                    workflow_version=2,
-                    workflow_name="mirror",
-                ),
+                "SELECT swoop.check_cache (:plhash::bytea,\
+                :wf_version::smallint,:wf_name::text, :invalid::TIMESTAMPTZ)",
+                plhash=hashed_pl,
+                wf_version=workflow.version,
+                wf_name=workflow.name,
+                invalid=datetime.fromisoformat("2023-06-05T15:49:03+00:00"),
             )
+            record = await conn.fetchrow(q, *p)
 
-            await conn.execute(q, *p)
+            if record[0][0] is False:
+                return RedirectResponse(
+                    request.url_for("get_job_status", job_id=record[0][1]),
+                    status_code=303,
+                )
+            else:
+                action_uuid = record[0][2]
+                q, p = render(
+                    "INSERT INTO swoop.action (:values__names) VALUES :values",
+                    values=Values(
+                        action_uuid=action_uuid,
+                        action_type="workflow",
+                        action_name=workflow.name,
+                        handler_name=workflow.handler,
+                        payload_uuid=record[0][1],
+                    ),
+                )
+                await conn.execute(q, *p)
 
-            q, p = render(
-                "INSERT INTO swoop.action (:values__names) VALUES :values",
-                values=Values(
-                    action_uuid=action_uuid,
-                    action_type="workflow",
-                    action_name=workflow.name,
-                    handler_name=workflow.handler,
-                    payload_uuid=pl_uuid,
-                ),
-            )
-            await conn.execute(q, *p)
+                # Write to object storage
 
+                request.app.state.io.put_object(
+                    object_name=f"executions/{action_uuid}/input.json",
+                    object_content=json.dumps(payload),
+                )
     return await get_job_status(request, job_id=action_uuid)

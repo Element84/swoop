@@ -1,7 +1,7 @@
 workflows:
   mirror:
     description: "A workflow to copy STAC items into a local mirror"
-    version: 2
+    version: 3
     handler: argo-workflow
     argo_template: workflowtemplate/mirror-workflow
     cache_key_hash_includes:
