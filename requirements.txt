@@ -39,7 +39,7 @@ sniffio==1.3.0
     # via anyio
 starlette==0.27.0
     # via fastapi
-swoop-db==0.1.0
+swoop-db==0.1.2
     # via swoop (pyproject.toml)
 typing-extensions==4.6.2
     # via pydantic
