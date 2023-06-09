@@ -306,3 +306,16 @@ async def test_post_process_id_not_found_in_config(
         data=json.dumps(process_payload_valid_wf_name_not_in_config),
     )
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_post_payload_cache(test_client, process_payload_valid):
+    response_one = test_client.post(
+        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+    )
+    assert response_one.status_code == 201
+
+    response_two = test_client.post(
+        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+    )
+    assert response_two.status_code == 200

@@ -144,8 +144,8 @@ async def execute_process(
     async with request.app.state.readpool.acquire() as conn:
         async with conn.transaction():
             q, p = render(
-                "SELECT swoop.check_cache (:plhash::bytea,\
-                :wf_version::smallint,:wf_name::text, :invalid::TIMESTAMPTZ)",
+                "SELECT swoop.check_cache(:plhash,\
+                :wf_version::smallint,:wf_name, :invalid::TIMESTAMPTZ)",
                 plhash=hashed_pl,
                 wf_version=workflow.version,
                 wf_name=workflow.name,
@@ -153,7 +153,7 @@ async def execute_process(
             )
             record = await conn.fetchrow(q, *p)
 
-            if record[0][0] is False:
+            if not record[0][0]:
                 return RedirectResponse(
                     request.url_for("get_job_status", job_id=record[0][1]),
                     status_code=303,
