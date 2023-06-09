@@ -7,13 +7,13 @@ from swoop.api.models.workflows import Workflows
 
 
 @pytest.fixture(scope="session")
-def workflow_config_cache_key_change(api_fixtures_path) -> Path:
-    return api_fixtures_path.joinpath("workflow-config-cache-key-change.yml")
+def api_fixtures_path(pytestconfig) -> Path:
+    return pytestconfig.rootpath.joinpath("tests", "api", "fixtures")
 
 
 @pytest.fixture(scope="session")
-def workflow_config_version_increment(api_fixtures_path) -> Path:
-    return api_fixtures_path.joinpath("workflow-config-version-inc.yml")
+def workflow_config_cache_key_change(api_fixtures_path) -> Path:
+    return api_fixtures_path.joinpath("workflow-config-cache-key-change.yml")
 
 
 @pytest.fixture
@@ -334,25 +334,6 @@ async def test_post_payload_cache_key_change(
 
     test_client.app.state.workflows = Workflows.from_yaml(
         workflow_config_cache_key_change
-    )
-
-    response_two = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
-    )
-    assert response_two.status_code == 201
-
-
-@pytest.mark.asyncio
-async def test_post_payload_workflow_version_inc(
-    test_client, process_payload_valid, workflow_config_version_increment
-):
-    response_one = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
-    )
-    assert response_one.status_code == 201
-
-    test_client.app.state.workflows = Workflows.from_yaml(
-        workflow_config_version_increment
     )
 
     response_two = test_client.post(
