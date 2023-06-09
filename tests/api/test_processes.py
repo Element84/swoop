@@ -174,6 +174,72 @@ def process_payload_valid():
 
 
 @pytest.fixture
+def process_payload_cache():
+    return {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "id1",
+                        "collection": "coll1",
+                        "properties": {"version": 2},
+                    }
+                ],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
+def process_payload_cache_key_change():
+    return {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "id2",
+                        "collection": "coll2",
+                        "properties": {"version": 2},
+                    }
+                ],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
 def process_payload_invalid():
     return {
         "inputs": {
@@ -311,24 +377,24 @@ async def test_post_process_id_not_found_in_config(
 
 
 @pytest.mark.asyncio
-async def test_post_payload_cache(test_client, process_payload_valid):
+async def test_post_payload_cache(test_client, process_payload_cache):
     response_one = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+        "/processes/mirror/execution", data=json.dumps(process_payload_cache)
     )
     assert response_one.status_code == 201
 
     response_two = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+        "/processes/mirror/execution", data=json.dumps(process_payload_cache)
     )
     assert response_two.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_post_payload_cache_key_change(
-    test_client, process_payload_valid, workflow_config_cache_key_change
+    test_client, process_payload_cache_key_change, workflow_config_cache_key_change
 ):
     response_one = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+        "/processes/mirror/execution", data=json.dumps(process_payload_cache_key_change)
     )
     assert response_one.status_code == 201
 
@@ -337,6 +403,6 @@ async def test_post_payload_cache_key_change(
     )
 
     response_two = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+        "/processes/mirror/execution", data=json.dumps(process_payload_cache_key_change)
     )
     assert response_two.status_code == 201
