@@ -152,14 +152,15 @@ async def execute_process(
                 invalid=datetime.fromisoformat("2023-06-05T15:49:03+00:00"),
             )
             record = await conn.fetchrow(q, *p)
+            rec = record[0]
 
-            if not record[0][0]:
+            if not rec[0]:
                 return RedirectResponse(
-                    request.url_for("get_job_status", job_id=record[0][1]),
+                    request.url_for("get_job_status", job_id=rec[1]),
                     status_code=303,
                 )
             else:
-                action_uuid = record[0][2]
+                action_uuid = rec[2]
                 q, p = render(
                     "INSERT INTO swoop.action (:values__names) VALUES :values",
                     values=Values(
@@ -167,7 +168,7 @@ async def execute_process(
                         action_type="workflow",
                         action_name=workflow.name,
                         handler_name=workflow.handler,
-                        payload_uuid=record[0][1],
+                        payload_uuid=rec[1],
                     ),
                 )
                 await conn.execute(q, *p)
