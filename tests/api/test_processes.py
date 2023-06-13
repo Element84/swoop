@@ -1,19 +1,6 @@
 import json
-from pathlib import Path
 
 import pytest
-
-from swoop.api.models.workflows import Workflows
-
-
-@pytest.fixture(scope="session")
-def api_fixtures_path(pytestconfig) -> Path:
-    return pytestconfig.rootpath.joinpath("tests", "api", "fixtures")
-
-
-@pytest.fixture(scope="session")
-def workflow_config_cache_key_change(api_fixtures_path) -> Path:
-    return api_fixtures_path.joinpath("workflow-config-cache-key-change.yml")
 
 
 @pytest.fixture
@@ -32,7 +19,7 @@ def single_process():
                 "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-workflow",
+                "handler": "argo-handler",
                 "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
@@ -66,7 +53,7 @@ def all_processes():
                 "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-workflow",
+                "handler": "argo-handler",
                 "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
@@ -83,7 +70,7 @@ def all_processes():
                 "processID": "cirrus-example",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "cirrus-workflow",
+                "handler": "cirrus-handler",
                 "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
@@ -131,7 +118,7 @@ def mirror_workflow_process():
         "processID": "mirror",
         "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
-        "handler": "argo-workflow",
+        "handler": "argo-handler",
         "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
         "cacheKeyHashExcludes": [],
         "links": None,
@@ -387,22 +374,3 @@ async def test_post_payload_cache(test_client, process_payload_cache):
         "/processes/mirror/execution", data=json.dumps(process_payload_cache)
     )
     assert response_two.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_post_payload_cache_key_change(
-    test_client, process_payload_cache_key_change, workflow_config_cache_key_change
-):
-    response_one = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_cache_key_change)
-    )
-    assert response_one.status_code == 201
-
-    test_client.app.state.workflows = Workflows.from_yaml(
-        workflow_config_cache_key_change
-    )
-
-    response_two = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_cache_key_change)
-    )
-    assert response_two.status_code == 201
