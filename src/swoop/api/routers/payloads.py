@@ -137,7 +137,6 @@ async def get_payload_status(
             payload_id=payload_id,
         )
         records = await conn.fetch(q, *p)
-        rec = records[0]
 
         if not records:
             raise HTTPException(
@@ -159,16 +158,16 @@ async def get_payload_status(
         )
         items = await conn.fetch(q, *p)
 
-        actionids = {str(record) for record in rec["action_uuids"]}
+        actionids = {str(record) for record in records[0]["action_uuids"]}
         item_coll = list({(item["item_id"], item["collection"]) for item in items})
 
         return PayloadInfo(
             payload_id=payload_id,
-            payload_hash=str(rec["payload_hash"]),
-            workflow_version=rec["workflow_version"],
-            workflow_name=rec["workflow_name"],
-            created_at=rec["created_at"],
-            invalid_after=rec["invalid_after"],
+            payload_hash=str(records[0]["payload_hash"]),
+            workflow_version=records[0]["workflow_version"],
+            workflow_name=records[0]["workflow_name"],
+            created_at=records[0]["created_at"],
+            invalid_after=records[0]["invalid_after"],
             items=[Item(item_id=i[0], collection=i[1]) for i in item_coll],
             jobs=[to_job_summary(a, request) for a in actionids],
         )
