@@ -60,22 +60,16 @@ async def list_payloads(
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-                WITH item_cache AS (
-                    SELECT c.payload_uuid
-                    FROM swoop.item_payload p
-                    INNER JOIN swoop.payload_cache c
-                    ON c.payload_uuid = p.payload_uuid
-                    INNER JOIN swoop.input_item i
-                    ON p.item_uuid = i.item_uuid
-                    WHERE (:processes::text[] IS NULL OR :proc_where)
-                    AND (:collections::text[] IS NULL OR :coll_where)
-                    AND (:items::text[] IS NULL OR :item_where)
-                    LIMIT :limit::integer
-                )
                 SELECT
-                    DISTINCT(payload_uuid)
-                FROM
-                    item_cache;
+                  DISTINCT(c.payload_uuid)
+                FROM swoop.item_payload AS p
+                INNER JOIN swoop.payload_cache AS c USING (payload_uuid)
+                INNER JOIN swoop.input_item AS i USING (item_uuid)
+                WHERE
+                  (:processes::text[] IS NULL OR :proc_where)
+                  AND (:collections::text[] IS NULL OR :coll_where)
+                  AND (:items::text[] IS NULL OR :item_where)
+                LIMIT :limit::integer
             """,
             processes=process_id,
             collections=collection_id,
@@ -122,38 +116,59 @@ async def get_payload_status(
         q, p = render(
             """
                 SELECT
-                c.payload_uuid, payload_hash, workflow_version, workflow_name,
-                c.created_at, invalid_after, item_id, collection, action_uuid
-                FROM swoop.payload_cache c
-                INNER JOIN swoop.item_payload p
-                ON c.payload_uuid = p.payload_uuid
-                INNER JOIN swoop.action a
-                ON c.payload_uuid = a.payload_uuid
-                INNER JOIN swoop.input_item i
-                ON p.item_uuid = i.item_uuid
-                WHERE c.payload_uuid = :payload_id::uuid;
+                c.payload_uuid,
+                c.payload_hash,
+                c.workflow_version,
+                c.workflow_name,
+                c.created_at,
+                c.invalid_after,
+                array(
+                    SELECT
+                    action_uuid
+                    FROM swoop.action
+                    WHERE
+                    payload_uuid = c.payload_uuid
+                ) AS action_uuids
+                FROM swoop.payload_cache AS c
+                WHERE
+                c.payload_uuid = :payload_id::uuid
+
             """,
             payload_id=payload_id,
         )
         records = await conn.fetch(q, *p)
+        rec = records[0]
 
         if not records:
             raise HTTPException(
                 status_code=404, detail="No payload that matches payload uuid found"
             )
 
-        actionids = {str(record["action_uuid"]) for record in records}
-        item_coll = list(
-            {(record["item_id"], record["collection"]) for record in records}
+        q, p = render(
+            """
+                SELECT
+                item_id,
+                collection
+                FROM swoop.item_payload AS ip
+                INNER JOIN swoop.input_item USING (item_uuid)
+                WHERE
+                ip.payload_uuid = :payload_id::uuid
+
+            """,
+            payload_id=payload_id,
         )
+        items = await conn.fetch(q, *p)
+
+        actionids = {str(record) for record in rec["action_uuids"]}
+        item_coll = list({(item["item_id"], item["collection"]) for item in items})
 
         return PayloadInfo(
             payload_id=payload_id,
-            payload_hash=str(records[0]["payload_hash"]),
-            workflow_version=records[0]["workflow_version"],
-            workflow_name=records[0]["workflow_name"],
-            created_at=records[0]["created_at"],
-            invalid_after=records[0]["invalid_after"],
+            payload_hash=str(rec["payload_hash"]),
+            workflow_version=rec["workflow_version"],
+            workflow_name=rec["workflow_name"],
+            created_at=rec["created_at"],
+            invalid_after=rec["invalid_after"],
             items=[Item(item_id=i[0], collection=i[1]) for i in item_coll],
             jobs=[to_job_summary(a, request) for a in actionids],
         )
