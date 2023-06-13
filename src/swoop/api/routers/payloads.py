@@ -60,16 +60,16 @@ async def list_payloads(
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-                SELECT
-                  DISTINCT(c.payload_uuid)
-                FROM swoop.item_payload AS p
-                INNER JOIN swoop.payload_cache AS c USING (payload_uuid)
-                INNER JOIN swoop.input_item AS i USING (item_uuid)
-                WHERE
-                  (:processes::text[] IS NULL OR :proc_where)
-                  AND (:collections::text[] IS NULL OR :coll_where)
-                  AND (:items::text[] IS NULL OR :item_where)
-                LIMIT :limit::integer
+            SELECT
+                DISTINCT(c.payload_uuid)
+            FROM swoop.item_payload AS p
+            INNER JOIN swoop.payload_cache AS c USING (payload_uuid)
+            INNER JOIN swoop.input_item AS i USING (item_uuid)
+            WHERE
+                (:processes::text[] IS NULL OR :proc_where)
+                AND (:collections::text[] IS NULL OR :coll_where)
+                AND (:items::text[] IS NULL OR :item_where)
+            LIMIT :limit::integer
             """,
             processes=process_id,
             collections=collection_id,
