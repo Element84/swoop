@@ -118,7 +118,8 @@ async def get_payload_status(
                 SELECT
                 c.payload_uuid,
                 c.payload_hash,
-                c.workflow_version,
+                (SELECT MAX(workflow_version) FROM swoop.action
+                 WHERE payload_uuid = c.payload_uuid) AS workflow_version,
                 c.workflow_name,
                 c.created_at,
                 c.invalid_after,
