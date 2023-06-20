@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, Request
 
 from ..models import Exception as APIException
 from ..models import InlineResponse200, JobSummary, Link, StatusInfo
-from ..models.payloads import Item, PayloadInfo, PayloadList, PayloadSummary
+from ..models.payloads import PayloadInfo, PayloadList, PayloadSummary
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -38,54 +38,33 @@ def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
 # key formed by process_id and item collections and IDs.
 
 
-@router.get(
-    "/",
-    response_model=PayloadList,
-    responses={"404": {"model": APIException}},
-)
+@router.get("/", response_model=PayloadList)
 async def list_payloads(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
     process_id: list[str] | None = Query(default=None),
-    collection_id: list[str] | None = Query(default=None),
-    item_id: list[str] | None = Query(default=None),
 ) -> PayloadList | APIException:
     """
     retrieve the list of payloads.
     """
     proc_clause = V("c.workflow_name") == funcs.any(process_id)
-    coll_clause = V("i.collection") == funcs.any(collection_id)
-    item_clause = V("i.item_id") == funcs.any(item_id)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
             SELECT
                 DISTINCT(c.payload_uuid)
-            FROM swoop.item_payload AS p
-            INNER JOIN swoop.payload_cache AS c USING (payload_uuid)
-            INNER JOIN swoop.input_item AS i USING (item_uuid)
+            FROM swoop.payload_cache AS c
             WHERE
                 (:processes::text[] IS NULL OR :proc_where)
-                AND (:collections::text[] IS NULL OR :coll_where)
-                AND (:items::text[] IS NULL OR :item_where)
             LIMIT :limit::integer
             """,
             processes=process_id,
-            collections=collection_id,
-            items=item_id,
             proc_where=proc_clause,
-            coll_where=coll_clause,
-            item_where=item_clause,
             limit=limit,
         )
 
         records = await conn.fetch(q, *p)
-
-        if not records:
-            raise HTTPException(
-                status_code=404, detail="No payloads that match query parameters found"
-            )
 
         return PayloadList(
             payloads=[to_payload_summary(record, request) for record in records],
@@ -144,23 +123,7 @@ async def get_payload_status(
                 status_code=404, detail="No payload that matches payload uuid found"
             )
 
-        q, p = render(
-            """
-                SELECT
-                item_id,
-                collection
-                FROM swoop.item_payload AS ip
-                INNER JOIN swoop.input_item USING (item_uuid)
-                WHERE
-                ip.payload_uuid = :payload_id::uuid
-
-            """,
-            payload_id=payload_id,
-        )
-        items = await conn.fetch(q, *p)
-
         actionids = {str(record) for record in records[0]["action_uuids"]}
-        item_coll = list({(item["item_id"], item["collection"]) for item in items})
 
         return PayloadInfo(
             payload_id=payload_id,
@@ -169,7 +132,6 @@ async def get_payload_status(
             workflow_name=records[0]["workflow_name"],
             created_at=records[0]["created_at"],
             invalid_after=records[0]["invalid_after"],
-            items=[Item(item_id=i[0], collection=i[1]) for i in item_coll],
             jobs=[to_job_summary(a, request) for a in actionids],
         )
 

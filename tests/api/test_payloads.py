@@ -28,11 +28,6 @@ def all_payloads():
 
 
 @pytest.fixture
-def no_payloads_exception():
-    return {"detail": "No payloads that match query parameters found"}
-
-
-@pytest.fixture
 def no_payload_id_exception():
     return {"detail": "No payload that matches payload uuid found"}
 
@@ -55,89 +50,16 @@ async def test_get_payloads_filter_limit_only(test_client, all_payloads):
 
 
 @pytest.mark.asyncio
-async def test_get_payloads_filter_limit_process_only(test_client):
+async def test_get_payloads_filter_limit_process(test_client):
     response = test_client.get("/payloads/?limit=1000&process_id=some_workflow")
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_get_payloads_filter_limit_process_collection_only(test_client):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&collection_id=collection1"
-    )
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_invalid_collection_id(
-    test_client, no_payloads_exception
-):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&collection_id=collection5"
-    )
-    assert response.json() == no_payloads_exception
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_invalid_item_id(test_client, no_payloads_exception):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&\
-            collection_id=collection1&item_id=id5"
-    )
-    assert response.json() == no_payloads_exception
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_all(test_client):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&\
-            collection_id=collection1&item_id=id1"
-    )
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_collection_multiple_items(test_client):
-    response = test_client.get(
-        "/payloads/?limit=1000&process_id=some_workflow&\
-            collection_id=collection1&item_id=id1&item_id=id2&item_id=id3"
-    )
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_only_multiple_items(test_client):
-    response = test_client.get("/payloads/?limit=1000&item_id=id1&item_id=id2")
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_only_invalid_item_id(
-    test_client, no_payloads_exception
-):
-    response = test_client.get("/payloads/?limit=1000&item_id=id8")
-    assert response.json() == no_payloads_exception
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_only_invalid_collection_id(
-    test_client, no_payloads_exception
-):
-    response = test_client.get("/payloads/?limit=1000&collection_id=collection3")
-    assert response.json() == no_payloads_exception
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_payloads_filter_only_invalid_process_id(
-    test_client, no_payloads_exception
-):
+async def test_get_payloads_filter_only_invalid_process_id(test_client):
     response = test_client.get("/payloads/?limit=1000&process_id=hello")
-    assert response.json() == no_payloads_exception
-    assert response.status_code == 404
+    assert response.json()["payloads"] == []
+    assert response.status_code == 200
 
 
 # Tests for GET/payloads/{payload-id} endpoint

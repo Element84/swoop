@@ -7,11 +7,6 @@ from pydantic import BaseModel
 from ..models import JobSummary, Link
 
 
-class Item(BaseModel):
-    item_id: str | None = None
-    collection: str | None = None
-
-
 class PayloadSummary(BaseModel):
     payload_id: str | None = None
     href: str | None = None
@@ -30,5 +25,4 @@ class PayloadInfo(BaseModel):
     workflow_name: str | None = None
     created_at: datetime | None = None
     invalid_after: datetime | None = None
-    items: list[Item] | None = None
     jobs: list[JobSummary] | None = None
