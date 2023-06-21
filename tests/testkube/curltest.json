@@ -1,0 +1,9 @@
+{
+    "command": [
+      "curl",
+      "https://github.com",
+      "-H",
+      "'Accept: application/json'"
+    ],
+    "expected_status": "200"
+}
