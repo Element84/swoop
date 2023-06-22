@@ -1,9 +1,0 @@
-{
-    "command": [
-      "curl",
-      "https://localhost/test/pah",
-      "-H",
-      "'Accept: application/json'"
-    ],
-    "expected_status": "200"
-}
