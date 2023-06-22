@@ -17,6 +17,10 @@ jobs:
       contents: read
       security-events: write
       actions: read
+    strategy:
+      matrix:
+        python-version:
+          - "3.11"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
