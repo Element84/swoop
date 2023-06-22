@@ -32,8 +32,6 @@ jobs:
 
       - name: Configuring kube context and getting cluster info
         run: |
-          sudo echo "127.0.0.1        kubernetes.docker.internal" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1        host.docker.internal" | sudo tee -a /etc/hosts
           cat /etc/hosts
           ifconfig
           export LOCALIP=ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'
@@ -104,10 +102,10 @@ jobs:
 
       - name: Create Testkube Tests
         run: |
-          testkube create test --namespace testkube --name swoop-api-root-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-root-test.json --variable apiHost=$LOCALIP:8000
-          testkube create test --namespace testkube --name swoop-api-jobs-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-jobs-test.json --variable apiHost=$LOCALIP:8000
-          testkube create test --namespace testkube --name swoop-api-payload-input-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-payload-input-test.json --variable apiHost=$LOCALIP:8000
-          testkube create test --namespace testkube --name swoop-api-simple-k6-load-test --type k6/script --test-content-type file-uri --file tests/testkube/k6/swoop-api-simple-k6-load-test.js --variable API_HOST=$LOCALIP:8000
+          testkube create test --namespace testkube --name swoop-api-root-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-root-test.json --variable apiHost=172.18.0.1:8000
+          testkube create test --namespace testkube --name swoop-api-jobs-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-jobs-test.json --variable apiHost=172.18.0.1:8000
+          testkube create test --namespace testkube --name swoop-api-payload-input-test --type curl/test --test-content-type file-uri --file tests/testkube/curl/swoop-api-payload-input-test.json --variable apiHost=172.18.0.1:8000
+          testkube create test --namespace testkube --name swoop-api-simple-k6-load-test --type k6/script --test-content-type file-uri --file tests/testkube/k6/swoop-api-simple-k6-load-test.js --variable API_HOST=172.18.0.1:8000
 
       - name: Running Testkube Tests
         run: |
