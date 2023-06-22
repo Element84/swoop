@@ -48,6 +48,7 @@ jobs:
           echo "kubernetes_config_file=\"$KUBECONFIG\"" >> min.tfvars
           echo "kubernetes_config_context=\"$KUBE_CONFIG_CONTEXT\"" >> min.tfvars
           sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+          sudo ufw allow 8000
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
