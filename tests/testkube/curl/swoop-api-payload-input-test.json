@@ -1,0 +1,10 @@
+{
+    "command": [
+      "curl",
+      "http://{{.apiHost}}/jobs/2595f2da-81a6-423c-84db-935e6791046e/payload",
+      "-H",
+      "'Accept: application/json'"
+    ],
+    "expected_status": "200",
+    "expected_body": "{\"process_id\":\"2595f2da-81a6-423c-84db-935e6791046e\",\"payload\":\"test_input\"}"
+}
