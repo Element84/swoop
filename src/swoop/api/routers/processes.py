@@ -157,7 +157,6 @@ async def execute_process(
                 "INSERT INTO swoop.payload_cache (:values__names) VALUES :values",
                 values=Values(
                     payload_uuid=pl_uuid,
-                    workflow_version=2,
                     workflow_name="mirror",
                 ),
             )
@@ -172,6 +171,7 @@ async def execute_process(
                     action_name=workflow.name,
                     handler_name=workflow.handler,
                     payload_uuid=pl_uuid,
+                    workflow_version=2,
                 ),
             )
             await conn.execute(q, *p)
