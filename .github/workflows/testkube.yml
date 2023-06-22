@@ -35,6 +35,7 @@ jobs:
           echo "127.0.0.1        kubernetes.docker.internal" >> /etc/hosts
           echo "127.0.0.1        host.docker.internal" >> /etc/hosts
           cat /etc/hosts
+          ifconfig
           export KUBECONFIG=${HOME}/.kube/config
           kubectl cluster-info
           kubectl get pods -n kube-system
