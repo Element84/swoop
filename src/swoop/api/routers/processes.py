@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 
 from buildpg import Values, render
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 
 from swoop.api.models import Exception as APIException
-from swoop.api.models import Link, Process, ProcessList, ProcessSummary, StatusInfo
+from swoop.api.models import Link, Process, ProcessList, ProcessSummary
 from swoop.api.models.workflows import Execute, Workflow
-from swoop.api.routers.jobs import get_job_status
+from swoop.api.routers.jobs import to_status_info
 
 DEFAULT_PROCESS_LIMIT = 1000
 
@@ -106,20 +105,22 @@ async def get_process_description(
     return to_process_summary(workflow)
 
 
+class RedirectResponseModel(BaseModel):
+    pass
+
+
 @router.post(
     "/{process_id}/execution",
-    response_model=StatusInfo,
-    responses={
-        "201": {"model": StatusInfo},
-        "303": {"model": StatusInfo},
-        "404": {"model": APIException},
-        "422": {"model": APIException},
-    },
-    status_code=201,
+    response_class=Response,
+    # responses={
+    #     "201": {"model": StatusInfo},
+    #     "303": {},
+    #     "404": {"model": APIException},
+    #     "422": {"model": APIException},
+    # },
+    # status_code=201,
 )
-async def execute_process(
-    process_id: str, request: Request, body: Execute
-) -> StatusInfo | APIException:
+async def execute_process(process_id: str, request: Request, body: Execute) -> Response:
     """
     execute a process.
     """
@@ -141,42 +142,81 @@ async def execute_process(
 
     hashed_pl = workflow.hash_payload(payload=payload)
 
-    async with request.app.state.readpool.acquire() as conn:
+    lock_id = int.from_bytes(hashed_pl[:3])
+
+    async with request.app.state.writepool.acquire() as conn:
         async with conn.transaction():
             q, p = render(
-                "SELECT swoop.check_cache(:plhash,\
-                :wf_version::smallint,:wf_name, :invalid::TIMESTAMPTZ)",
+                """
+                SELECT pg_advisory_xact_lock(
+                    to_regclass('swoop.payload_cache')::oid::integer,:lock_id
+                )
+                """,
+                lock_id=lock_id,
+            )
+
+            await conn.execute(q, *p)
+
+            q, p = render(
+                "SELECT swoop.process_payload(:plhash,:wf_version::smallint)",
                 plhash=hashed_pl,
                 wf_version=workflow.version,
-                wf_name=workflow.name,
-                invalid=datetime.fromisoformat("2023-06-05T15:49:03+00:00"),
             )
-            record = await conn.fetchrow(q, *p)
-            rec = record[0]
+            action_uuid = await conn.fetchval(q, *p)
 
-            if not rec[0]:
-                return RedirectResponse(
-                    request.url_for("get_job_status", job_id=rec[1]),
-                    status_code=303,
-                )
-            else:
-                action_uuid = rec[2]
-                q, p = render(
-                    "INSERT INTO swoop.action (:values__names) VALUES :values",
-                    values=Values(
-                        action_uuid=action_uuid,
-                        action_type="workflow",
-                        action_name=workflow.name,
-                        handler_name=workflow.handler,
-                        payload_uuid=rec[1],
+            if action_uuid:
+                # response.status_code = status.HTTP_303_SEE_OTHER
+                # return request.url_for("get_job_status", job_id=action_uuid)
+                return (
+                    RedirectResponse(
+                        request.url_for("get_job_status", job_id=action_uuid),
+                        status_code=303,
                     ),
                 )
-                await conn.execute(q, *p)
 
-                # Write to object storage
+            q, p = render(
+                """
+                INSERT INTO swoop.payload_cache (:values__names) VALUES :values
+                ON CONFLICT (payload_hash) DO UPDATE
+                SET invalid_after = NULL
+                RETURNING payload_uuid;
+                """,
+                values=Values(payload_hash=hashed_pl, workflow_name=workflow.name),
+            )
+            pl_uuid = await conn.fetchval(q, *p)
 
-                request.app.state.io.put_object(
-                    object_name=f"executions/{action_uuid}/input.json",
-                    object_content=json.dumps(payload),
-                )
-    return await get_job_status(request, job_id=action_uuid)
+            # Insert into action table
+
+            q, p = render(
+                """
+            SELECT
+            *
+            FROM swoop.action a
+            INNER JOIN swoop.thread t
+            ON t.action_uuid = a.action_uuid
+            WHERE a.action_type = 'workflow'
+            AND a.action_uuid = (INSERT INTO swoop.action (:values__names)
+                                VALUES :values
+                                RETURNING action_uuid)
+            """,
+                values=Values(
+                    action_type="workflow",
+                    action_name=workflow.name,
+                    handler_name=workflow.handler,
+                    workflow_version=workflow.version,
+                    payload_uuid=pl_uuid,
+                ),
+            )
+            rec = await conn.fetchrow(q, *p)
+            action_uuid = str(rec["action_uuid"])
+
+            # Write to object storage
+
+            request.app.state.io.put_object(
+                object_name=f"executions/{action_uuid}/input.json",
+                object_content=json.dumps(payload),
+            )
+
+    return to_status_info(rec)
+    # return JSONResponse(await get_job_status(request,
+    # job_id=action_uuid), status_code=201)
