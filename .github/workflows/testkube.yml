@@ -32,8 +32,8 @@ jobs:
 
       - name: Configuring kube context and getting cluster info
         run: |
-          sudo echo "127.0.0.1        kubernetes.docker.internal" >> /etc/hosts
-          sudo echo "127.0.0.1        host.docker.internal" >> /etc/hosts
+          sudo echo "127.0.0.1        kubernetes.docker.internal" | sudo tee -a /etc/hosts
+          sudo echo "127.0.0.1        host.docker.internal" | sudo tee -a /etc/hosts
           cat /etc/hosts
           ifconfig
           export KUBECONFIG=${HOME}/.kube/config
