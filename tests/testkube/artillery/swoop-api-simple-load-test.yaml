@@ -1,0 +1,28 @@
+config:
+  target: "http://{{.apiHost}}"
+  phases:
+    - duration: 5
+      arrivalRate: 1
+      rampTo: 5
+      name: Min load test of 5 users
+    - duration: 5
+      arrivalRate: 1
+      rampTo: 10
+      name: Medium load test of 10 users
+    - duration: 5
+      arrivalRate: 1
+      rampTo: 15
+      name: Max load test of 15 users
+scenarios:
+  - name: "Check SWOOP API root"
+    flow:
+      - get:
+          url: "/"
+  - name: "Check SWOOP API jobs endpoint (with swoop-db)"
+    flow:
+      - get:
+          url: "/jobs/"
+  - name: "Check SWOOP API payload input (with object storage)"
+    flow:
+      - get:
+          url: "/jobs/2595f2da-81a6-423c-84db-935e6791046e/payload"
