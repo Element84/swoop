@@ -1,7 +1,7 @@
 {
     "command": [
       "curl",
-      "https://github.com",
+      "https://localhost/test/pah",
       "-H",
       "'Accept: application/json'"
     ],
