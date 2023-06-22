@@ -364,21 +364,19 @@ async def test_post_process_id_not_found_in_config(
     assert response.status_code == 404
 
 
-async def test_post_payload_cache(test_client, process_payload_cache):
+async def post_payload_cache(test_client, process_payload_cache):
     response = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_cache)
+        "/processes/mirror/execution",
+        data=json.dumps(process_payload_cache),
+        allow_redirects=False,
     )
-    return response.status_code
+    return response
 
 
 @pytest.mark.asyncio
 async def test_post_payload_cache_main(test_client, process_payload_cache):
     async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(
-            test_post_payload_cache(test_client, process_payload_cache)
-        )
-        task2 = tg.create_task(
-            test_post_payload_cache(test_client, process_payload_cache)
-        )
-    assert task1.result() == 201
-    assert task2.result() == 200
+        task1 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
+        task2 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
+    assert task1.result().status_code == 201
+    assert task2.result().status_code == 303

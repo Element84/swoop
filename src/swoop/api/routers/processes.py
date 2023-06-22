@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 
 from buildpg import Values, render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from swoop.api.models import Exception as APIException
-from swoop.api.models import Link, Process, ProcessList, ProcessSummary
+from swoop.api.models import Link, Process, ProcessList, ProcessSummary, StatusInfo
 from swoop.api.models.workflows import Execute, Workflow
-from swoop.api.routers.jobs import to_status_info
+from swoop.api.routers.jobs import get_job_status
 
 DEFAULT_PROCESS_LIMIT = 1000
 
@@ -111,23 +111,28 @@ class RedirectResponseModel(BaseModel):
 
 @router.post(
     "/{process_id}/execution",
-    response_class=Response,
-    # responses={
-    #     "201": {"model": StatusInfo},
-    #     "303": {},
-    #     "404": {"model": APIException},
-    #     "422": {"model": APIException},
-    # },
-    # status_code=201,
+    response_model=None,
+    responses={
+        "201": {"model": StatusInfo},
+        "303": {"description": "See existing job"},
+        "404": {"model": APIException},
+        "422": {"model": APIException},
+    },
+    status_code=201,
 )
-async def execute_process(process_id: str, request: Request, body: Execute) -> Response:
+async def execute_process(
+    process_id: str,
+    request: Request,
+    body: Execute,
+    response: Response,
+) -> RedirectResponse | StatusInfo | APIException:
     """
     execute a process.
     """
 
-    payload = body.dict().get("inputs").get("payload")
+    payload = body.dict().get("inputs", {}).get("payload", {})
 
-    wf_name = payload.get("process")[0].get("workflow")
+    wf_name = payload.get("process", [{}])[0].get("workflow")
     if process_id != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
@@ -158,20 +163,21 @@ async def execute_process(process_id: str, request: Request, body: Execute) -> R
             await conn.execute(q, *p)
 
             q, p = render(
-                "SELECT swoop.process_payload(:plhash,:wf_version::smallint)",
+                """
+                SELECT swoop.find_cached_action_for_payload(
+                    :plhash,
+                    :wf_version::smallint
+                )
+                """,
                 plhash=hashed_pl,
                 wf_version=workflow.version,
             )
             action_uuid = await conn.fetchval(q, *p)
 
             if action_uuid:
-                # response.status_code = status.HTTP_303_SEE_OTHER
-                # return request.url_for("get_job_status", job_id=action_uuid)
-                return (
-                    RedirectResponse(
-                        request.url_for("get_job_status", job_id=action_uuid),
-                        status_code=303,
-                    ),
+                return RedirectResponse(
+                    request.url_for("get_job_status", job_id=action_uuid),
+                    status_code=303,
                 )
 
             q, p = render(
@@ -189,16 +195,10 @@ async def execute_process(process_id: str, request: Request, body: Execute) -> R
 
             q, p = render(
                 """
-            SELECT
-            *
-            FROM swoop.action a
-            INNER JOIN swoop.thread t
-            ON t.action_uuid = a.action_uuid
-            WHERE a.action_type = 'workflow'
-            AND a.action_uuid = (INSERT INTO swoop.action (:values__names)
-                                VALUES :values
-                                RETURNING action_uuid)
-            """,
+                INSERT INTO swoop.action (:values__names)
+                VALUES :values
+                RETURNING action_uuid
+                """,
                 values=Values(
                     action_type="workflow",
                     action_name=workflow.name,
@@ -217,6 +217,4 @@ async def execute_process(process_id: str, request: Request, body: Execute) -> R
                 object_content=json.dumps(payload),
             )
 
-    return to_status_info(rec)
-    # return JSONResponse(await get_job_status(request,
-    # job_id=action_uuid), status_code=201)
+    return await get_job_status(request, job_id=action_uuid)
