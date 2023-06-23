@@ -7,8 +7,8 @@ from buildpg import render
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel
 
-from ..models import Exception as APIException
-from ..models import InlineResponse200, JobList, Link, Results, StatusInfo
+from swoop.api.models.jobs import JobList, StatusInfo
+from swoop.api.models.shared import APIException, InlineResponse200, Link, Results
 
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
@@ -31,6 +31,7 @@ class Params(BaseModel):
     "/",
     response_model=JobList,
     responses={"404": {"model": APIException}},
+    response_model_exclude_unset=True,
 )
 async def list_jobs(
     request: Request,
@@ -44,22 +45,27 @@ async def list_jobs(
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-SELECT
-*
-FROM swoop.action a
-INNER JOIN swoop.thread t
-ON t.action_uuid = a.action_uuid
-WHERE a.action_type = 'workflow'
-AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
-AND (:parent_id::uuid IS NULL OR a.parent_uuid = :parent_id::uuid)
-AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
-AND (
-(a.created_at >= :start_datetime::TIMESTAMPTZ
-OR :start_datetime::TIMESTAMPTZ IS NULL)
-AND
-(a.created_at <= :end_datetime::TIMESTAMPTZ OR :end_datetime::TIMESTAMPTZ IS NULL)
-)
-LIMIT :limit::integer;
+            SELECT
+            *
+            FROM swoop.action a
+            INNER JOIN swoop.thread t
+            ON t.action_uuid = a.action_uuid
+            WHERE a.action_type = 'workflow'
+            AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
+            AND (:parent_id::uuid IS NULL OR a.parent_uuid = :parent_id::uuid)
+            AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
+            AND (
+              (
+                a.created_at >= :start_datetime::TIMESTAMPTZ
+                OR :start_datetime::TIMESTAMPTZ IS NULL
+              )
+              AND
+              (
+                a.created_at <= :end_datetime::TIMESTAMPTZ
+                OR :end_datetime::TIMESTAMPTZ IS NULL
+              )
+            )
+            LIMIT :limit::integer;
             """,
             process_id=queryparams.get(
                 "processID"
@@ -89,6 +95,7 @@ LIMIT :limit::integer;
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
+    response_model_exclude_unset=True,
 )
 async def get_job_status(request: Request, jobID) -> StatusInfo | APIException:
     """

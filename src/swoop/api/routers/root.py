@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from ..models import ConfClasses
-from ..models import Exception as APIException
-from ..models import LandingPage, Link
+from swoop.api.models.root import ConfClasses, LandingPage
+from swoop.api.models.shared import APIException, Link
 
 router: APIRouter = APIRouter()
 

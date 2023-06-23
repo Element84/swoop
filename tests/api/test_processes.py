@@ -11,23 +11,15 @@ def single_process():
             {
                 "title": "mirror",
                 "description": "A workflow to copy STAC items into a local mirror",
-                "keywords": None,
-                "metadata": None,
-                "additionalParameters": None,
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "outputTransmission": None,
-                "links": None,
+                "type": "argo-workflow",
             }
         ],
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }
@@ -40,35 +32,23 @@ def all_processes():
             {
                 "title": "mirror",
                 "description": "A workflow to copy STAC items into a local mirror",
-                "keywords": None,
-                "metadata": None,
-                "additionalParameters": None,
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "outputTransmission": None,
-                "links": None,
+                "type": "argo-workflow",
             },
             {
                 "title": "cirrus-example",
                 "description": "An example workflow config for a cirrus workflow",
-                "keywords": None,
-                "metadata": None,
-                "additionalParameters": None,
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
-                "outputTransmission": None,
-                "links": None,
+                "type": "cirrus-workflow",
             },
         ],
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }
@@ -81,10 +61,6 @@ def no_processes():
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }
@@ -95,16 +71,12 @@ def mirror_workflow_process():
     return {
         "title": "mirror",
         "description": "A workflow to copy STAC items into a local mirror",
-        "keywords": None,
-        "metadata": None,
-        "additionalParameters": None,
         "id": "mirror",
         "version": "2",
         "jobControlOptions": ["async-execute"],
-        "outputTransmission": None,
-        "links": None,
-        "inputs": None,
-        "outputs": None,
+        "type": "argo-workflow",
+        "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
+        "cacheKeyHashExcludes": [],
     }
 
 

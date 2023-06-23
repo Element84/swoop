@@ -29,23 +29,13 @@ def single_job():
                 "type": "process",
                 "jobID": "2595f2da-81a6-423c-84db-935e6791046e",
                 "status": "successful",
-                "message": None,
-                "created": None,
-                "started": None,
-                "finished": None,
                 "updated": "2023-04-28T15:49:03+00:00",
-                "progress": None,
-                "links": None,
                 "parentID": "cf8ff7f0-ce5d-4de6-8026-4e551787385f",
             }
         ],
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }
@@ -58,10 +48,6 @@ def no_jobs():
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }
@@ -76,13 +62,7 @@ def all_jobs():
                 "type": "process",
                 "jobID": "81842304-0aa9-4609-89f0-1c86819b0752",
                 "status": "accepted",
-                "message": None,
-                "created": None,
-                "started": None,
-                "finished": None,
                 "updated": "2023-04-28T15:49:00+00:00",
-                "progress": None,
-                "links": None,
                 "parentID": "2595f2da-81a6-423c-84db-935e6791046e",
             },
             {
@@ -90,23 +70,13 @@ def all_jobs():
                 "type": "process",
                 "jobID": "2595f2da-81a6-423c-84db-935e6791046e",
                 "status": "successful",
-                "message": None,
-                "created": None,
-                "started": None,
-                "finished": None,
                 "updated": "2023-04-28T15:49:03+00:00",
-                "progress": None,
-                "links": None,
                 "parentID": "cf8ff7f0-ce5d-4de6-8026-4e551787385f",
             },
         ],
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }

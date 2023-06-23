@@ -18,10 +18,6 @@ def all_payloads():
         "links": [
             {
                 "href": "http://www.example.com",
-                "rel": None,
-                "type": None,
-                "hreflang": None,
-                "title": None,
             }
         ],
     }

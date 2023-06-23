@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, Field, PrivateAttr, StrictBool, StrictInt, StrictStr
 
 from swoop.api.exceptions import WorkflowConfigError
+from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
 from swoop.cache.hashing import hash_dict
 from swoop.cache.types import JSONFilter
 
@@ -19,32 +20,48 @@ class Response(Enum):
 
 
 class BaseWorkflow(BaseModel, ABC):
-    name: StrictStr
+    id: StrictStr
+    title: str = ""
     description: StrictStr
     version: StrictInt
-    cache_key_hash_includes: list[StrictStr] = []
-    cache_key_hash_excludes: list[StrictStr] = []
+    cacheKeyHashIncludes: list[StrictStr] = []
+    cacheKeyHashExcludes: list[StrictStr] = []
     _json_filter: JSONFilter = PrivateAttr()
     handler: StrictStr
+    type: StrictStr
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+        if not self.title:
+            self.title = self.id
         self._json_filter: JSONFilter = JSONFilter(
-            self.cache_key_hash_includes,
-            self.cache_key_hash_excludes,
+            self.cacheKeyHashIncludes,
+            self.cacheKeyHashExcludes,
         )
 
     def hash_payload(self, payload) -> bytes:
         return hash_dict(self._json_filter(payload))
 
+    def to_process_summary(self) -> ProcessSummary:
+        return ProcessSummary(
+            jobControlOptions=[JobControlOptions("async-execute")],
+            **self.dict(),
+        )
+
+    def to_process(self) -> Process:
+        return Process(
+            jobControlOptions=[JobControlOptions("async-execute")],
+            **self.dict(),
+        )
+
 
 class ArgoWorkflow(BaseWorkflow):
-    argo_template: StrictStr
+    argoTemplate: StrictStr
     type: Literal["argo-workflow"]
 
 
 class CirrusWorkflow(BaseWorkflow):
-    sfn_arn: StrictStr
+    sfnArn: StrictStr
     type: Literal["cirrus-workflow"]
 
 
@@ -55,6 +72,21 @@ Workflow = Annotated[
     ],
     Field(discriminator="type"),
 ]
+
+
+class Workflows(dict[str, Workflow]):
+    class _type(BaseModel):
+        __root__: dict[str, Workflow]
+
+    @classmethod
+    def from_yaml(cls, path: Path) -> Workflows:
+        try:
+            workflows = yaml.safe_load(path.read_text())["workflows"]
+            for name, workflow in workflows.items():
+                workflow["id"] = name
+            return cls(cls._type.parse_obj(workflows).__root__)
+        except Exception as e:
+            raise WorkflowConfigError("Could not load workflow configuration") from e
 
 
 class Feature(BaseModel):
@@ -70,7 +102,7 @@ class UploadOptions(BaseModel):
     s3_urls: StrictBool
 
 
-class Process(BaseModel):
+class ProcessDefinition(BaseModel):
     description: StrictStr | None = None
     tasks: dict
     # input_collections: Optional[list[StrictStr]] = None
@@ -81,7 +113,7 @@ class Process(BaseModel):
 class Payload(BaseModel):
     type: StrictStr = "FeatureCollection"
     features: list[Feature]
-    process: list[Process]
+    process: list[ProcessDefinition]
 
 
 class InputPayload(BaseModel):
@@ -99,16 +131,48 @@ class Execute(BaseModel):
     # subscriber: Subscriber | None = None
 
 
-class Workflows(dict[str, Workflow]):
-    class _type(BaseModel):
-        __root__: dict[str, Workflow]
+# TODO: How we use this is uncertain. We should never execute jobs
+# asynchronously, but we may want to return cached results immediately,
+# as though the execution had run synchronously.
+class JobControlOptions(Enum):
+    # sync_execute = "sync-execute"
+    async_execute = "async-execute"
+    # dismiss = "dismiss"
 
-    @classmethod
-    def from_yaml(cls, path: Path) -> Workflows:
-        try:
-            workflows = yaml.safe_load(path.read_text())["workflows"]
-            for name, workflow in workflows.items():
-                workflow["name"] = name
-            return cls(cls._type.parse_obj(workflows).__root__)
-        except Exception as e:
-            raise WorkflowConfigError("Could not load workflow configuration") from e
+
+class ProcessSummary(DescriptionType):
+    id: str
+    version: str
+    type: str
+    jobControlOptions: list[JobControlOptions] | None = [
+        JobControlOptions("async-execute")
+    ]
+    outputTransmission: list[TransmissionMode] | None = None
+    description: str | None = None
+    links: list[Link] | None = None
+
+
+class MaxOccur(Enum):
+    unbounded = "unbounded"
+
+
+class InputDescription(DescriptionType):
+    minOccurs: int | None = 1
+    maxOccurs: int | MaxOccur | None = None
+    schema_: Schema = Field(..., alias="schema")
+
+
+class OutputDescription(DescriptionType):
+    schema_: Schema = Field(..., alias="schema")
+
+
+class Process(ProcessSummary):
+    inputs: dict[str, InputDescription] | None = None
+    outputs: dict[str, OutputDescription] | None = None
+    cacheKeyHashIncludes: list[str] | None = None
+    cacheKeyHashExcludes: list[str] | None = None
+
+
+class ProcessList(BaseModel):
+    processes: list[ProcessSummary]
+    links: list[Link]

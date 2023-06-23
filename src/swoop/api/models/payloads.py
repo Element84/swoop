@@ -4,7 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from ..models import JobSummary, Link
+from swoop.api.models.jobs import JobSummary
+from swoop.api.models.shared import Link
 
 
 class PayloadSummary(BaseModel):
@@ -19,10 +20,9 @@ class PayloadList(BaseModel):
 
 
 class PayloadInfo(BaseModel):
-    payload_id: str | None = None
-    payload_hash: bytes | None = None
-    workflow_version: int | None = None
-    workflow_name: str | None = None
-    created_at: datetime | None = None
-    invalid_after: datetime | None = None
-    jobs: list[JobSummary] | None = None
+    payload_id: str
+    payload_hash: str
+    workflow_name: str
+    created_at: datetime
+    invalid_after: datetime | None
+    jobs: list[JobSummary]

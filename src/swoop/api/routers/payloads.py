@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from asyncpg import Record
 from buildpg import V, funcs, render
-from fastapi import APIRouter, HTTPException, Path, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
-from ..models import Exception as APIException
-from ..models import InlineResponse200, JobSummary, Link, StatusInfo
-from ..models.payloads import PayloadInfo, PayloadList, PayloadSummary
+from swoop.api.models.jobs import JobSummary
+from swoop.api.models.payloads import PayloadInfo, PayloadList, PayloadSummary
+from swoop.api.models.shared import APIException, Link
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -38,7 +38,11 @@ def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
 # key formed by process_id and item collections and IDs.
 
 
-@router.get("/", response_model=PayloadList)
+@router.get(
+    "/",
+    response_model=PayloadList,
+    response_model_exclude_unset=True,
+)
 async def list_payloads(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
@@ -83,6 +87,7 @@ async def list_payloads(
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
+    response_model_exclude_unset=True,
 )
 async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIException:
     """
@@ -94,9 +99,7 @@ async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIEx
             """
                 SELECT
                 c.payload_uuid,
-                c.payload_hash,
-                (SELECT MAX(workflow_version) FROM swoop.action
-                 WHERE payload_uuid = c.payload_uuid) AS workflow_version,
+                encode(c.payload_hash, 'base64') as payload_hash,
                 c.workflow_name,
                 c.created_at,
                 c.invalid_after,
@@ -125,28 +128,9 @@ async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIEx
 
         return PayloadInfo(
             payload_id=payloadID,
-            payload_hash=str(records[0]["payload_hash"]),
-            workflow_version=records[0]["workflow_version"],
+            payload_hash=records[0]["payload_hash"],
             workflow_name=records[0]["workflow_name"],
             created_at=records[0]["created_at"],
             invalid_after=records[0]["invalid_after"],
             jobs=[to_job_summary(a, request) for a in actionids],
         )
-
-
-@router.post(
-    "/{payloadID}/rerun",
-    response_model=InlineResponse200,
-    responses={
-        "201": {"model": StatusInfo},
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-)
-def rerun_payload(
-    payloadID: str = Path(..., alias="payloadId"),
-) -> InlineResponse200 | StatusInfo | APIException:
-    """
-    rerun a payload.
-    """
-    pass

@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from swoop.api.models import Exception as APIException
-from swoop.api.models import Link, Process, ProcessList, ProcessSummary, StatusInfo
-from swoop.api.models.workflows import Execute, Workflow
+from swoop.api.models.jobs import StatusInfo
+from swoop.api.models.shared import APIException, Link
+from swoop.api.models.workflows import Execute, Process, ProcessList, Workflow
 from swoop.api.routers.jobs import get_job_status
 
 DEFAULT_PROCESS_LIMIT = 1000
@@ -24,18 +24,7 @@ class Params(BaseModel):
     type: str | None
 
 
-def to_process_summary(workflowConfig: Workflow) -> ProcessSummary:
-    return ProcessSummary(
-        id=workflowConfig.name,
-        title=workflowConfig.name,
-        version=str(workflowConfig.version),
-        description=workflowConfig.description,
-    )
-
-
 def processes_parameter_translation(workflowConfig: dict) -> dict:
-    if workflowConfig.get("processID"):
-        workflowConfig["name"] = workflowConfig.pop("processID")
     if workflowConfig.get("version"):
         workflowConfig["version"] = int(workflowConfig["version"])
     return workflowConfig
@@ -44,6 +33,8 @@ def processes_parameter_translation(workflowConfig: dict) -> dict:
 @router.get(
     "/",
     response_model=ProcessList,
+    responses={"404": {"model": APIException}},
+    response_model_exclude_unset=True,
 )
 async def list_processes(
     request: Request,
@@ -63,7 +54,7 @@ async def list_processes(
         workflows = workflows[:limit]
 
     return ProcessList(
-        processes=[to_process_summary(workflow) for workflow in workflows],
+        processes=[workflow.to_process_summary() for workflow in workflows],
         links=[
             Link(
                 href="http://www.example.com",
@@ -79,10 +70,11 @@ async def list_processes(
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
+    response_model_exclude_unset=True,
 )
 async def get_process_description(
     request: Request, processID
-) -> ProcessSummary | APIException:
+) -> Process | APIException:
     """
     retrieve a process description
     """
@@ -93,7 +85,7 @@ async def get_process_description(
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
-    return to_process_summary(workflow)
+    return workflow.to_process()
 
 
 @router.post(
@@ -106,6 +98,7 @@ async def get_process_description(
         "422": {"model": APIException},
     },
     status_code=201,
+    response_model_exclude_unset=True,
 )
 async def execute_process(
     processID: str,
@@ -173,7 +166,7 @@ async def execute_process(
                 SET invalid_after = NULL
                 RETURNING payload_uuid;
                 """,
-                values=Values(payload_hash=hashed_pl, workflow_name=workflow.name),
+                values=Values(payload_hash=hashed_pl, workflow_name=workflow.id),
             )
             pl_uuid = await conn.fetchval(q, *p)
 
@@ -187,7 +180,7 @@ async def execute_process(
                 """,
                 values=Values(
                     action_type="workflow",
-                    action_name=workflow.name,
+                    action_name=workflow.id,
                     handler_name=workflow.handler,
                     workflow_version=workflow.version,
                     payload_uuid=pl_uuid,
