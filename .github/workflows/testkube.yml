@@ -30,6 +30,8 @@ jobs:
 
       - name: Configuring kube context and getting cluster info
         run: |
+          cat /etc/hosts
+          echo '127.0.0.1        kubernetes.docker.internal' | sudo tee -a /etc/hosts
           export KUBECONFIG=${HOME}/.kube/config
           kubectl cluster-info
           kubectl get pods -n kube-system
@@ -93,6 +95,10 @@ jobs:
           kubectl wait --for=condition=ready --timeout=30m pod -n testkube -l app.kubernetes.io/instance=testkube
           kubectl port-forward -n testkube svc/testkube-api-server 8088:8088 &
           testkube config api-uri http://127.0.0.1:8088/v1
+          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "nslookup host.docker.internal"
+          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "nslookup host.k3d.internal"
+          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "nslookup kubernetes.docker.internal"
+          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "cat /etc/hosts"
 
       - name: Create Testkube Tests
         run: |
