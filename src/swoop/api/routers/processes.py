@@ -105,10 +105,6 @@ async def get_process_description(
     return to_process_summary(workflow)
 
 
-class RedirectResponseModel(BaseModel):
-    pass
-
-
 @router.post(
     "/{process_id}/execution",
     response_model=None,
