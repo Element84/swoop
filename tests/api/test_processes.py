@@ -369,7 +369,7 @@ async def post_payload_cache(test_client, process_payload_cache):
     response = test_client.post(
         "/processes/mirror/execution",
         data=json.dumps(process_payload_cache),
-        allow_redirects=False,
+        follow_redirects=False,
     )
     return response
 
