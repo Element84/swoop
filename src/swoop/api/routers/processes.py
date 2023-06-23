@@ -205,6 +205,7 @@ async def execute_process(
                     handler_name=workflow.handler,
                     workflow_version=workflow.version,
                     payload_uuid=pl_uuid,
+                    workflow_version=2,
                 ),
             )
             rec = await conn.fetchrow(q, *p)
