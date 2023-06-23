@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from buildpg import Values, render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
@@ -120,7 +120,6 @@ async def execute_process(
     process_id: str,
     request: Request,
     body: Execute,
-    response: Response,
 ) -> RedirectResponse | StatusInfo | APIException:
     """
     execute a process.
@@ -201,7 +200,6 @@ async def execute_process(
                     handler_name=workflow.handler,
                     workflow_version=workflow.version,
                     payload_uuid=pl_uuid,
-                    workflow_version=2,
                 ),
             )
             rec = await conn.fetchrow(q, *p)
