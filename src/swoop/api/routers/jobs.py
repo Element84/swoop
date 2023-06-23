@@ -22,9 +22,6 @@ router: APIRouter = APIRouter(
 
 class Params(BaseModel):
     processID: str | None
-    # collection_id: str | None  # TODO - possibly named just 'collection'
-    # item_id: str | None        # TODO
-    # payload_id: str | None        # TODO
     startDatetime: datetime | None
     endDatetime: datetime | None
     parentID: str | None

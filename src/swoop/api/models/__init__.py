@@ -212,14 +212,9 @@ class JobSummary(BaseModel):
 class ProcessSummary(DescriptionType):
     id: str
     version: str
-    name: str
-    processID: str
     jobControlOptions: list[JobControlOptions] | None = list(JobControlOptions)
     outputTransmission: list[TransmissionMode] | None = None
     description: str | None = None
-    handler: str | None = None
-    cacheKeyHashIncludes: list[str] | None = None
-    cacheKeyHashExcludes: list[str] | None = None
     links: list[Link] | None = None
 
 

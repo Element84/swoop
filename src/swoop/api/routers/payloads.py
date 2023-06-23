@@ -135,7 +135,7 @@ async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIEx
 
 
 @router.post(
-    "/{payload_id}/rerun",
+    "/{payloadID}/rerun",
     response_model=InlineResponse200,
     responses={
         "201": {"model": StatusInfo},
@@ -144,7 +144,7 @@ async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIEx
     },
 )
 def rerun_payload(
-    payload_id: str = Path(..., alias="payloadId"),
+    payloadID: str = Path(..., alias="payloadId"),
 ) -> InlineResponse200 | StatusInfo | APIException:
     """
     rerun a payload.

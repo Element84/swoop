@@ -20,24 +20,16 @@ router: APIRouter = APIRouter(
 
 
 class Params(BaseModel):
-    processID: str | None
-    version: str | None
-    title: str | None
-    description: str | None
     handler: str | None
+    type: str | None
 
 
 def to_process_summary(workflowConfig: Workflow) -> ProcessSummary:
     return ProcessSummary(
         id=workflowConfig.name,
         title=workflowConfig.name,
-        name=workflowConfig.name,
-        processID=workflowConfig.name,
         version=str(workflowConfig.version),
         description=workflowConfig.description,
-        handler=workflowConfig.handler,
-        cacheKeyHashIncludes=workflowConfig.cache_key_hash_includes,
-        cacheKeyHashExcludes=workflowConfig.cache_key_hash_excludes,
     )
 
 
@@ -52,7 +44,6 @@ def processes_parameter_translation(workflowConfig: dict) -> dict:
 @router.get(
     "/",
     response_model=ProcessList,
-    responses={"404": {"model": APIException}},
 )
 async def list_processes(
     request: Request,

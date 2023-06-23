@@ -16,13 +16,8 @@ def single_process():
                 "additionalParameters": None,
                 "id": "mirror",
                 "version": "2",
-                "name": "mirror",
-                "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-handler",
-                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
-                "cacheKeyHashExcludes": [],
                 "links": None,
             }
         ],
@@ -50,13 +45,8 @@ def all_processes():
                 "additionalParameters": None,
                 "id": "mirror",
                 "version": "2",
-                "name": "mirror",
-                "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-handler",
-                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
-                "cacheKeyHashExcludes": [],
                 "links": None,
             },
             {
@@ -67,13 +57,8 @@ def all_processes():
                 "additionalParameters": None,
                 "id": "cirrus-example",
                 "version": "1",
-                "name": "cirrus-example",
-                "processID": "cirrus-example",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "cirrus-handler",
-                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
-                "cacheKeyHashExcludes": [],
                 "links": None,
             },
         ],
@@ -115,13 +100,8 @@ def mirror_workflow_process():
         "additionalParameters": None,
         "id": "mirror",
         "version": "2",
-        "name": "mirror",
-        "processID": "mirror",
         "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
-        "handler": "argo-handler",
-        "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
-        "cacheKeyHashExcludes": [],
         "links": None,
         "inputs": None,
         "outputs": None,
@@ -289,15 +269,8 @@ async def test_get_all_processes(test_client, all_processes):
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_limit_filter(test_client, single_process):
-    response = test_client.get("/processes?limit=1&processID=mirror")
-    assert response.status_code == 200
-    assert response.json() == single_process
-
-
-@pytest.mark.asyncio
-async def test_get_all_processes_filter(test_client, single_process):
-    response = test_client.get("/processes?processID=mirror")
+async def test_get_all_processes_handler(test_client, single_process):
+    response = test_client.get("/processes?handler=argo-handler")
     assert response.status_code == 200
     assert response.json() == single_process
 
@@ -310,8 +283,36 @@ async def test_get_all_processes_limit(test_client, single_process):
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_none(test_client, no_processes):
-    response = test_client.get("/processes?version=3")
+async def test_get_all_processes_type(test_client, single_process):
+    response = test_client.get("/processes?type=argo-workflow")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_limit_handler(test_client, single_process):
+    response = test_client.get("/processes?limit=2&handler=argo-handler")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_limit_type(test_client, single_process):
+    response = test_client.get("/processes?limit=2&type=argo-workflow")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_handler_type(test_client, single_process):
+    response = test_client.get("/processes?handler=argo-handler&type=argo-workflow")
+    assert response.status_code == 200
+    assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_invalid_type(test_client, no_processes):
+    response = test_client.get("/processes?type=invalid_type")
     assert response.status_code == 200
     assert response.json() == no_processes
 

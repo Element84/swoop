@@ -20,12 +20,12 @@ router: APIRouter = APIRouter(
     responses={"404": {"model": APIException}},
 )
 def get_execution_counts(
-    process_id: list[str] | None = Query(default=None),
-    collection_id: list[str] | None = Query(default=None),
-    item_id: list[str] | None = Query(default=None),
-    start_datetime: datetime | None = None,
-    end_datetime: datetime | None = None,
-    parent_id: list[str] | None = Query(default=None),
+    processID: list[str] | None = Query(default=None),
+    collectionID: list[str] | None = Query(default=None),
+    itemID: list[str] | None = Query(default=None),
+    startDatetime: datetime | None = None,
+    endDatetime: datetime | None = None,
+    parentID: list[str] | None = Query(default=None),
 ) -> Counts | APIException:
     """
     Retrieve execution count summary.
@@ -39,12 +39,12 @@ def get_execution_counts(
     responses={"404": {"model": APIException}},
 )
 def get_execution_events(
-    process_id: list[str] | None = Query(default=None),
-    collection_id: list[str] | None = Query(default=None),
-    item_id: list[str] | None = Query(default=None),
-    start_datetime: datetime | None = None,
-    end_datetime: datetime | None = None,
-    parent_id: list[str] | None = Query(default=None),
+    processID: list[str] | None = Query(default=None),
+    collectionID: list[str] | None = Query(default=None),
+    itemID: list[str] | None = Query(default=None),
+    startDatetime: datetime | None = None,
+    endDatetime: datetime | None = None,
+    parentID: list[str] | None = Query(default=None),
 ) -> Events | APIException:
     """
     Retrieve execution count summary.
