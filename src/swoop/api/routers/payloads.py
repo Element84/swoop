@@ -1,15 +1,36 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Path, Query
+from asyncpg import Record
+from buildpg import V, funcs, render
+from fastapi import APIRouter, HTTPException, Path, Query, Request
 
 from ..models import Exception as APIException
-from ..models import InlineResponse200, PayloadInfo, PayloadList, StatusInfo
+from ..models import InlineResponse200, JobSummary, Link, StatusInfo
+from ..models.payloads import PayloadInfo, PayloadList, PayloadSummary
 
-DEFAULT_JOB_LIMIT = 1000
+DEFAULT_PAYLOAD_LIMIT = 1000
 
 router: APIRouter = APIRouter(
     tags=["Payloads"],
 )
+
+
+def to_payload_summary(record: Record, request: Request) -> PayloadSummary:
+    return PayloadSummary(
+        payload_id=str(record["payload_uuid"]),
+        href=str(
+            request.url_for("get_payload_status", payload_id=record["payload_uuid"])
+        ),
+        type="payload",
+    )
+
+
+def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
+    return JobSummary(
+        job_id=action_uuid,
+        href=str(request.url_for("get_job_status", job_id=action_uuid)),
+        type="job",
+    )
 
 
 # The behavior here more or less requires we store payloads with a single
@@ -17,21 +38,42 @@ router: APIRouter = APIRouter(
 # key formed by process_id and item collections and IDs.
 
 
-@router.get(
-    "/",
-    response_model=PayloadList,
-    responses={"404": {"model": APIException}},
-)
-def list_payloads(
-    limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
+@router.get("/", response_model=PayloadList)
+async def list_payloads(
+    request: Request,
+    limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
     process_id: list[str] | None = Query(default=None),
-    collection_id: list[str] | None = Query(default=None),
-    item_id: list[str] | None = Query(default=None),
 ) -> PayloadList | APIException:
     """
     retrieve the list of payloads.
     """
-    pass
+    proc_clause = V("c.workflow_name") == funcs.any(process_id)
+
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+            SELECT
+                DISTINCT(c.payload_uuid)
+            FROM swoop.payload_cache AS c
+            WHERE
+                (:processes::text[] IS NULL OR :proc_where)
+            LIMIT :limit::integer
+            """,
+            processes=process_id,
+            proc_where=proc_clause,
+            limit=limit,
+        )
+
+        records = await conn.fetch(q, *p)
+
+        return PayloadList(
+            payloads=[to_payload_summary(record, request) for record in records],
+            links=[
+                Link(
+                    href="http://www.example.com",
+                )
+            ],
+        )
 
 
 @router.get(
@@ -42,13 +84,56 @@ def list_payloads(
         "500": {"model": APIException},
     },
 )
-def get_job_status(
-    payload_id: str = Path(..., alias="payloadId"),
+async def get_payload_status(
+    request: Request, payload_id
 ) -> PayloadInfo | APIException:
     """
     retrieve info for a payload
     """
-    pass
+
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+                SELECT
+                c.payload_uuid,
+                c.payload_hash,
+                (SELECT MAX(workflow_version) FROM swoop.action
+                 WHERE payload_uuid = c.payload_uuid) AS workflow_version,
+                c.workflow_name,
+                c.created_at,
+                c.invalid_after,
+                array(
+                    SELECT
+                    action_uuid
+                    FROM swoop.action
+                    WHERE
+                    payload_uuid = c.payload_uuid
+                ) AS action_uuids
+                FROM swoop.payload_cache AS c
+                WHERE
+                c.payload_uuid = :payload_id::uuid
+
+            """,
+            payload_id=payload_id,
+        )
+        records = await conn.fetch(q, *p)
+
+        if not records:
+            raise HTTPException(
+                status_code=404, detail="No payload that matches payload uuid found"
+            )
+
+        actionids = {str(record) for record in records[0]["action_uuids"]}
+
+        return PayloadInfo(
+            payload_id=payload_id,
+            payload_hash=str(records[0]["payload_hash"]),
+            workflow_version=records[0]["workflow_version"],
+            workflow_name=records[0]["workflow_name"],
+            created_at=records[0]["created_at"],
+            invalid_after=records[0]["invalid_after"],
+            jobs=[to_job_summary(a, request) for a in actionids],
+        )
 
 
 @router.post(

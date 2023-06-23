@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
-from asyncpg import Record
 from buildpg import render
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel
@@ -19,33 +18,6 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 router: APIRouter = APIRouter(
     tags=["Jobs"],
 )
-
-
-status_dict = {
-    "PENDING": "accepted",
-    "QUEUED": "running",  # ?
-    "RUNNING": "running",
-    "SUCCESSFUL": "successful",
-    "FAILED": "failed",
-    "CANCELED": "dismissed",
-    "TIMED_OUT": "failed",  # ?
-    "UNKNOWN": "failed",  # ?
-    "BACKOFF": "failed",  # ?
-    "INVALID": "failed",  # ?
-    "RETRIES_EXHAUSTED": "failed",  # ?
-    #'INFO': '?' # ?
-}
-
-
-def to_status_info(records: list[Record]) -> StatusInfo:
-    return StatusInfo(
-        processID=records["action_name"],
-        type="process",
-        jobID=str(records["action_uuid"]),
-        status=status_dict[records["status"]],
-        updated=records["last_update"],
-        parentID=str(records["parent_uuid"]),
-    )
 
 
 class Params(BaseModel):
@@ -104,7 +76,7 @@ LIMIT :limit::integer;
         records = await conn.fetch(q, *p)
 
     return JobList(
-        jobs=[to_status_info(group) for group in records],
+        jobs=[StatusInfo.from_action_record(group) for group in records],
         links=[
             Link(
                 href="http://www.example.com",
@@ -142,7 +114,7 @@ async def get_job_status(request: Request, job_id) -> StatusInfo | APIException:
         if not record:
             raise HTTPException(status_code=404, detail="Job not found")
 
-        return to_status_info(record)
+        return StatusInfo.from_action_record(record)
 
 
 @router.delete(

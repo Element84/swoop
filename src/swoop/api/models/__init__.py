@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from asyncpg import Record
 from pydantic import (
     AnyUrl,
     BaseModel,
@@ -13,6 +14,21 @@ from pydantic import (
     conint,
     create_model,
 )
+
+status_dict = {
+    "PENDING": "accepted",
+    "QUEUED": "running",  # ?
+    "RUNNING": "running",
+    "SUCCESSFUL": "successful",
+    "FAILED": "failed",
+    "CANCELED": "dismissed",
+    "TIMED_OUT": "failed",  # ?
+    "UNKNOWN": "failed",  # ?
+    "BACKOFF": "failed",  # ?
+    "INVALID": "failed",  # ?
+    "RETRIES_EXHAUSTED": "failed",  # ?
+    #'INFO': '?' # ?
+}
 
 
 class Exception(BaseModel):
@@ -146,6 +162,16 @@ class StatusInfo(BaseModel):
     links: list[Link] | None = None
     parentID: str | None = None
 
+    def from_action_record(records: list[Record]) -> StatusInfo:
+        return StatusInfo(
+            processID=records["action_name"],
+            type="process",
+            jobID=str(records["action_uuid"]),
+            status=status_dict[records["status"]],
+            updated=records["last_update"],
+            parentID=str(records["parent_uuid"]),
+        )
+
 
 class Output(BaseModel):
     format: Format | None = None
@@ -175,6 +201,12 @@ class InputValue(BaseModel):
 class JobList(BaseModel):
     jobs: list[StatusInfo]
     links: list[Link]
+
+
+class JobSummary(BaseModel):
+    job_id: str | None = None
+    href: str | None = None
+    type: str | None = None
 
 
 class ProcessSummary(DescriptionType):
@@ -292,12 +324,4 @@ Counts = create_model(
 
 
 class Events(BaseModel):
-    pass
-
-
-class PayloadList(BaseModel):
-    pass
-
-
-class PayloadInfo(BaseModel):
     pass
