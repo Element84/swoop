@@ -91,17 +91,15 @@ jobs:
           echo "deb https://repo.testkube.io/linux linux main" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y testkube
-          kubectl testkube install --no-confirm
+          helm repo add kubeshop https://kubeshop.github.io/helm-charts ; helm repo update && helm upgrade --install --reuse-values --create-namespace testkube kubeshop/testkube --set testkube-api.cloud.key=${{ secrets.TESTKUBE_CLOUD_KEY }} --set testkube-api.cloud.orgId=${{ secrets.TESTKUBE_ORG_ID }} --set testkube-api.cloud.envId=${{ secrets.TESTKUBE_ENV_ID }} --set testkube-api.minio.enabled=false --set mongodb.enabled=false --set testkube-dashboard.enabled=false --set testkube-api.cloud.url=agent.testkube.io:443 --namespace testkube
           kubectl wait --for=condition=ready --timeout=30m pod -n testkube -l app.kubernetes.io/instance=testkube
-          kubectl port-forward -n testkube svc/testkube-api-server 8088:8088 &
-          testkube config api-uri http://127.0.0.1:8088/v1
 
       - name: Create Testkube Tests
         run: |
-          testkube create test --namespace testkube --name swoop-api-root-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch hm/testkube --git-path tests/curl/swoop-api-root-test.json --variable apiHost=host.k3d.internal:8000
-          testkube create test --namespace testkube --name swoop-api-jobs-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch hm/testkube --git-path tests/curl/swoop-api-jobs-test.json --variable apiHost=host.k3d.internal:8000
-          testkube create test --namespace testkube --name swoop-api-payload-input-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch hm/testkube --git-path tests/curl/swoop-api-payload-input-test.json --variable apiHost=host.k3d.internal:8000
-          testkube create test --namespace testkube --name swoop-api-simple-k6-load-test --type k6/script --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch hm/testkube --git-path tests/k6/swoop-api-simple-k6-load-test.js --variable API_HOST=host.k3d.internal:8000
+          testkube create test --namespace testkube --name swoop-api-root-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch main --git-path tests/curl/swoop-api-root-test.json --variable apiHost=host.k3d.internal:8000
+          testkube create test --namespace testkube --name swoop-api-jobs-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch main --git-path tests/curl/swoop-api-jobs-test.json --variable apiHost=host.k3d.internal:8000
+          testkube create test --namespace testkube --name swoop-api-payload-input-test --type curl/test --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch main --git-path tests/curl/swoop-api-payload-input-test.json --variable apiHost=host.k3d.internal:8000
+          testkube create test --namespace testkube --name swoop-api-simple-k6-load-test --type k6/script --test-content-type git-file --git-uri https://github.com/Element84/swoop-testkube.git --git-branch main --git-path tests/k6/swoop-api-simple-k6-load-test.js --variable API_HOST=host.k3d.internal:8000
 
       - name: Running Testkube Tests
         run: |
