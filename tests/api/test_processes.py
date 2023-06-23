@@ -305,7 +305,8 @@ async def test_get_process_by_process_id_404(test_client):
 @pytest.mark.asyncio
 async def test_post_valid_id_valid_payload(test_client, process_payload_valid):
     response = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_valid)
+        "/processes/mirror/execution",
+        content=json.dumps(process_payload_valid),
     )
     assert response.status_code == 201
 
@@ -313,7 +314,8 @@ async def test_post_valid_id_valid_payload(test_client, process_payload_valid):
 @pytest.mark.asyncio
 async def test_post_valid_id_invalid_payload(test_client, process_payload_invalid):
     response = test_client.post(
-        "/processes/mirror/execution", data=json.dumps(process_payload_invalid)
+        "/processes/mirror/execution",
+        content=json.dumps(process_payload_invalid),
     )
     assert response.status_code == 422
 
@@ -321,7 +323,8 @@ async def test_post_valid_id_invalid_payload(test_client, process_payload_invali
 @pytest.mark.asyncio
 async def test_post_invalid_id_valid_payload(test_client, process_payload_valid):
     response = test_client.post(
-        "/processes/invalid/execution", data=json.dumps(process_payload_valid)
+        "/processes/invalid/execution",
+        content=json.dumps(process_payload_valid),
     )
     assert response.status_code == 422
 
@@ -332,7 +335,7 @@ async def test_post_process_id_not_found_in_config(
 ):
     response = test_client.post(
         "/processes/hello/execution",
-        data=json.dumps(process_payload_valid_wf_name_not_in_config),
+        content=json.dumps(process_payload_valid_wf_name_not_in_config),
     )
     assert response.status_code == 404
 
@@ -340,7 +343,7 @@ async def test_post_process_id_not_found_in_config(
 async def post_payload_cache(test_client, process_payload_cache):
     response = test_client.post(
         "/processes/mirror/execution",
-        data=json.dumps(process_payload_cache),
+        content=json.dumps(process_payload_cache),
         follow_redirects=False,
     )
     return response
