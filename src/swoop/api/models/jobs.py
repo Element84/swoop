@@ -37,7 +37,7 @@ class Type(Enum):
 
 
 class StatusInfo(BaseModel):
-    processID: str | None = None
+    processID: str
     type: Type
     jobID: str
     status: StatusCode
