@@ -75,6 +75,7 @@ jobs:
         uses: actions/checkout@master
         with:
           repository: Element84/swoop-db
+          ref: hm/testkube
           path: swoop-db
 
       - name: Setup Postgres
