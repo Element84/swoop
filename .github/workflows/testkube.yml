@@ -42,48 +42,48 @@ jobs:
           export KUBE_CONFIG_CONTEXT=$(kubectl config current-context)
           sudo ufw allow 8000
 
-      # - name: Set up Python ${{ matrix.python-version }}
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-      # - name: Install dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install -r requirements.txt
-      #     pip install '.[dev]'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install '.[dev]'
 
-      # - name: Load .env file into environment
-      #   uses: cardinalby/export-env-action@v2
-      #   with:
-      #     envFile: '.env'
-      #     expand: true
+      - name: Load .env file into environment
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: '.env'
+          expand: true
 
-      # - name: Create SWOOP Container
-      #   run: docker compose up --build -V -d
+      - name: Create SWOOP Container
+        run: docker compose up --build -V -d
 
-      # - name: Setup MinIO
-      #   run: |
-      #     curl https://dl.min.io/client/mc/release/linux-amd64/mc \
-      #       --create-dirs \
-      #       -o $HOME/minio-binaries/mc
-      #     chmod +x $HOME/minio-binaries/mc
-      #     export PATH=$PATH:$HOME/minio-binaries/
-      #     mc alias set swoopminio http://127.0.0.1:9000 $SWOOP_ACCESS_KEY_ID $SWOOP_SECRET_ACCESS_KEY
-      #     mc cp --recursive tests/fixtures/io/base_01/ swoopminio/swoop/execution/2595f2da-81a6-423c-84db-935e6791046e/
+      - name: Setup MinIO
+        run: |
+          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+            --create-dirs \
+            -o $HOME/minio-binaries/mc
+          chmod +x $HOME/minio-binaries/mc
+          export PATH=$PATH:$HOME/minio-binaries/
+          mc alias set swoopminio http://127.0.0.1:9000 $SWOOP_ACCESS_KEY_ID $SWOOP_SECRET_ACCESS_KEY
+          mc cp --recursive tests/fixtures/io/base_01/ swoopminio/swoop/execution/2595f2da-81a6-423c-84db-935e6791046e/
 
-      # - name: Checkout swoop-db repo
-      #   uses: actions/checkout@master
-      #   with:
-      #     repository: Element84/swoop-db
-      #     path: swoop-db
+      - name: Checkout swoop-db repo
+        uses: actions/checkout@master
+        with:
+          repository: Element84/swoop-db
+          path: swoop-db
 
-      # - name: Setup Postgres
-      #   run: |
-      #     sudo apt update
-      #     sudo apt install postgresql postgresql-contrib
-      #     psql -p $PGPORT -U $PGUSER $PGDATABASE  < swoop-db/src/swoop/db/migrations/00000_base_schema.up.sql
-      #     psql -p $PGPORT -U $PGUSER $PGDATABASE  < swoop-db/src/swoop/db/fixtures/base_01.sql
+      - name: Setup Postgres
+        run: |
+          sudo apt update
+          sudo apt install postgresql postgresql-contrib
+          psql -p $PGPORT -U $PGUSER $PGDATABASE  < swoop-db/src/swoop/db/migrations/00000_base_schema.up.sql
+          psql -p $PGPORT -U $PGUSER $PGDATABASE  < swoop-db/src/swoop/db/fixtures/base_01.sql
 
       - name: Installing Testkube
         run: |
@@ -95,8 +95,10 @@ jobs:
           kubectl wait --for=condition=ready --timeout=30m pod -n testkube -l app.kubernetes.io/instance=testkube
           kubectl port-forward -n testkube svc/testkube-api-server 8088:8088 &
           testkube config api-uri http://127.0.0.1:8088/v1
+          curl http://127.0.0.1:8000/
           kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "cat /etc/hosts"
           kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "nslookup host.k3d.internal"
+          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "wget http://host.k3d.internal:8000/"
 
       - name: Create Testkube Tests
         run: |
