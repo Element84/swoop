@@ -41,6 +41,8 @@ jobs:
           echo "current-context:" $(kubectl config current-context)
           export KUBE_CONFIG_CONTEXT=$(kubectl config current-context)
           sudo ufw allow 8000
+          sudo ufw allow in to 172.0.0.0/8 proto tcp port 8000
+          sudo ufw allow in to 10.0.0.0/8 proto tcp port 8000
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -95,10 +97,9 @@ jobs:
           kubectl wait --for=condition=ready --timeout=30m pod -n testkube -l app.kubernetes.io/instance=testkube
           kubectl port-forward -n testkube svc/testkube-api-server 8088:8088 &
           testkube config api-uri http://127.0.0.1:8088/v1
-          curl http://127.0.0.1:8000/
           kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "cat /etc/hosts"
           kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "nslookup host.k3d.internal"
-          kubectl exec -it --namespace=testkube $(kubectl get pods -o=name --namespace=testkube | grep testkube-api-server) -- /bin/sh -c "wget http://host.k3d.internal:8000/"
+
 
       - name: Create Testkube Tests
         run: |
