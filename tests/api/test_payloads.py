@@ -51,13 +51,13 @@ async def test_get_payloads_filter_limit_only(test_client, all_payloads):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_process(test_client):
-    response = test_client.get("/payloads/?limit=1000&process_id=some_workflow")
+    response = test_client.get("/payloads/?limit=1000&processID=some_workflow")
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_only_invalid_process_id(test_client):
-    response = test_client.get("/payloads/?limit=1000&process_id=hello")
+    response = test_client.get("/payloads/?limit=1000&processID=hello")
     assert response.json()["payloads"] == []
     assert response.status_code == 200
 

@@ -290,14 +290,14 @@ async def test_get_all_processes(test_client, all_processes):
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit_filter(test_client, single_process):
-    response = test_client.get("/processes?limit=1&process_id=mirror")
+    response = test_client.get("/processes?limit=1&processID=mirror")
     assert response.status_code == 200
     assert response.json() == single_process
 
 
 @pytest.mark.asyncio
 async def test_get_all_processes_filter(test_client, single_process):
-    response = test_client.get("/processes?process_id=mirror")
+    response = test_client.get("/processes?processID=mirror")
     assert response.status_code == 200
     assert response.json() == single_process
 

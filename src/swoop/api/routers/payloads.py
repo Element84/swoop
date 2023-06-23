@@ -19,7 +19,7 @@ def to_payload_summary(record: Record, request: Request) -> PayloadSummary:
     return PayloadSummary(
         payload_id=str(record["payload_uuid"]),
         href=str(
-            request.url_for("get_payload_status", payload_id=record["payload_uuid"])
+            request.url_for("get_payload_status", payloadID=record["payload_uuid"])
         ),
         type="payload",
     )
@@ -28,7 +28,7 @@ def to_payload_summary(record: Record, request: Request) -> PayloadSummary:
 def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
     return JobSummary(
         job_id=action_uuid,
-        href=str(request.url_for("get_job_status", job_id=action_uuid)),
+        href=str(request.url_for("get_job_status", jobID=action_uuid)),
         type="job",
     )
 
@@ -42,12 +42,12 @@ def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
 async def list_payloads(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
-    process_id: list[str] | None = Query(default=None),
+    processID: list[str] | None = Query(default=None),
 ) -> PayloadList | APIException:
     """
     retrieve the list of payloads.
     """
-    proc_clause = V("c.workflow_name") == funcs.any(process_id)
+    proc_clause = V("c.workflow_name") == funcs.any(processID)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
@@ -59,7 +59,7 @@ async def list_payloads(
                 (:processes::text[] IS NULL OR :proc_where)
             LIMIT :limit::integer
             """,
-            processes=process_id,
+            processes=processID,
             proc_where=proc_clause,
             limit=limit,
         )
@@ -77,16 +77,14 @@ async def list_payloads(
 
 
 @router.get(
-    "/{payload_id}",
+    "/{payloadID}",
     response_model=PayloadInfo,
     responses={
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
 )
-async def get_payload_status(
-    request: Request, payload_id
-) -> PayloadInfo | APIException:
+async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIException:
     """
     retrieve info for a payload
     """
@@ -114,7 +112,7 @@ async def get_payload_status(
                 c.payload_uuid = :payload_id::uuid
 
             """,
-            payload_id=payload_id,
+            payload_id=payloadID,
         )
         records = await conn.fetch(q, *p)
 
@@ -126,7 +124,7 @@ async def get_payload_status(
         actionids = {str(record) for record in records[0]["action_uuids"]}
 
         return PayloadInfo(
-            payload_id=payload_id,
+            payload_id=payloadID,
             payload_hash=str(records[0]["payload_hash"]),
             workflow_version=records[0]["workflow_version"],
             workflow_name=records[0]["workflow_name"],

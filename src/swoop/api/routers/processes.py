@@ -20,7 +20,7 @@ router: APIRouter = APIRouter(
 
 
 class Params(BaseModel):
-    process_id: str | None
+    processID: str | None
     version: str | None
     title: str | None
     description: str | None
@@ -42,8 +42,8 @@ def to_process_summary(workflowConfig: Workflow) -> ProcessSummary:
 
 
 def processes_parameter_translation(workflowConfig: dict) -> dict:
-    if workflowConfig.get("process_id"):
-        workflowConfig["name"] = workflowConfig.pop("process_id")
+    if workflowConfig.get("processID"):
+        workflowConfig["name"] = workflowConfig.pop("processID")
     if workflowConfig.get("version"):
         workflowConfig["version"] = int(workflowConfig["version"])
     return workflowConfig
@@ -82,7 +82,7 @@ async def list_processes(
 
 
 @router.get(
-    "/{process_id}",
+    "/{processID}",
     response_model=Process,
     responses={
         "404": {"model": APIException},
@@ -90,7 +90,7 @@ async def list_processes(
     },
 )
 async def get_process_description(
-    request: Request, process_id
+    request: Request, processID
 ) -> ProcessSummary | APIException:
     """
     retrieve a process description
@@ -98,7 +98,7 @@ async def get_process_description(
     workflows = request.app.state.workflows
 
     try:
-        workflow = workflows[process_id]
+        workflow = workflows[processID]
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
@@ -106,7 +106,7 @@ async def get_process_description(
 
 
 @router.post(
-    "/{process_id}/execution",
+    "/{processID}/execution",
     response_model=None,
     responses={
         "201": {"model": StatusInfo},
@@ -117,7 +117,7 @@ async def get_process_description(
     status_code=201,
 )
 async def execute_process(
-    process_id: str,
+    processID: str,
     request: Request,
     body: Execute,
 ) -> RedirectResponse | StatusInfo | APIException:
@@ -128,7 +128,7 @@ async def execute_process(
     payload = body.dict().get("inputs", {}).get("payload", {})
 
     wf_name = payload.get("process", [{}])[0].get("workflow")
-    if process_id != wf_name:
+    if processID != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
         )
@@ -136,7 +136,7 @@ async def execute_process(
     workflows = request.app.state.workflows
 
     try:
-        workflow = workflows[process_id]
+        workflow = workflows[processID]
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
@@ -171,7 +171,7 @@ async def execute_process(
 
             if action_uuid:
                 return RedirectResponse(
-                    request.url_for("get_job_status", job_id=action_uuid),
+                    request.url_for("get_job_status", jobID=action_uuid),
                     status_code=303,
                 )
 
@@ -212,4 +212,4 @@ async def execute_process(
                 object_content=json.dumps(payload),
             )
 
-    return await get_job_status(request, job_id=action_uuid)
+    return await get_job_status(request, jobID=action_uuid)

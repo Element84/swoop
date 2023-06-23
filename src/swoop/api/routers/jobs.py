@@ -21,13 +21,13 @@ router: APIRouter = APIRouter(
 
 
 class Params(BaseModel):
-    process_id: str | None
+    processID: str | None
     # collection_id: str | None  # TODO - possibly named just 'collection'
     # item_id: str | None        # TODO
     # payload_id: str | None        # TODO
-    start_datetime: datetime | None
-    end_datetime: datetime | None
-    parent_id: str | None
+    startDatetime: datetime | None
+    endDatetime: datetime | None
+    parentID: str | None
 
 
 @router.get(
@@ -65,12 +65,12 @@ AND
 LIMIT :limit::integer;
             """,
             process_id=queryparams.get(
-                "process_id"
+                "processID"
             ),  # we should account for non-existent keys
-            parent_id=queryparams.get("parent_id"),
-            job_id=queryparams.get("job_id"),
-            start_datetime=queryparams.get("start_datetime"),
-            end_datetime=queryparams.get("end_datetime"),
+            parent_id=queryparams.get("parentID"),
+            job_id=queryparams.get("jobID"),
+            start_datetime=queryparams.get("startDatetime"),
+            end_datetime=queryparams.get("endDatetime"),
             limit=limit,
         )
         records = await conn.fetch(q, *p)
@@ -86,14 +86,14 @@ LIMIT :limit::integer;
 
 
 @router.get(
-    "/{job_id}",
+    "/{jobID}",
     response_model=StatusInfo,
     responses={
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
 )
-async def get_job_status(request: Request, job_id) -> StatusInfo | APIException:
+async def get_job_status(request: Request, jobID) -> StatusInfo | APIException:
     """
     retrieve the status of a job
     """
@@ -108,7 +108,7 @@ async def get_job_status(request: Request, job_id) -> StatusInfo | APIException:
                 WHERE a.action_type = 'workflow'
                 AND a.action_uuid = :job_id::uuid;
             """,
-            job_id=job_id,
+            job_id=jobID,
         )
         record = await conn.fetchrow(q, *p)
         if not record:
