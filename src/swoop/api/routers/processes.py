@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-import uuid
 
 from buildpg import Values, render
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from swoop.api.models import Exception as APIException
@@ -107,24 +107,27 @@ async def get_process_description(
 
 @router.post(
     "/{process_id}/execution",
-    response_model=StatusInfo,
+    response_model=None,
     responses={
         "201": {"model": StatusInfo},
+        "303": {"description": "See existing job"},
         "404": {"model": APIException},
         "422": {"model": APIException},
     },
     status_code=201,
 )
 async def execute_process(
-    process_id: str, request: Request, body: Execute
-) -> StatusInfo | APIException:
+    process_id: str,
+    request: Request,
+    body: Execute,
+) -> RedirectResponse | StatusInfo | APIException:
     """
     execute a process.
     """
 
-    payload = body.dict().get("inputs").get("payload")
+    payload = body.dict().get("inputs", {}).get("payload", {})
 
-    wf_name = payload.get("process")[0].get("workflow")
+    wf_name = payload.get("process", [{}])[0].get("workflow")
     if process_id != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
@@ -137,43 +140,76 @@ async def execute_process(
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
-    # Generate a UUID
-    action_uuid = uuid.uuid4()
+    hashed_pl = workflow.hash_payload(payload=payload)
 
-    # Write to object storage
+    lock_id = int.from_bytes(hashed_pl[:3])
 
-    request.app.state.io.put_object(
-        object_name=f"executions/{action_uuid}/input.json",
-        object_content=json.dumps(payload),
-    )
-
-    async with request.app.state.readpool.acquire() as conn:
+    async with request.app.state.writepool.acquire() as conn:
         async with conn.transaction():
-            # Insert a dummy row into payload_cache table
-            # To be removed later
-            pl_uuid = "debeb36c-e09e-41c3-bdc5-596287fe724a"
-
             q, p = render(
-                "INSERT INTO swoop.payload_cache (:values__names) VALUES :values",
-                values=Values(
-                    payload_uuid=pl_uuid,
-                    workflow_name="mirror",
-                ),
+                """
+                SELECT pg_advisory_xact_lock(
+                    to_regclass('swoop.payload_cache')::oid::integer,:lock_id
+                )
+                """,
+                lock_id=lock_id,
             )
 
             await conn.execute(q, *p)
 
             q, p = render(
-                "INSERT INTO swoop.action (:values__names) VALUES :values",
+                """
+                SELECT swoop.find_cached_action_for_payload(
+                    :plhash,
+                    :wf_version::smallint
+                )
+                """,
+                plhash=hashed_pl,
+                wf_version=workflow.version,
+            )
+            action_uuid = await conn.fetchval(q, *p)
+
+            if action_uuid:
+                return RedirectResponse(
+                    request.url_for("get_job_status", job_id=action_uuid),
+                    status_code=303,
+                )
+
+            q, p = render(
+                """
+                INSERT INTO swoop.payload_cache (:values__names) VALUES :values
+                ON CONFLICT (payload_hash) DO UPDATE
+                SET invalid_after = NULL
+                RETURNING payload_uuid;
+                """,
+                values=Values(payload_hash=hashed_pl, workflow_name=workflow.name),
+            )
+            pl_uuid = await conn.fetchval(q, *p)
+
+            # Insert into action table
+
+            q, p = render(
+                """
+                INSERT INTO swoop.action (:values__names)
+                VALUES :values
+                RETURNING action_uuid
+                """,
                 values=Values(
-                    action_uuid=action_uuid,
                     action_type="workflow",
                     action_name=workflow.name,
                     handler_name=workflow.handler,
+                    workflow_version=workflow.version,
                     payload_uuid=pl_uuid,
-                    workflow_version=2,
                 ),
             )
-            await conn.execute(q, *p)
+            rec = await conn.fetchrow(q, *p)
+            action_uuid = str(rec["action_uuid"])
+
+            # Write to object storage
+
+            request.app.state.io.put_object(
+                object_name=f"executions/{action_uuid}/input.json",
+                object_content=json.dumps(payload),
+            )
 
     return await get_job_status(request, job_id=action_uuid)

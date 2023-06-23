@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Annotated, Literal, Union
 
 import yaml
-from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, Field, PrivateAttr, StrictBool, StrictInt, StrictStr
 
 from swoop.api.exceptions import WorkflowConfigError
+from swoop.cache.hashing import hash_dict
+from swoop.cache.types import JSONFilter
 
 
 class Response(Enum):
@@ -22,16 +24,28 @@ class BaseWorkflow(BaseModel, ABC):
     version: StrictInt
     cache_key_hash_includes: list[StrictStr] = []
     cache_key_hash_excludes: list[StrictStr] = []
+    _json_filter: JSONFilter = PrivateAttr()
+    handler: StrictStr
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._json_filter: JSONFilter = JSONFilter(
+            self.cache_key_hash_includes,
+            self.cache_key_hash_excludes,
+        )
+
+    def hash_payload(self, payload) -> bytes:
+        return hash_dict(self._json_filter(payload))
 
 
 class ArgoWorkflow(BaseWorkflow):
-    handler: Literal["argo-workflow"]
     argo_template: StrictStr
+    type: Literal["argo-workflow"]
 
 
 class CirrusWorkflow(BaseWorkflow):
-    handler: Literal["cirrus-workflow"]
     sfn_arn: StrictStr
+    type: Literal["cirrus-workflow"]
 
 
 Workflow = Annotated[
@@ -39,7 +53,7 @@ Workflow = Annotated[
         ArgoWorkflow,
         CirrusWorkflow,
     ],
-    Field(discriminator="handler"),
+    Field(discriminator="type"),
 ]
 
 

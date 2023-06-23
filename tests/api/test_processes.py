@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import pytest
@@ -19,8 +20,8 @@ def single_process():
                 "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "handler": "argo-handler",
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             }
@@ -53,8 +54,8 @@ def all_processes():
                 "processID": "mirror",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "argo-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "handler": "argo-handler",
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             },
@@ -70,8 +71,8 @@ def all_processes():
                 "processID": "cirrus-example",
                 "jobControlOptions": ["async-execute"],
                 "outputTransmission": None,
-                "handler": "cirrus-workflow",
-                "cacheKeyHashIncludes": ["features[*].properties.version"],
+                "handler": "cirrus-handler",
+                "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
                 "cacheKeyHashExcludes": [],
                 "links": None,
             },
@@ -118,8 +119,8 @@ def mirror_workflow_process():
         "processID": "mirror",
         "jobControlOptions": ["async-execute"],
         "outputTransmission": None,
-        "handler": "argo-workflow",
-        "cacheKeyHashIncludes": ["features[*].properties.version"],
+        "handler": "argo-handler",
+        "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
         "cacheKeyHashExcludes": [],
         "links": None,
         "inputs": None,
@@ -133,7 +134,79 @@ def process_payload_valid():
         "inputs": {
             "payload": {
                 "type": "FeatureCollection",
-                "features": [{"id": "string", "collection": "string"}],
+                "features": [
+                    {
+                        "id": "string",
+                        "collection": "string",
+                        "properties": {"version": 2},
+                    }
+                ],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
+def process_payload_cache():
+    return {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "id1",
+                        "collection": "coll1",
+                        "properties": {"version": 2},
+                    }
+                ],
+                "process": [
+                    {
+                        "description": "string",
+                        "tasks": {},
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+
+
+@pytest.fixture
+def process_payload_cache_key_change():
+    return {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "id2",
+                        "collection": "coll2",
+                        "properties": {"version": 2},
+                    }
+                ],
                 "process": [
                     {
                         "description": "string",
@@ -289,3 +362,21 @@ async def test_post_process_id_not_found_in_config(
         data=json.dumps(process_payload_valid_wf_name_not_in_config),
     )
     assert response.status_code == 404
+
+
+async def post_payload_cache(test_client, process_payload_cache):
+    response = test_client.post(
+        "/processes/mirror/execution",
+        data=json.dumps(process_payload_cache),
+        allow_redirects=False,
+    )
+    return response
+
+
+@pytest.mark.asyncio
+async def test_post_payload_cache_main(test_client, process_payload_cache):
+    async with asyncio.TaskGroup() as tg:
+        task1 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
+        task2 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
+    assert task1.result().status_code == 201
+    assert task2.result().status_code == 303
