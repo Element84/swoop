@@ -248,6 +248,13 @@ async def test_get_all_processes_handler(test_client, single_process):
 
 
 @pytest.mark.asyncio
+async def test_get_all_processes_handler_multiple(test_client, all_processes):
+    response = test_client.get("/processes?handler=argo-handler&handler=cirrus-handler")
+    assert response.status_code == 200
+    assert response.json() == all_processes
+
+
+@pytest.mark.asyncio
 async def test_get_all_processes_limit(test_client, single_process):
     response = test_client.get("/processes?limit=1")
     assert response.status_code == 200
@@ -259,6 +266,13 @@ async def test_get_all_processes_type(test_client, single_process):
     response = test_client.get("/processes?type=argo-workflow")
     assert response.status_code == 200
     assert response.json() == single_process
+
+
+@pytest.mark.asyncio
+async def test_get_all_processes_type_multiple(test_client, all_processes):
+    response = test_client.get("/processes?type=argo-workflow&type=cirrus-workflow")
+    assert response.status_code == 200
+    assert response.json() == all_processes
 
 
 @pytest.mark.asyncio

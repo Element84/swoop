@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated
 
 from buildpg import Values, render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 
 from swoop.api.models.jobs import StatusInfo
 from swoop.api.models.shared import APIException, Link
@@ -19,17 +19,6 @@ router: APIRouter = APIRouter(
 )
 
 
-class Params(BaseModel):
-    handler: str | None
-    type: str | None
-
-
-def processes_parameter_translation(workflowConfig: dict) -> dict:
-    if workflowConfig.get("version"):
-        workflowConfig["version"] = int(workflowConfig["version"])
-    return workflowConfig
-
-
 @router.get(
     "/",
     response_model=ProcessList,
@@ -39,16 +28,25 @@ def processes_parameter_translation(workflowConfig: dict) -> dict:
 async def list_processes(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
-    params: Params = Depends(),
+    handlers: Annotated[list[str] | None, Query(alias="handler")] = None,
+    types: Annotated[list[str] | None, Query(alias="type")] = None,
 ) -> ProcessList | APIException:
     """
     retrieve the list of available processes
     """
-    queryparams = processes_parameter_translation(params.dict(exclude_none=True))
     workflows: list[Workflow] = list(request.app.state.workflows.values())
 
-    if queryparams:
-        workflows = [wf for wf in workflows if queryparams.items() <= wf.dict().items()]
+    if handlers:
+        _workflows: list[Workflow] = []
+        for handler in handlers:
+            _workflows += [wf for wf in workflows if wf.handler == handler]
+        workflows = _workflows
+
+    if types:
+        _workflows: list[Workflow] = []
+        for _type in types:
+            _workflows += [wf for wf in workflows if wf.type == _type]
+        workflows = _workflows
 
     if limit and limit < len(workflows):
         workflows = workflows[:limit]
