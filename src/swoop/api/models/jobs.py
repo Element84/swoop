@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 
 from asyncpg import Record
-from pydantic import BaseModel, conint
+from pydantic import BaseModel
 
 from swoop.api.models.shared import Link
 
@@ -46,7 +46,6 @@ class StatusInfo(BaseModel):
     started: datetime | None = None
     finished: datetime | None = None
     updated: datetime | None = None
-    progress: conint(ge=0, le=100) | None = None
     links: list[Link] | None = None
 
     @classmethod
