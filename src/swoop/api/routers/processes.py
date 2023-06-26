@@ -22,7 +22,7 @@ router: APIRouter = APIRouter(
 @router.get(
     "/",
     response_model=ProcessList,
-    responses={"404": {"model": APIException}},
+    responses={},
     response_model_exclude_unset=True,
 )
 async def list_processes(
