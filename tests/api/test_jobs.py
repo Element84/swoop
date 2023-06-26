@@ -29,6 +29,7 @@ def single_job():
                 "type": "process",
                 "jobID": "2595f2da-81a6-423c-84db-935e6791046e",
                 "status": "successful",
+                "created": "2023-04-28T15:49:00+00:00",
                 "updated": "2023-04-28T15:49:03+00:00",
             }
         ],
@@ -61,6 +62,7 @@ def all_jobs():
                 "type": "process",
                 "jobID": "81842304-0aa9-4609-89f0-1c86819b0752",
                 "status": "accepted",
+                "created": "2023-04-28T15:49:00+00:00",
                 "updated": "2023-04-28T15:49:00+00:00",
             },
             {
@@ -68,6 +70,7 @@ def all_jobs():
                 "type": "process",
                 "jobID": "2595f2da-81a6-423c-84db-935e6791046e",
                 "status": "successful",
+                "created": "2023-04-28T15:49:00+00:00",
                 "updated": "2023-04-28T15:49:03+00:00",
             },
         ],
