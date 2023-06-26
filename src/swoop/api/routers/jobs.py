@@ -121,14 +121,6 @@ async def get_job_status(request: Request, jobID) -> StatusInfo | APIException:
         return StatusInfo.from_action_record(record)
 
 
-@router.delete(
-    "/{job_id}",
-    response_model=StatusInfo,
-    responses={
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-)
 def cancel_job(
     job_id: str = Path(..., alias="jobId"),
 ) -> StatusInfo | APIException:
