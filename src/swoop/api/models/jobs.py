@@ -55,6 +55,7 @@ class StatusInfo(BaseModel):
             type=Type("process"),
             jobID=str(record["action_uuid"]),
             status=StatusCode(status_dict[record["status"]]),
+            created=record["created_at"],
             updated=record["last_update"],
         )
 
