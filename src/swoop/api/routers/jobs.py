@@ -151,7 +151,7 @@ async def get_job_result(
 
 
 @router.get(
-    "/{job_id}/payload",
+    "/{job_id}/inputs",
     response_model=dict,
     responses={
         "404": {"model": APIException},

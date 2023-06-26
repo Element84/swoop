@@ -162,7 +162,7 @@ async def test_get_job_results_404(test_client):
 
 @pytest.mark.asyncio
 async def test_get_job_payload(test_client):
-    response = test_client.get("/jobs/2595f2da-81a6-423c-84db-935e6791046e/payload")
+    response = test_client.get("/jobs/2595f2da-81a6-423c-84db-935e6791046e/inputs")
     assert response.status_code == 200
     assert response.json() == {
         "process_id": "2595f2da-81a6-423c-84db-935e6791046e",
