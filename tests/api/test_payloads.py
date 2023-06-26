@@ -11,7 +11,7 @@ def all_payloads():
         "payloads": [
             {
                 "payload_id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
-                "href": "http://testserver/payloads/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+                "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
                 "type": "payload",
             }
         ],
@@ -33,27 +33,29 @@ def no_payload_id_exception():
 
 @pytest.mark.asyncio
 async def test_get_payloads_no_filter(test_client, all_payloads):
-    response = test_client.get("/payloads")
+    response = test_client.get("/payloadCacheEntries")
     assert response.json() == all_payloads
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_only(test_client, all_payloads):
-    response = test_client.get("/payloads/?limit=1000")
+    response = test_client.get("/payloadCacheEntries/?limit=1000")
     assert response.json() == all_payloads
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_process(test_client):
-    response = test_client.get("/payloads/?limit=1000&processID=some_workflow")
+    response = test_client.get(
+        "/payloadCacheEntries/?limit=1000&processID=some_workflow"
+    )
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_only_invalid_process_id(test_client):
-    response = test_client.get("/payloads/?limit=1000&processID=hello")
+    response = test_client.get("/payloadCacheEntries/?limit=1000&processID=hello")
     assert response.json()["payloads"] == []
     assert response.status_code == 200
 
@@ -63,12 +65,16 @@ async def test_get_payloads_filter_only_invalid_process_id(test_client):
 
 @pytest.mark.asyncio
 async def test_get_payloadid_match(test_client):
-    response = test_client.get("/payloads/ade69fe7-1d7d-472e-9f36-7242cc2aca77")
+    response = test_client.get(
+        "/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77"
+    )
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloadid_no_match(test_client, no_payload_id_exception):
-    response = test_client.get("/payloads/d5d64165-82df-4836-b78e-af4daee55d38")
+    response = test_client.get(
+        "/payloadCacheEntries/d5d64165-82df-4836-b78e-af4daee55d38"
+    )
     assert response.json() == no_payload_id_exception
     assert response.status_code == 404
