@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from asyncpg import Record
 from buildpg import V, funcs, render
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -89,7 +91,9 @@ async def list_payloads(
     },
     response_model_exclude_unset=True,
 )
-async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIException:
+async def get_payload_status(
+    request: Request, payloadID: UUID
+) -> PayloadInfo | APIException:
     """
     retrieve info for a payload
     """
@@ -127,7 +131,7 @@ async def get_payload_status(request: Request, payloadID) -> PayloadInfo | APIEx
         actionids = {str(record) for record in records[0]["action_uuids"]}
 
         return PayloadInfo(
-            payload_id=payloadID,
+            payload_id=str(payloadID),
             payload_hash=records[0]["payload_hash"],
             workflow_name=records[0]["workflow_name"],
             created_at=records[0]["created_at"],

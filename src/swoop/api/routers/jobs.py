@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from uuid import UUID
 
 from buildpg import render
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
@@ -94,7 +95,7 @@ async def list_jobs(
     },
     response_model_exclude_unset=True,
 )
-async def get_job_status(request: Request, jobID) -> StatusInfo | APIException:
+async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIException:
     """
     retrieve the status of a job
     """
