@@ -48,7 +48,6 @@ class StatusInfo(BaseModel):
     updated: datetime | None = None
     progress: conint(ge=0, le=100) | None = None
     links: list[Link] | None = None
-    parentID: str | None = None
 
     @classmethod
     def from_action_record(cls, record: Record) -> StatusInfo:
@@ -58,7 +57,6 @@ class StatusInfo(BaseModel):
             jobID=str(record["action_uuid"]),
             status=StatusCode(status_dict[record["status"]]),
             updated=record["last_update"],
-            parentID=str(record["parent_uuid"]),
         )
 
 

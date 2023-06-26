@@ -24,7 +24,6 @@ class Params(BaseModel):
     processID: str | None
     startDatetime: datetime | None
     endDatetime: datetime | None
-    parentID: str | None
 
 
 @router.get(
@@ -52,7 +51,6 @@ async def list_jobs(
             ON t.action_uuid = a.action_uuid
             WHERE a.action_type = 'workflow'
             AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
-            AND (:parent_id::uuid IS NULL OR a.parent_uuid = :parent_id::uuid)
             AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
             AND (
               (
@@ -70,7 +68,6 @@ async def list_jobs(
             process_id=queryparams.get(
                 "processID"
             ),  # we should account for non-existent keys
-            parent_id=queryparams.get("parentID"),
             job_id=queryparams.get("jobID"),
             start_datetime=queryparams.get("startDatetime"),
             end_datetime=queryparams.get("endDatetime"),
