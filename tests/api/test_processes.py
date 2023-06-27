@@ -157,7 +157,7 @@ process_payload_valid = {
                     "tasks": {},
                     "upload_options": {
                         "path_template": "string",
-                        "collections": {},
+                        "collections": {"my-collection": ".*"},
                         "public_assets": [],
                         "headers": {},
                         "s3_urls": True,
@@ -188,7 +188,7 @@ process_payload_cache = {
                     "tasks": {},
                     "upload_options": {
                         "path_template": "string",
-                        "collections": {},
+                        "collections": {"my-collection": ".*"},
                         "public_assets": [],
                         "headers": {},
                         "s3_urls": True,
@@ -269,7 +269,7 @@ process_payload_valid_wf_name_not_in_config = {
                     "tasks": {},
                     "upload_options": {
                         "path_template": "string",
-                        "collections": {},
+                        "collections": {"my-collection": ".*"},
                         "public_assets": [],
                         "headers": {},
                         "s3_urls": True,
@@ -441,7 +441,7 @@ async def test_post_execution_no_features(test_client: TestClient) -> None:
                         "description": "string",
                         "upload_options": {
                             "path_template": "string",
-                            "collections": {},
+                            "collections": {"my-collection": ".*"},
                             "public_assets": [],
                             "headers": {},
                             "s3_urls": True,
@@ -461,3 +461,30 @@ async def test_post_execution_no_features(test_client: TestClient) -> None:
     assert _payload.pop("features") == []
     assert _payload["process"][0].pop("tasks") == {}
     assert _payload == payload["inputs"]["payload"]
+
+
+@pytest.mark.asyncio
+async def test_post_execution_no_collections(test_client: TestClient) -> None:
+    payload = {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "process": [
+                    {
+                        "description": "string",
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+    result = await post_payload_cache(test_client, json.dumps(payload))
+    assert result.status_code == 422

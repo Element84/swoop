@@ -7,7 +7,16 @@ from typing import Annotated, Literal, Union
 
 import yaml
 from fastapi import Request
-from pydantic import BaseModel, Extra, Field, PrivateAttr, StrictInt, StrictStr, conlist
+from pydantic import (
+    BaseModel,
+    Extra,
+    Field,
+    PrivateAttr,
+    StrictInt,
+    StrictStr,
+    conlist,
+    validator,
+)
 
 from swoop.api.exceptions import WorkflowConfigError
 from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
@@ -101,6 +110,12 @@ class Feature(BaseModel, extra=Extra.allow):
 class UploadOptions(BaseModel, extra=Extra.allow):
     path_template: StrictStr
     collections: dict
+
+    @validator("collections")
+    def collections_must_contain_at_least_one_item(cls, v):
+        if not v:
+            raise ValueError("Collections must contain at least one item in the map")
+        return v
 
 
 class ProcessDefinition(BaseModel, extra=Extra.allow):
