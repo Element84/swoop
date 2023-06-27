@@ -9,7 +9,13 @@ from buildpg import V, funcs, render
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from swoop.api.models.jobs import JobList, StatusCode, StatusInfo, status_dict
+from swoop.api.models.jobs import (
+    JobList,
+    StatusCode,
+    StatusInfo,
+    SwoopStatusCode,
+    status_dict,
+)
 from swoop.api.models.shared import APIException, Link, Results
 
 logger = logging.getLogger(__name__)
@@ -39,6 +45,7 @@ async def list_jobs(
     processID: Annotated[list[str] | None, Query()] = None,
     jobID: Annotated[list[UUID] | None, Query()] = None,
     status: Annotated[list[StatusCode], Query()] = None,
+    swoopStatus: Annotated[list[SwoopStatusCode], Query()] = None,
     params: Params = Depends(),
 ) -> JobList | APIException:
     """
@@ -53,9 +60,15 @@ async def list_jobs(
     else:
         statuses = None
 
+    if swoopStatus is not None:
+        swoop_status = [s.value for s in swoopStatus]
+    else:
+        swoop_status = None
+
     proc_clause = V("a.action_name") == funcs.any(processID)
     job_clause = V("a.action_uuid") == funcs.any(jobID)
     status_clause = V("t.status") == funcs.any(statuses)
+    swoop_status_clause = V("t.status") == funcs.any(swoop_status)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
@@ -69,6 +82,7 @@ async def list_jobs(
             AND (:processes::text[] IS NULL OR :proc_where)
             AND (:jobs::uuid[] IS NULL OR :job_where)
             AND (:status::text[] IS NULL OR :status_where)
+            AND (:swoop_status::text[] IS NULL OR :swoop_status_where)
             AND (
               (
                 a.created_at >= :start_datetime::TIMESTAMPTZ
@@ -88,6 +102,8 @@ async def list_jobs(
             job_where=job_clause,
             status=statuses,
             status_where=status_clause,
+            swoop_status=swoop_status,
+            swoop_status_where=swoop_status_clause,
             start_datetime=queryparams.get("startDatetime"),
             end_datetime=queryparams.get("endDatetime"),
             limit=limit,

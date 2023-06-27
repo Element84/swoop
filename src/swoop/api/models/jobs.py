@@ -26,6 +26,20 @@ status_dict = {
 }
 
 
+class SwoopStatusCode(str, Enum):
+    pending = "PENDING"
+    queued = "QUEUED"
+    running = "RUNNING"
+    successful = "SUCCESSFUL"
+    failed = "FAILED"
+    canceled = "CANCELED"
+    timed_out = "TIMED_OUT"
+    unknown = "UNKNOWN"
+    backoff = "BACKOFF"
+    invalid = "INVALID"
+    retries_exhausted = "RETRIES_EXHAUSTED"
+
+
 class StatusCode(str, Enum):
     accepted = "accepted"
     running = "running"
