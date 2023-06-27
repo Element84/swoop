@@ -23,8 +23,6 @@ router: APIRouter = APIRouter(
 
 
 class Params(BaseModel):
-    processID: Annotated[list[str] | None, Query()] = None
-    jobID: Annotated[list[UUID] | None, Query()] = None
     startDatetime: datetime | None
     endDatetime: datetime | None
 
@@ -38,6 +36,8 @@ class Params(BaseModel):
 async def list_jobs(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
+    processID: Annotated[list[str] | None, Query()] = None,
+    jobID: Annotated[list[UUID] | None, Query()] = None,
     params: Params = Depends(),
 ) -> JobList | APIException:
     """
@@ -45,10 +45,7 @@ async def list_jobs(
     """
     queryparams = params.dict(exclude_none=True)
 
-    processID = queryparams.get("processID")
     proc_clause = V("a.action_name") == funcs.any(processID)
-
-    jobID = queryparams.get("jobID")
     job_clause = V("a.action_uuid") == funcs.any(jobID)
 
     async with request.app.state.readpool.acquire() as conn:
