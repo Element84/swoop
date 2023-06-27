@@ -125,7 +125,7 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
 
 
 @router.get(
-    "/{job_id}/results",
+    "/{jobID}/results",
     response_model=Results,
     responses={
         "404": {"model": APIException},
@@ -134,12 +134,12 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
 )
 async def get_job_result(
     request: Request,
-    job_id,
+    jobID,
 ) -> Results | APIException:
     """
     retrieve the result(s) of a job
     """
-    results = request.app.state.io.get_object("/execution/%s/output.json" % job_id)
+    results = request.app.state.io.get_object(f"/execution/{jobID}/output.json")
 
     if not results:
         raise HTTPException(status_code=404, detail="Job output not found")
@@ -148,18 +148,18 @@ async def get_job_result(
 
 
 @router.get(
-    "/{job_id}/inputs",
+    "/{jobID}/inputs",
     response_model=dict,
     responses={
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
 )
-async def get_job_payload(request: Request, job_id) -> dict | APIException:
+async def get_job_inputs(request: Request, jobID) -> dict | APIException:
     """
     retrieve the input payload of a job
     """
-    payload = request.app.state.io.get_object("/execution/%s/input.json" % job_id)
+    payload = request.app.state.io.get_object(f"/execution/{jobID}/input.json")
 
     if not payload:
         raise HTTPException(status_code=404, detail="Job input payload not found")
