@@ -15,6 +15,7 @@ from pydantic import (
     StrictInt,
     StrictStr,
     conlist,
+    Extra
 )
 
 from swoop.api.exceptions import WorkflowConfigError
@@ -101,20 +102,17 @@ class Workflows(dict[str, Workflow]):
             raise WorkflowConfigError("Could not load workflow configuration") from e
 
 
-class Feature(BaseModel):
+class Feature(BaseModel, extra=Extra.allow):
     id: StrictStr
     collection: StrictStr | None = None
 
 
-class UploadOptions(BaseModel):
+class UploadOptions(BaseModel, extra=Extra.allow):
     path_template: StrictStr
     collections: dict
-    public_assets: list[StrictStr] = []
-    headers: dict
-    s3_urls: StrictBool
 
 
-class ProcessDefinition(BaseModel):
+class ProcessDefinition(BaseModel, extra=Extra.allow):
     description: StrictStr | None = None
     tasks: dict = {}
     upload_options: UploadOptions
