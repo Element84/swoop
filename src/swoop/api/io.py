@@ -4,8 +4,7 @@ import logging
 from minio import Minio
 from minio.error import S3Error
 
-logger = logging.getLogger("uvicorn")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class IOClient:
@@ -28,7 +27,7 @@ class IOClient:
         try:
             response = self.client.get_object(self.bucket_name, object_name)
         except S3Error as err:
-            logger.debug(err)
+            logger.error(err)
         else:
             object_response = response.json()
             logger.debug(f"retrieved object content: {object_response}")
