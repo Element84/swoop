@@ -26,7 +26,6 @@ def get_landing_page(request: Request) -> LandingPage | APIException:
                 href=str(request.url_for("get_conformance_classes")),
                 rel="http://www.opengis.net/def/rel/ogc/1.0/conformance",
                 type="application/json",
-                hreflang=None,
             ),
         ],
     )

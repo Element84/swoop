@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated, Literal, Union
 
 import yaml
+from fastapi import Request
 from pydantic import BaseModel, Field, PrivateAttr, StrictBool, StrictInt, StrictStr
 
 from swoop.api.exceptions import WorkflowConfigError
@@ -29,6 +30,7 @@ class BaseWorkflow(BaseModel, ABC):
     _json_filter: JSONFilter = PrivateAttr()
     handler: StrictStr
     type: StrictStr
+    links: list[Link] = []
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -42,15 +44,17 @@ class BaseWorkflow(BaseModel, ABC):
     def hash_payload(self, payload) -> bytes:
         return hash_dict(self._json_filter(payload))
 
-    def to_process_summary(self) -> ProcessSummary:
+    def to_process_summary(self, request: Request | None = None) -> ProcessSummary:
         return ProcessSummary(
             jobControlOptions=[JobControlOptions("async-execute")],
+            request=request,
             **self.dict(),
         )
 
-    def to_process(self) -> Process:
+    def to_process(self, request: Request | None = None) -> Process:
         return Process(
             jobControlOptions=[JobControlOptions("async-execute")],
+            request=request,
             **self.dict(),
         )
 
@@ -84,7 +88,7 @@ class Workflows(dict[str, Workflow]):
             workflows = yaml.safe_load(path.read_text())["workflows"]
             for name, workflow in workflows.items():
                 workflow["id"] = name
-            return cls(cls._type.parse_obj(workflows).__root__)
+            return cls(**cls._type.parse_obj(workflows).__root__)
         except Exception as e:
             raise WorkflowConfigError("Could not load workflow configuration") from e
 
@@ -149,7 +153,20 @@ class ProcessSummary(DescriptionType):
     ]
     outputTransmission: list[TransmissionMode] | None = None
     description: str | None = None
-    links: list[Link] | None = None
+    links: list[Link] = []
+
+    def __init__(self, request: Request | None = None, **kwargs):
+        super().__init__(**kwargs)
+
+        if request:
+            self.links += [
+                Link.root_link(request),
+                Link.self_link(
+                    href=str(
+                        request.url_for("get_process_description", processID=self.id)
+                    ),
+                ),
+            ]
 
 
 class MaxOccur(Enum):

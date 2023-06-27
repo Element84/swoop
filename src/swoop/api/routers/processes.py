@@ -52,11 +52,12 @@ async def list_processes(
         workflows = workflows[:limit]
 
     return ProcessList(
-        processes=[workflow.to_process_summary() for workflow in workflows],
+        processes=[
+            workflow.to_process_summary(request=request) for workflow in workflows
+        ],
         links=[
-            Link(
-                href="http://www.example.com",
-            )
+            Link.root_link(request),
+            Link.self_link(href=str(request.url)),
         ],
     )
 
@@ -83,7 +84,7 @@ async def get_process_description(
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
-    return workflow.to_process()
+    return workflow.to_process(request=request)
 
 
 @router.post(

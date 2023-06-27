@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
+from fastapi import Request
 from pydantic import AnyUrl, BaseModel, Extra, Field, PositiveFloat, conint
 
 
@@ -18,11 +19,42 @@ class APIException(BaseModel):
 
 
 class Link(BaseModel):
-    href: str
-    rel: str | None = Field(None, example="service")
-    type: str | None = Field(None, example="application/json")
-    hreflang: str | None = Field(None, example="en")
+    href: AnyUrl
+    rel: str = Field(example="service")
+    type: str = Field(example="application/json")
+    hreflang: str | None = None
     title: str | None = None
+
+    # redefining init is a hack to get str type to validate for `href`,
+    # as str is ultimately coerced into an AnyUrl automatically anyway
+    def __init__(self, href: AnyUrl | str, **kwargs):
+        super().__init__(href=href, **kwargs)
+
+    def dict(self, *args, **kwargs):
+        # we force exclude_unset here to ensure undefined fields are not
+        # included in the response, specifically for links specified in
+        # the workflow config, where using `parse_obj()` doesn't allow us
+        # to specify this option in any other way
+        kwargs["exclude_unset"] = True
+        return super().dict(*args, **kwargs)
+
+    @classmethod
+    def root_link(cls, request: Request) -> Link:
+        return cls(
+            href=str(request.url_for("get_landing_page")),
+            rel="root",
+            type="application/json",
+        )
+
+    @classmethod
+    def self_link(cls, *, href: AnyUrl | str, **kwargs) -> Link:
+        attrs = dict(
+            href=href,
+            rel="self",
+            type="application/json",
+        )
+        attrs.update(**kwargs)
+        return cls(**attrs)
 
 
 class Subscriber(BaseModel):

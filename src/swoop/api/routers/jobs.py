@@ -77,11 +77,10 @@ async def list_jobs(
         records = await conn.fetch(q, *p)
 
     return JobList(
-        jobs=[StatusInfo.from_action_record(group) for group in records],
+        jobs=[StatusInfo.from_action_record(group, request) for group in records],
         links=[
-            Link(
-                href="http://www.example.com",
-            )
+            Link.root_link(request),
+            Link.self_link(href=str(request.url)),
         ],
     )
 
@@ -116,7 +115,7 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
         if not record:
             raise HTTPException(status_code=404, detail="Job not found")
 
-        return StatusInfo.from_action_record(record)
+        return StatusInfo.from_action_record(record, request)
 
 
 def cancel_job(

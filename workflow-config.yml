@@ -10,6 +10,7 @@ workflows:
       - .features[].collection
     cacheKeyHashExcludes: []
   cirrus-example:
+    title: "Cirrus example workflow"
     description: "An example workflow config for a cirrus workflow"
     version: 1
     handler: cirrus-handler
@@ -19,3 +20,12 @@ workflows:
       - .features[].id
       - .features[].collection
     cacheKeyHashExcludes: []
+    links:
+      - href: https://example.com/repo
+        rel: external
+        type: text/html
+        title: "source repository"
+      - href: https://example.com/docs
+        rel: external
+        type: text/html
+        title: "process documentation"

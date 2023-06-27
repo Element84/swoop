@@ -2,10 +2,11 @@ import asyncio
 import json
 
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
 
 
-@pytest.fixture
-def single_process():
+def single_process(request_endpoint: str):
     return {
         "processes": [
             {
@@ -15,18 +16,36 @@ def single_process():
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
                 "type": "argo-workflow",
-            }
+                "links": [
+                    {
+                        "href": "http://testserver/",
+                        "rel": "root",
+                        "type": "application/json",
+                    },
+                    {
+                        "href": "http://testserver/processes/mirror",
+                        "rel": "self",
+                        "type": "application/json",
+                    },
+                ],
+            },
         ],
         "links": [
             {
-                "href": "http://www.example.com",
-            }
+                "href": "http://testserver/",
+                "rel": "root",
+                "type": "application/json",
+            },
+            {
+                "href": f"http://testserver{request_endpoint}",
+                "rel": "self",
+                "type": "application/json",
+            },
         ],
     }
 
 
-@pytest.fixture
-def all_processes():
+def all_processes(request_endpoint: str):
     return {
         "processes": [
             {
@@ -36,289 +55,329 @@ def all_processes():
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
                 "type": "argo-workflow",
+                "links": [
+                    {
+                        "href": "http://testserver/",
+                        "rel": "root",
+                        "type": "application/json",
+                    },
+                    {
+                        "href": "http://testserver/processes/mirror",
+                        "rel": "self",
+                        "type": "application/json",
+                    },
+                ],
             },
             {
-                "title": "cirrus-example",
+                "title": "Cirrus example workflow",
                 "description": "An example workflow config for a cirrus workflow",
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
                 "type": "cirrus-workflow",
+                "links": [
+                    {
+                        "href": "https://example.com/repo",
+                        "rel": "external",
+                        "type": "text/html",
+                        "title": "source repository",
+                    },
+                    {
+                        "href": "https://example.com/docs",
+                        "rel": "external",
+                        "type": "text/html",
+                        "title": "process documentation",
+                    },
+                    {
+                        "href": "http://testserver/",
+                        "rel": "root",
+                        "type": "application/json",
+                    },
+                    {
+                        "href": "http://testserver/processes/cirrus-example",
+                        "rel": "self",
+                        "type": "application/json",
+                    },
+                ],
             },
         ],
         "links": [
             {
-                "href": "http://www.example.com",
-            }
-        ],
-    }
-
-
-@pytest.fixture
-def no_processes():
-    return {
-        "processes": [],
-        "links": [
+                "href": "http://testserver/",
+                "rel": "root",
+                "type": "application/json",
+            },
             {
-                "href": "http://www.example.com",
-            }
+                "href": f"http://testserver{request_endpoint}",
+                "rel": "self",
+                "type": "application/json",
+            },
         ],
     }
 
 
-@pytest.fixture
-def mirror_workflow_process():
-    return {
-        "title": "mirror",
-        "description": "A workflow to copy STAC items into a local mirror",
-        "id": "mirror",
-        "version": "2",
-        "jobControlOptions": ["async-execute"],
-        "type": "argo-workflow",
-        "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
-        "cacheKeyHashExcludes": [],
-    }
-
-
-@pytest.fixture
-def process_payload_valid():
-    return {
-        "inputs": {
-            "payload": {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "id": "string",
-                        "collection": "string",
-                        "properties": {"version": 2},
-                    }
-                ],
-                "process": [
-                    {
-                        "description": "string",
-                        "tasks": {},
-                        "upload_options": {
-                            "path_template": "string",
-                            "collections": {},
-                            "public_assets": [],
-                            "headers": {},
-                            "s3_urls": True,
-                        },
-                        "workflow": "mirror",
-                    }
-                ],
-            }
+mirror_workflow_process = {
+    "title": "mirror",
+    "description": "A workflow to copy STAC items into a local mirror",
+    "id": "mirror",
+    "version": "2",
+    "jobControlOptions": ["async-execute"],
+    "type": "argo-workflow",
+    "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
+    "cacheKeyHashExcludes": [],
+    "links": [
+        {
+            "href": "http://testserver/",
+            "rel": "root",
+            "type": "application/json",
         },
-        "response": "document",
-    }
-
-
-@pytest.fixture
-def process_payload_cache():
-    return {
-        "inputs": {
-            "payload": {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "id": "id1",
-                        "collection": "coll1",
-                        "properties": {"version": 2},
-                    }
-                ],
-                "process": [
-                    {
-                        "description": "string",
-                        "tasks": {},
-                        "upload_options": {
-                            "path_template": "string",
-                            "collections": {},
-                            "public_assets": [],
-                            "headers": {},
-                            "s3_urls": True,
-                        },
-                        "workflow": "mirror",
-                    }
-                ],
-            }
+        {
+            "href": "http://testserver/processes/mirror",
+            "rel": "self",
+            "type": "application/json",
         },
-        "response": "document",
-    }
+    ],
+}
 
 
-@pytest.fixture
-def process_payload_cache_key_change():
-    return {
-        "inputs": {
-            "payload": {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "id": "id2",
-                        "collection": "coll2",
-                        "properties": {"version": 2},
-                    }
-                ],
-                "process": [
-                    {
-                        "description": "string",
-                        "tasks": {},
-                        "upload_options": {
-                            "path_template": "string",
-                            "collections": {},
-                            "public_assets": [],
-                            "headers": {},
-                            "s3_urls": True,
-                        },
-                        "workflow": "mirror",
-                    }
-                ],
-            }
-        },
-        "response": "document",
-    }
+process_payload_valid = {
+    "inputs": {
+        "payload": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "string",
+                    "collection": "string",
+                    "properties": {"version": 2},
+                }
+            ],
+            "process": [
+                {
+                    "description": "string",
+                    "tasks": {},
+                    "upload_options": {
+                        "path_template": "string",
+                        "collections": {},
+                        "public_assets": [],
+                        "headers": {},
+                        "s3_urls": True,
+                    },
+                    "workflow": "mirror",
+                }
+            ],
+        }
+    },
+    "response": "document",
+}
 
 
-@pytest.fixture
-def process_payload_invalid():
-    return {
-        "inputs": {
-            "payload": {
-                "type": "FeatureCollection",
-                "features": [{"id": "string", "collection": 250}],
-                "process": [
-                    {
-                        "description": "string",
-                        "tasks": {},
-                        "upload_options": {
-                            "path_template": "string",
-                            "collections": {},
-                            "public_assets": [],
-                            "headers": {},
-                            "s3_urls": True,
-                        },
-                        "workflow": "mirror",
-                    }
-                ],
-            }
-        },
-        "response": "document",
-    }
+process_payload_cache = {
+    "inputs": {
+        "payload": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "id1",
+                    "collection": "coll1",
+                    "properties": {"version": 2},
+                }
+            ],
+            "process": [
+                {
+                    "description": "string",
+                    "tasks": {},
+                    "upload_options": {
+                        "path_template": "string",
+                        "collections": {},
+                        "public_assets": [],
+                        "headers": {},
+                        "s3_urls": True,
+                    },
+                    "workflow": "mirror",
+                }
+            ],
+        }
+    },
+    "response": "document",
+}
 
 
-@pytest.fixture
-def process_payload_valid_wf_name_not_in_config():
-    return {
-        "inputs": {
-            "payload": {
-                "type": "FeatureCollection",
-                "features": [{"id": "string", "collection": "string"}],
-                "process": [
-                    {
-                        "description": "string",
-                        "tasks": {},
-                        "upload_options": {
-                            "path_template": "string",
-                            "collections": {},
-                            "public_assets": [],
-                            "headers": {},
-                            "s3_urls": True,
-                        },
-                        "workflow": "hello",
-                    }
-                ],
-            }
-        },
-        "response": "document",
-    }
+process_payload_cache_key_change = {
+    "inputs": {
+        "payload": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "id2",
+                    "collection": "coll2",
+                    "properties": {"version": 2},
+                }
+            ],
+            "process": [
+                {
+                    "description": "string",
+                    "tasks": {},
+                    "upload_options": {
+                        "path_template": "string",
+                        "collections": {},
+                        "public_assets": [],
+                        "headers": {},
+                        "s3_urls": True,
+                    },
+                    "workflow": "mirror",
+                }
+            ],
+        }
+    },
+    "response": "document",
+}
+
+
+process_payload_invalid = {
+    "inputs": {
+        "payload": {
+            "type": "FeatureCollection",
+            "features": [{"id": "string", "collection": 250}],
+            "process": [
+                {
+                    "description": "string",
+                    "tasks": {},
+                    "upload_options": {
+                        "path_template": "string",
+                        "collections": {},
+                        "public_assets": [],
+                        "headers": {},
+                        "s3_urls": True,
+                    },
+                    "workflow": "mirror",
+                }
+            ],
+        }
+    },
+    "response": "document",
+}
+
+
+process_payload_valid_wf_name_not_in_config = {
+    "inputs": {
+        "payload": {
+            "type": "FeatureCollection",
+            "features": [{"id": "string", "collection": "string"}],
+            "process": [
+                {
+                    "description": "string",
+                    "tasks": {},
+                    "upload_options": {
+                        "path_template": "string",
+                        "collections": {},
+                        "public_assets": [],
+                        "headers": {},
+                        "s3_urls": True,
+                    },
+                    "workflow": "hello",
+                }
+            ],
+        }
+    },
+    "response": "document",
+}
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes(test_client, all_processes):
-    response = test_client.get("/processes")
+async def test_get_all_processes(test_client: TestClient) -> None:
+    url: str = "/processes/"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == all_processes
+    assert response.json() == all_processes(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_handler(test_client, single_process):
-    response = test_client.get("/processes?handler=argo-handler")
+async def test_get_all_processes_handler(test_client: TestClient) -> None:
+    url: str = "/processes/?handler=argo-handler"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_handler_multiple(test_client, all_processes):
-    response = test_client.get("/processes?handler=argo-handler&handler=cirrus-handler")
+async def test_get_all_processes_handler_multiple(test_client: TestClient) -> None:
+    url: str = "/processes/?handler=argo-handler&handler=cirrus-handler"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == all_processes
+    assert response.json() == all_processes(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_limit(test_client, single_process):
-    response = test_client.get("/processes?limit=1")
+async def test_get_all_processes_limit(test_client: TestClient) -> None:
+    url: str = "/processes/?limit=1"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_type(test_client, single_process):
-    response = test_client.get("/processes?type=argo-workflow")
+async def test_get_all_processes_type(test_client: TestClient) -> None:
+    url: str = "/processes/?type=argo-workflow"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_type_multiple(test_client, all_processes):
-    response = test_client.get("/processes?type=argo-workflow&type=cirrus-workflow")
+async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
+    url: str = "/processes/?type=argo-workflow&type=cirrus-workflow"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == all_processes
+    assert response.json() == all_processes(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_limit_handler(test_client, single_process):
-    response = test_client.get("/processes?limit=2&handler=argo-handler")
+async def test_get_all_processes_limit_handler(test_client: TestClient) -> None:
+    url: str = "/processes/?limit=2&handler=argo-handler"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_limit_type(test_client, single_process):
-    response = test_client.get("/processes?limit=2&type=argo-workflow")
+async def test_get_all_processes_limit_type(test_client: TestClient) -> None:
+    url: str = "/processes/?limit=2&type=argo-workflow"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_handler_type(test_client, single_process):
-    response = test_client.get("/processes?handler=argo-handler&type=argo-workflow")
+async def test_get_all_processes_handler_type(test_client: TestClient) -> None:
+    url: str = "/processes/?handler=argo-handler&type=argo-workflow"
+    response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == single_process
+    assert response.json() == single_process(url)
 
 
 @pytest.mark.asyncio
-async def test_get_all_processes_invalid_type(test_client, no_processes):
-    response = test_client.get("/processes?type=invalid_type")
+async def test_get_all_processes_invalid_type(test_client: TestClient) -> None:
+    response: Response = test_client.get("/processes/?type=invalid_type")
     assert response.status_code == 200
-    assert response.json() == no_processes
+    assert response.json()["processes"] == []
 
 
 @pytest.mark.asyncio
-async def test_get_process_by_process_id(test_client, mirror_workflow_process):
-    response = test_client.get("/processes/mirror")
+async def test_get_process_by_process_id(test_client: TestClient) -> None:
+    response: Response = test_client.get("/processes/mirror")
     assert response.status_code == 200
     assert response.json() == mirror_workflow_process
 
 
 @pytest.mark.asyncio
-async def test_get_process_by_process_id_404(test_client):
-    response = test_client.get("/processes/mirror-test")
+async def test_get_process_by_process_id_404(test_client: TestClient) -> None:
+    response: Response = test_client.get("/processes/mirror-test")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_post_valid_id_valid_payload(test_client, process_payload_valid):
-    response = test_client.post(
+async def test_post_valid_id_valid_payload(test_client: TestClient) -> None:
+    response: Response = test_client.post(
         "/processes/mirror/execution",
         content=json.dumps(process_payload_valid),
     )
@@ -326,8 +385,8 @@ async def test_post_valid_id_valid_payload(test_client, process_payload_valid):
 
 
 @pytest.mark.asyncio
-async def test_post_valid_id_invalid_payload(test_client, process_payload_invalid):
-    response = test_client.post(
+async def test_post_valid_id_invalid_payload(test_client: TestClient) -> None:
+    response: Response = test_client.post(
         "/processes/mirror/execution",
         content=json.dumps(process_payload_invalid),
     )
@@ -335,8 +394,8 @@ async def test_post_valid_id_invalid_payload(test_client, process_payload_invali
 
 
 @pytest.mark.asyncio
-async def test_post_invalid_id_valid_payload(test_client, process_payload_valid):
-    response = test_client.post(
+async def test_post_invalid_id_valid_payload(test_client: TestClient) -> None:
+    response: Response = test_client.post(
         "/processes/invalid/execution",
         content=json.dumps(process_payload_valid),
     )
@@ -344,29 +403,28 @@ async def test_post_invalid_id_valid_payload(test_client, process_payload_valid)
 
 
 @pytest.mark.asyncio
-async def test_post_process_id_not_found_in_config(
-    test_client, process_payload_valid_wf_name_not_in_config
-):
-    response = test_client.post(
+async def test_post_process_id_not_found_in_config(test_client: TestClient) -> None:
+    response: Response = test_client.post(
         "/processes/hello/execution",
         content=json.dumps(process_payload_valid_wf_name_not_in_config),
     )
     assert response.status_code == 404
 
 
-async def post_payload_cache(test_client, process_payload_cache):
-    response = test_client.post(
+async def post_payload_cache(test_client: TestClient, payload: str) -> Response:
+    response: Response = test_client.post(
         "/processes/mirror/execution",
-        content=json.dumps(process_payload_cache),
+        content=payload,
         follow_redirects=False,
     )
     return response
 
 
 @pytest.mark.asyncio
-async def test_post_payload_cache_main(test_client, process_payload_cache):
+async def test_post_payload_cache_main(test_client: TestClient) -> None:
+    payload = json.dumps(process_payload_cache)
     async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
-        task2 = tg.create_task(post_payload_cache(test_client, process_payload_cache))
+        task1 = tg.create_task(post_payload_cache(test_client, payload))
+        task2 = tg.create_task(post_payload_cache(test_client, payload))
     assert task1.result().status_code == 201
     assert task2.result().status_code == 303
