@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
-from buildpg import render
+from buildpg import V, funcs, render
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel
 
@@ -22,7 +23,8 @@ router: APIRouter = APIRouter(
 
 
 class Params(BaseModel):
-    processID: str | None
+    processID: Annotated[list[str] | None, Query()] = None
+    jobID: Annotated[list[UUID] | None, Query()] = None
     startDatetime: datetime | None
     endDatetime: datetime | None
 
@@ -42,6 +44,13 @@ async def list_jobs(
     retrieve the list of jobs.
     """
     queryparams = params.dict(exclude_none=True)
+
+    processID = queryparams.get("processID")
+    proc_clause = V("a.action_name") == funcs.any(processID)
+
+    jobID = queryparams.get("jobID")
+    job_clause = V("a.action_uuid") == funcs.any(jobID)
+
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
@@ -51,8 +60,8 @@ async def list_jobs(
             INNER JOIN swoop.thread t
             ON t.action_uuid = a.action_uuid
             WHERE a.action_type = 'workflow'
-            AND (:process_id::text IS NULL OR a.action_name = :process_id::text)
-            AND (:job_id::uuid IS NULL OR a.action_uuid = :job_id::uuid)
+            AND (:processes::text[] IS NULL OR :proc_where)
+            AND (:jobs::uuid[] IS NULL OR :job_where)
             AND (
               (
                 a.created_at >= :start_datetime::TIMESTAMPTZ
@@ -66,10 +75,10 @@ async def list_jobs(
             )
             LIMIT :limit::integer;
             """,
-            process_id=queryparams.get(
-                "processID"
-            ),  # we should account for non-existent keys
-            job_id=queryparams.get("jobID"),
+            processes=processID,
+            proc_where=proc_clause,
+            jobs=jobID,
+            job_where=job_clause,
             start_datetime=queryparams.get("startDatetime"),
             end_datetime=queryparams.get("endDatetime"),
             limit=limit,
