@@ -12,8 +12,8 @@ from pydantic import BaseModel
 from swoop.api.models.jobs import JobList, StatusInfo
 from swoop.api.models.shared import APIException, InlineResponse200, Link, Results
 
-logger = logging.getLogger("uvicorn")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
+
 DEFAULT_JOB_LIMIT = 1000
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
