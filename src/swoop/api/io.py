@@ -80,9 +80,12 @@ class IOClient:
     def bucket_exists(self, bucket_name: str):
         return bucket_name and self.client.bucket_exists(bucket_name)
 
-    def delete_objects(self, prefix="", recursive=True):
-        objects_to_delete = self.client.list_objects(
+    def list_objects(self, prefix: str = "", recursive: bool = True):
+        return self.client.list_objects(
             self.bucket_name, prefix=prefix, recursive=recursive
         )
+
+    def delete_objects(self, prefix="", recursive=True):
+        objects_to_delete = self.list_objects(prefix=prefix, recursive=recursive)
         for obj in objects_to_delete:
             self.client.remove_object(self.bucket_name, obj.object_name)
