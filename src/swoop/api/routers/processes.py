@@ -108,9 +108,10 @@ async def execute_process(
     execute a process.
     """
 
-    payload = body.dict().get("inputs", {}).get("payload", {})
+    payload = body.inputs.payload
+    print(payload)
+    wf_name = payload.current_process_definition().workflow
 
-    wf_name = payload.get("process", [{}])[0].get("workflow")
     if processID != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
@@ -123,7 +124,7 @@ async def execute_process(
     except KeyError:
         raise HTTPException(status_code=404, detail="Process not found")
 
-    hashed_pl = workflow.hash_payload(payload=payload)
+    hashed_pl = workflow.hash_payload(payload=payload.dict())
 
     lock_id = int.from_bytes(hashed_pl[:3])
 
@@ -192,7 +193,7 @@ async def execute_process(
 
             request.app.state.io.put_object(
                 object_name=f"executions/{action_uuid}/input.json",
-                object_content=json.dumps(payload),
+                object_content=json.dumps(payload.dict()),
             )
 
     return await get_job_status(request, jobID=action_uuid)

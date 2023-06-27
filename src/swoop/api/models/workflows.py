@@ -125,10 +125,19 @@ class ProcessDefinition(BaseModel, extra=Extra.allow):
     workflow: StrictStr
 
 
-class Payload(BaseModel):
+class Payload(BaseModel, smart_union=True):
     type: StrictStr = "FeatureCollection"
     features: list[Feature] = []
-    process: conlist(ProcessDefinition, min_items=1)
+    process: conlist(ProcessDefinition | list[ProcessDefinition], min_items=1)
+
+    @validator("process")
+    def first_item_cannot_be_list(cls, v):
+        if not isinstance(v[0], ProcessDefinition):
+            raise ValueError("first element in the `process` array cannot be an array")
+        return v
+
+    def current_process_definition(self) -> ProcessDefinition:
+        return self.process[0]
 
 
 class InputPayload(BaseModel):

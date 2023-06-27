@@ -219,7 +219,7 @@ process_payload_cache_key_change = {
                     "tasks": {},
                     "upload_options": {
                         "path_template": "string",
-                        "collections": {},
+                        "collections": {"my-collection": ".*"},
                         "public_assets": [],
                         "headers": {},
                         "s3_urls": True,
@@ -244,7 +244,7 @@ process_payload_invalid = {
                     "tasks": {},
                     "upload_options": {
                         "path_template": "string",
-                        "collections": {},
+                        "collections": {"my-collection": ".*"},
                         "public_assets": [],
                         "headers": {},
                         "s3_urls": True,
@@ -488,3 +488,114 @@ async def test_post_execution_no_collections(test_client: TestClient) -> None:
     }
     result = await post_payload_cache(test_client, json.dumps(payload))
     assert result.status_code == 422
+    assert result.json() == {
+        'detail': [
+            {
+                'loc': ['body', 'inputs', 'payload', 'process', 0, 'upload_options', 'collections'],
+                'msg': 'Collections must contain at least one item in the map',
+                'type': 'value_error',
+            },
+            {
+                'loc': ['body', 'inputs', 'payload', 'process', 0],
+                'msg': 'value is not a valid list',
+                'type': 'type_error.list',
+            },
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_post_execution_chaining(test_client: TestClient) -> None:
+    payload = {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "item",
+                        "collection": None,
+                    },
+                ],
+                "process": [
+                    {
+                        "description": "string",
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {"my-collection": ".*"},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    },
+                    [
+                        {
+                            "tasks": {},
+                            "description": "string",
+                            "upload_options": {
+                                "path_template": "string",
+                                "collections": {"my-collection": ".*"},
+                                "public_assets": [],
+                                "headers": {},
+                                "s3_urls": True,
+                            },
+                            "workflow": "mirror",
+                        },
+                    ],
+                ],
+            },
+        },
+        "response": "document",
+    }
+    result = await post_payload_cache(test_client, json.dumps(payload))
+    assert result.status_code == 201
+
+    uuid = result.json()["jobID"]
+    _payload = test_client.app.state.io.get_object(f"executions/{uuid}/input.json")
+    assert _payload["process"][0].pop("tasks") == {}
+    assert _payload == payload["inputs"]["payload"]
+
+
+@pytest.mark.asyncio
+async def test_post_execution_bad_chain(test_client: TestClient) -> None:
+    payload = {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "id": "item",
+                        "collection": None,
+                    },
+                ],
+                "process": [
+                    [
+                        {
+                            "tasks": {},
+                            "description": "string",
+                            "upload_options": {
+                                "path_template": "string",
+                                "collections": {"my-collection": ".*"},
+                                "public_assets": [],
+                                "headers": {},
+                                "s3_urls": True,
+                            },
+                            "workflow": "mirror",
+                        },
+                    ],
+                ],
+            },
+        },
+        "response": "document",
+    }
+    result = await post_payload_cache(test_client, json.dumps(payload))
+    assert result.status_code == 422
+    assert result.json() == {
+        "detail": [
+            {
+                "loc": ["body", "inputs", "payload", "process"],
+                "msg": "first element in the `process` array cannot be an array",
+                "type": "value_error",
+            },
+        ],
+    }
