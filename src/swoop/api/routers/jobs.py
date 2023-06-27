@@ -9,7 +9,7 @@ from buildpg import V, funcs, render
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from swoop.api.models.jobs import JobList, StatusInfo
+from swoop.api.models.jobs import JobList, StatusCode, StatusInfo, status_dict
 from swoop.api.models.shared import APIException, Link, Results
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ async def list_jobs(
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
     processID: Annotated[list[str] | None, Query()] = None,
     jobID: Annotated[list[UUID] | None, Query()] = None,
+    status: Annotated[list[StatusCode], Query()] = None,
     params: Params = Depends(),
 ) -> JobList | APIException:
     """
@@ -45,8 +46,16 @@ async def list_jobs(
     """
     queryparams = params.dict(exclude_none=True)
 
+    if status is not None:
+        statuses = [
+            i for i in status_dict if status_dict[i] in [s.value for s in status]
+        ]
+    else:
+        statuses = None
+
     proc_clause = V("a.action_name") == funcs.any(processID)
     job_clause = V("a.action_uuid") == funcs.any(jobID)
+    status_clause = V("t.status") == funcs.any(statuses)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
@@ -59,6 +68,7 @@ async def list_jobs(
             WHERE a.action_type = 'workflow'
             AND (:processes::text[] IS NULL OR :proc_where)
             AND (:jobs::uuid[] IS NULL OR :job_where)
+            AND (:status::text[] IS NULL OR :status_where)
             AND (
               (
                 a.created_at >= :start_datetime::TIMESTAMPTZ
@@ -76,6 +86,8 @@ async def list_jobs(
             proc_where=proc_clause,
             jobs=jobID,
             job_where=job_clause,
+            status=statuses,
+            status_where=status_clause,
             start_datetime=queryparams.get("startDatetime"),
             end_datetime=queryparams.get("endDatetime"),
             limit=limit,

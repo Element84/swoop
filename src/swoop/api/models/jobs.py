@@ -26,7 +26,7 @@ status_dict = {
 }
 
 
-class StatusCode(Enum):
+class StatusCode(str, Enum):
     accepted = "accepted"
     running = "running"
     successful = "successful"
