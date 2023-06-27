@@ -7,16 +7,7 @@ from typing import Annotated, Literal, Union
 
 import yaml
 from fastapi import Request
-from pydantic import (
-    BaseModel,
-    Field,
-    PrivateAttr,
-    StrictBool,
-    StrictInt,
-    StrictStr,
-    conlist,
-    Extra
-)
+from pydantic import BaseModel, Extra, Field, PrivateAttr, StrictInt, StrictStr, conlist
 
 from swoop.api.exceptions import WorkflowConfigError
 from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
