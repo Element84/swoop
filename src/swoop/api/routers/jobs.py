@@ -6,11 +6,11 @@ from typing import Annotated
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from swoop.api.models.jobs import JobList, StatusInfo
-from swoop.api.models.shared import APIException, InlineResponse200, Link, Results
+from swoop.api.models.shared import APIException, Link, Results
 
 logger = logging.getLogger(__name__)
 
@@ -124,15 +124,6 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
         return StatusInfo.from_action_record(record, request)
 
 
-def cancel_job(
-    job_id: str = Path(..., alias="jobId"),
-) -> StatusInfo | APIException:
-    """
-    cancel a job execution, remove a finished job
-    """
-    pass
-
-
 @router.get(
     "/{job_id}/results",
     response_model=Results,
@@ -176,19 +167,19 @@ async def get_job_payload(request: Request, job_id) -> dict | APIException:
     return payload
 
 
-@router.post(
-    "/{job_id}/rerun",
-    response_model=InlineResponse200,
-    responses={
-        "201": {"model": StatusInfo},
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-)
-def rerun_job(
-    job_id: str = Path(..., alias="jobId"),
-) -> InlineResponse200 | StatusInfo | APIException:
-    """
-    rerun a job.
-    """
-    pass
+# @router.post(
+#    "/{jobID}/rerun",
+#    response_model=InlineResponse200,
+#    responses={
+#        "201": {"model": StatusInfo},
+#        "404": {"model": APIException},
+#        "500": {"model": APIException},
+#    },
+# )
+# def rerun_job(
+#    job_id: str = Path(..., alias="jobID"),
+# ) -> InlineResponse200 | StatusInfo | APIException:
+#    """
+#    rerun a job.
+#    """
+#    pass
