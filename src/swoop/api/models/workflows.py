@@ -7,7 +7,15 @@ from typing import Annotated, Literal, Union
 
 import yaml
 from fastapi import Request
-from pydantic import BaseModel, Field, PrivateAttr, StrictBool, StrictInt, StrictStr
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    conlist,
+)
 
 from swoop.api.exceptions import WorkflowConfigError
 from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
@@ -95,7 +103,7 @@ class Workflows(dict[str, Workflow]):
 
 class Feature(BaseModel):
     id: StrictStr
-    collection: StrictStr
+    collection: StrictStr | None = None
 
 
 class UploadOptions(BaseModel):
@@ -108,16 +116,15 @@ class UploadOptions(BaseModel):
 
 class ProcessDefinition(BaseModel):
     description: StrictStr | None = None
-    tasks: dict
-    # input_collections: Optional[list[StrictStr]] = None
+    tasks: dict = {}
     upload_options: UploadOptions
     workflow: StrictStr
 
 
 class Payload(BaseModel):
     type: StrictStr = "FeatureCollection"
-    features: list[Feature]
-    process: list[ProcessDefinition]
+    features: list[Feature] = []
+    process: conlist(ProcessDefinition, min_items=1)
 
 
 class InputPayload(BaseModel):
@@ -125,8 +132,6 @@ class InputPayload(BaseModel):
 
 
 class Execute(BaseModel):
-    # TODO: I believe this is where we need to specify the input payload schema
-    # inputs: dict[str, InlineOrRefData | list[InlineOrRefData]] | None = None
     inputs: InputPayload
     # TODO: We should likely omit the ability to specify outputs
     # outputs: dict[str, Output] | None = None

@@ -428,3 +428,36 @@ async def test_post_payload_cache_main(test_client: TestClient) -> None:
         task2 = tg.create_task(post_payload_cache(test_client, payload))
     assert task1.result().status_code == 201
     assert task2.result().status_code == 303
+
+
+@pytest.mark.asyncio
+async def test_post_execution_no_features(test_client: TestClient) -> None:
+    payload = {
+        "inputs": {
+            "payload": {
+                "type": "FeatureCollection",
+                "process": [
+                    {
+                        "description": "string",
+                        "upload_options": {
+                            "path_template": "string",
+                            "collections": {},
+                            "public_assets": [],
+                            "headers": {},
+                            "s3_urls": True,
+                        },
+                        "workflow": "mirror",
+                    }
+                ],
+            }
+        },
+        "response": "document",
+    }
+    result = await post_payload_cache(test_client, json.dumps(payload))
+    assert result.status_code == 201
+
+    uuid = result.json()["jobID"]
+    _payload = test_client.app.state.io.get_object(f"executions/{uuid}/input.json")
+    assert _payload.pop("features") == []
+    assert _payload["process"][0].pop("tasks") == {}
+    assert _payload == payload["inputs"]["payload"]
