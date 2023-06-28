@@ -28,6 +28,7 @@ a_job = {
     "status": "successful",
     "created": "2023-04-28T15:49:00+00:00",
     "updated": "2023-04-28T15:49:03+00:00",
+    "started": "2023-04-28T15:49:02+00:00",
     "links": [
         {
             "href": "http://testserver/",
@@ -70,6 +71,7 @@ another_job = {
     "status": "accepted",
     "created": "2023-04-28T15:49:00+00:00",
     "updated": "2023-04-28T15:49:00+00:00",
+    "started": None,
     "links": [
         {
             "href": "http://testserver/",

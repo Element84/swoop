@@ -133,6 +133,7 @@ class StatusInfo(BaseModel):
             updated=record["last_update"],
             request=request,
             payload_uuid=record["payload_uuid"],
+            started=record["started_at"],
         )
 
 
