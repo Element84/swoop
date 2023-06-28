@@ -201,6 +201,114 @@ async def test_get_job_by_process(test_client: TestClient):
 
 
 @pytest.mark.asyncio
+async def test_get_job_by_job_id_filter(test_client: TestClient):
+    url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_status_filter(test_client: TestClient):
+    url: str = "/jobs/?status=successful"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_swoop_status_filter(test_client: TestClient):
+    url: str = "/jobs/?swoopStatus=SUCCESSFUL"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_process_id_job_id_filter(test_client: TestClient):
+    url: str = "/jobs/?processID=action_1&jobID=2595f2da-81a6-423c-84db-935e6791046e"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_process_id_job_id_filter_no_match(test_client: TestClient):
+    url: str = "/jobs/?processID=action_1&jobID=81842304-0aa9-4609-89f0-1c86819b0752"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_process_id_status_filter(test_client: TestClient):
+    url: str = "/jobs/?processID=action_1&status=successful"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_process_id_swoop_status_filter(test_client: TestClient):
+    url: str = "/jobs/?processID=action_1&swoopStatus=SUCCESSFUL"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_job_id_status_filter(test_client: TestClient):
+    url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e&status=successful"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_job_id_status_filter_no_match(test_client: TestClient):
+    url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e&status=running"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_job_id_swoop_status_filter(test_client: TestClient):
+    url: str = (
+        "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e&swoopStatus=SUCCESSFUL"
+    )
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_job_id_swoop_status_filter_no_match(test_client: TestClient):
+    url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e&swoopStatus=CANCELED"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_status_and_swoop_status_filter_match(test_client: TestClient):
+    url: str = "/jobs/?status=successful&swoopStatus=SUCCESSFUL"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_status_and_swoop_status_filter_contradict(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?status=accepted&swoopStatus=SUCCESSFUL"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
 async def test_get_job_by_job_id(test_client: TestClient):
     response = test_client.get(
         "/jobs/2595f2da-81a6-423c-84db-935e6791046e",
