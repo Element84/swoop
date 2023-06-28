@@ -134,6 +134,9 @@ class StatusInfo(BaseModel):
             request=request,
             payload_uuid=record["payload_uuid"],
             started=record["started_at"],
+            finished=record["last_update"]
+            if status_dict[record["status"]] in ["successful", "failed", "dismissed"]
+            else None,
         )
 
 
