@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 
 import pytest
@@ -124,3 +125,12 @@ async def test_get_payloadid_no_match(test_client: TestClient):
     )
     assert response.json() == no_payload_id_exception
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_retrieve_payload_cache_details_by_payload_input(test_client: TestClient):
+    response = test_client.post(
+        "/payloadCacheEntries/",
+        content=json.dumps(a_payload),
+    )
+    assert response.status_code == 200

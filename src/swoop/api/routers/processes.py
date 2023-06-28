@@ -109,7 +109,7 @@ async def execute_process(
     """
 
     payload = body.inputs.payload
-    print(payload)
+
     wf_name = payload.current_process_definition().workflow
 
     if processID != wf_name:
