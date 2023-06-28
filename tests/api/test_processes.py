@@ -489,16 +489,24 @@ async def test_post_execution_no_collections(test_client: TestClient) -> None:
     result = await post_payload_cache(test_client, json.dumps(payload))
     assert result.status_code == 422
     assert result.json() == {
-        'detail': [
+        "detail": [
             {
-                'loc': ['body', 'inputs', 'payload', 'process', 0, 'upload_options', 'collections'],
-                'msg': 'Collections must contain at least one item in the map',
-                'type': 'value_error',
+                "loc": [
+                    "body",
+                    "inputs",
+                    "payload",
+                    "process",
+                    0,
+                    "upload_options",
+                    "collections",
+                ],
+                "msg": "Collections must contain at least one item in the map",
+                "type": "value_error",
             },
             {
-                'loc': ['body', 'inputs', 'payload', 'process', 0],
-                'msg': 'value is not a valid list',
-                'type': 'type_error.list',
+                "loc": ["body", "inputs", "payload", "process", 0],
+                "msg": "value is not a valid list",
+                "type": "type_error.list",
             },
         ],
     }
