@@ -44,6 +44,7 @@ async def list_jobs(
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
     processID: Annotated[list[str] | None, Query()] = None,
     jobID: Annotated[list[UUID] | None, Query()] = None,
+    types: Annotated[list[str] | None, Query(alias="type")] = None,
     status: Annotated[list[StatusCode], Query()] = None,
     swoopStatus: Annotated[list[SwoopStatusCode], Query()] = None,
     params: Params = Depends(),
@@ -66,6 +67,7 @@ async def list_jobs(
         swoop_status = None
 
     proc_clause = V("a.action_name") == funcs.any(processID)
+    type_clause = V("a.handler_type") == funcs.any(types)
     job_clause = V("a.action_uuid") == funcs.any(jobID)
     status_clause = V("t.status") == funcs.any(statuses)
     swoop_status_clause = V("t.status") == funcs.any(swoop_status)
@@ -80,6 +82,7 @@ async def list_jobs(
             ON t.action_uuid = a.action_uuid
             WHERE a.action_type = 'workflow'
             AND (:processes::text[] IS NULL OR :proc_where)
+            AND (:types::text[] IS NULL OR :type_where)
             AND (:jobs::uuid[] IS NULL OR :job_where)
             AND (:status::text[] IS NULL OR :status_where)
             AND (:swoop_status::text[] IS NULL OR :swoop_status_where)
@@ -98,6 +101,8 @@ async def list_jobs(
             """,
             processes=processID,
             proc_where=proc_clause,
+            types=types,
+            type_where=type_clause,
             jobs=jobID,
             job_where=job_clause,
             status=statuses,

@@ -37,8 +37,8 @@ class BaseWorkflow(BaseModel, ABC):
     cacheKeyHashIncludes: list[StrictStr] = []
     cacheKeyHashExcludes: list[StrictStr] = []
     _json_filter: JSONFilter = PrivateAttr()
-    handler: StrictStr
-    type: StrictStr
+    handler_name: StrictStr
+    handler_type: StrictStr
     links: list[Link] = []
 
     def __init__(self, **kwargs) -> None:
@@ -70,12 +70,12 @@ class BaseWorkflow(BaseModel, ABC):
 
 class ArgoWorkflow(BaseWorkflow):
     argoTemplate: StrictStr
-    type: Literal["argo-workflow"]
+    handler_type: Literal["argo-workflow"]
 
 
 class CirrusWorkflow(BaseWorkflow):
     sfnArn: StrictStr
-    type: Literal["cirrus-workflow"]
+    handler_type: Literal["cirrus-workflow"]
 
 
 Workflow = Annotated[
@@ -83,7 +83,7 @@ Workflow = Annotated[
         ArgoWorkflow,
         CirrusWorkflow,
     ],
-    Field(discriminator="type"),
+    Field(discriminator="handler_type"),
 ]
 
 
@@ -165,7 +165,7 @@ class JobControlOptions(Enum):
 class ProcessSummary(DescriptionType):
     id: str
     version: str
-    type: str
+    handler_type: str
     jobControlOptions: list[JobControlOptions] | None = [
         JobControlOptions("async-execute")
     ]

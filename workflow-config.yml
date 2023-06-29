@@ -2,8 +2,8 @@ workflows:
   mirror:
     description: "A workflow to copy STAC items into a local mirror"
     version: 2
-    handler: argo-handler
-    type: argo-workflow
+    handler_name: argo-handler
+    handler_type: argo-workflow
     argoTemplate: workflowtemplate/mirror-workflow
     cacheKeyHashIncludes:
       - .features[].id
@@ -13,8 +13,8 @@ workflows:
     title: "Cirrus example workflow"
     description: "An example workflow config for a cirrus workflow"
     version: 1
-    handler: cirrus-handler
-    type: cirrus-workflow
+    handler_name: cirrus-handler
+    handler_type: cirrus-workflow
     sfnArn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
     cacheKeyHashIncludes:
       - .features[].id

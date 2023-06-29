@@ -39,13 +39,13 @@ async def list_processes(
     if handlers:
         _workflows: list[Workflow] = []
         for handler in handlers:
-            _workflows += [wf for wf in workflows if wf.handler == handler]
+            _workflows += [wf for wf in workflows if wf.handler_name == handler]
         workflows = _workflows
 
     if types:
         _workflows: list[Workflow] = []
         for _type in types:
-            _workflows += [wf for wf in workflows if wf.type == _type]
+            _workflows += [wf for wf in workflows if wf.handler_type == _type]
         workflows = _workflows
 
     if limit and limit < len(workflows):
@@ -181,7 +181,8 @@ async def execute_process(
                 values=Values(
                     action_type="workflow",
                     action_name=workflow.id,
-                    handler_name=workflow.handler,
+                    handler_name=workflow.handler_name,
+                    handler_type=workflow.handler_type,
                     workflow_version=workflow.version,
                     payload_uuid=pl_uuid,
                 ),

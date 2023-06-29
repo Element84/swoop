@@ -15,7 +15,7 @@ def single_process(request_endpoint: str):
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "type": "argo-workflow",
+                "handler_type": "argo-workflow",
                 "links": [
                     {
                         "href": "http://testserver/",
@@ -54,7 +54,7 @@ def all_processes(request_endpoint: str):
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "type": "argo-workflow",
+                "handler_type": "argo-workflow",
                 "links": [
                     {
                         "href": "http://testserver/",
@@ -74,7 +74,7 @@ def all_processes(request_endpoint: str):
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
-                "type": "cirrus-workflow",
+                "handler_type": "cirrus-workflow",
                 "links": [
                     {
                         "href": "https://example.com/repo",
@@ -122,7 +122,7 @@ mirror_workflow_process = {
     "id": "mirror",
     "version": "2",
     "jobControlOptions": ["async-execute"],
-    "type": "argo-workflow",
+    "handler_type": "argo-workflow",
     "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
     "cacheKeyHashExcludes": [],
     "links": [

@@ -205,6 +205,22 @@ async def test_get_job_by_process(test_client: TestClient):
 
 
 @pytest.mark.asyncio
+async def test_get_job_by_type_filter(test_client: TestClient):
+    url: str = "/jobs/?type=argo-workflow"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_type_filter_does_not_exist(test_client: TestClient):
+    url: str = "/jobs/?type=doesnotexist"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
 async def test_get_job_by_job_id_filter(test_client: TestClient):
     url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e"
     response = test_client.get(url)
@@ -245,6 +261,14 @@ async def test_get_job_by_process_id_job_id_filter_no_match(test_client: TestCli
 
 
 @pytest.mark.asyncio
+async def test_get_job_by_process_id_type_filter(test_client: TestClient):
+    url: str = "/jobs/?processID=action_1&type=argo-workflow"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
 async def test_get_job_by_process_id_status_filter(test_client: TestClient):
     url: str = "/jobs/?processID=action_1&status=successful"
     response = test_client.get(url)
@@ -258,6 +282,22 @@ async def test_get_job_by_process_id_swoop_status_filter(test_client: TestClient
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_type_job_id_filter(test_client: TestClient):
+    url: str = "/jobs/?type=argo-workflow&jobID=2595f2da-81a6-423c-84db-935e6791046e"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_type_job_id_filter_no_match(test_client: TestClient):
+    url: str = "/jobs/?type=argo-workflow&jobID=81842304-0aa9-4609-89f0-1c86819b0752"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
 
 
 @pytest.mark.asyncio
