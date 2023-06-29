@@ -341,6 +341,26 @@ async def test_get_job_by_datetime_interval_filter(
 
 
 @pytest.mark.asyncio
+async def test_get_job_by_datetime_interval_end_open(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=2023-04-01T15:49:00.000000Z/.."
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_datetime_interval_start_open(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=../2023-04-30T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 2
+
+
+@pytest.mark.asyncio
 async def test_get_job_by_datetime_interval_filter_no_match(
     test_client: TestClient,
 ):
