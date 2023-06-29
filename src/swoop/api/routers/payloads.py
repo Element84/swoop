@@ -172,3 +172,63 @@ async def retrieve_payload_cache_details_by_payload_input(
             )
 
         return PayloadCacheEntry.from_cache_record(record, request)
+
+
+@router.post(
+    "/{payloadID}/invalidate",
+    response_model=None,
+    responses={
+        "404": {"model": APIException},
+        "422": {"model": APIException},
+        "500": {"model": APIException},
+    },
+    response_model_exclude_unset=True,
+)
+async def update_payload_cache_invalidation(
+    request: Request,
+    payloadID: UUID,
+    body: PayloadCacheEntry,
+) -> APIException:
+    """
+    updates invalidation datetime on payload cache
+    """
+
+    if body.id != payloadID:
+        raise HTTPException(
+            status_code=422, detail="Input id does not match payload ID"
+        )
+
+    response = ""
+    if body.invalidNow:
+        async with request.app.state.readpool.acquire() as conn:
+            q, p = render(
+                """
+                UPDATE
+                    swoop.payload_cache
+                SET invalid_after=now()
+                WHERE
+                    payload_uuid=:payload_id::uuid;
+                """,
+                payload_id=payloadID,
+            )
+            response = await conn.execute(q, *p)
+
+    else:
+        async with request.app.state.readpool.acquire() as conn:
+            q, p = render(
+                """
+                UPDATE
+                    swoop.payload_cache
+                SET invalid_after=:invalid_after::TIMESTAMPTZ
+                WHERE
+                    payload_uuid=:payload_id::uuid;
+                """,
+                payload_id=payloadID,
+                invalid_after=body.invalidAfter,
+            )
+            response = await conn.execute(q, *p)
+
+    if not response or response == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Payload ID not found")
+
+    return response

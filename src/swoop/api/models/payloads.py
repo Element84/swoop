@@ -15,6 +15,7 @@ class PayloadCacheEntry(BaseModel):
     payloadHash: str
     processID: str
     invalidAfter: datetime | None
+    invalidNow: bool | None = False
     links: list[Link] = []
 
     def __init__(

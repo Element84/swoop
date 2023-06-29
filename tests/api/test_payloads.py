@@ -658,6 +658,64 @@ no_payload_id_exception = {
     "detail": "No payload that matches payload uuid found",
 }
 
+payload_cache_invalid_after_input = {
+    "id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+    "payloadHash": "string",
+    "processID": "string",
+    "invalidAfter": "2023-06-29T18:03:38.478Z",
+    "invalidNow": False,
+    "links": [],
+}
+
+{
+    "payloads": [
+        {
+            "id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+            "payloadHash": "PsqWxdKjAjrV1+BueXnAS1cWIhU=",
+            "processID": "some_workflow",
+            "invalidAfter": None,
+            "links": [
+                {
+                    "href": "http://testserver/",
+                    "rel": "root",
+                    "type": "application/json",
+                },
+                {
+                    "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+                    "rel": "self",
+                    "type": "application/json",
+                },
+            ],
+        },
+        {
+            "id": "5c46d3b6-17e4-4e31-bfb2-7918cf0b33a0",
+            "payloadHash": "zCWwEwvjI4ZmCVeACwigKnntpi8=",
+            "processID": "mirror",
+            "invalidAfter": None,
+            "links": [
+                {
+                    "href": "http://testserver/",
+                    "rel": "root",
+                    "type": "application/json",
+                },
+                {
+                    "href": "http://testserver/payloadCacheEntries/5c46d3b6-17e4-4e31-bfb2-7918cf0b33a0",
+                    "rel": "self",
+                    "type": "application/json",
+                },
+            ],
+        },
+    ],
+    "links": [
+        {"href": "http://testserver/", "rel": "root", "type": "application/json"},
+        {
+            "href": "http://testserver/payloadCacheEntries/",
+            "rel": "self",
+            "type": "application/json",
+        },
+    ],
+}
+
 
 # Tests for GET/payloads endpoint
 
@@ -744,3 +802,49 @@ async def test_retrieve_payload_cache_details(test_client: TestClient):
         content=json.dumps(payload_input_valid),
     )
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_set_payload_cache_invalid_after(test_client: TestClient):
+    response = test_client.post(
+        "/payloadCacheEntries/"
+        + payload_cache_invalid_after_input["id"]
+        + "/invalidate",
+        content=json.dumps(payload_cache_invalid_after_input),
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_set_payload_cache_invalid_after_invalidate_now(test_client: TestClient):
+    custom_payload_input = payload_cache_invalid_after_input
+    custom_payload_input["invalidNow"] = True
+    response = test_client.post(
+        "/payloadCacheEntries/" + custom_payload_input["id"] + "/invalidate",
+        content=json.dumps(payload_cache_invalid_after_input),
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_set_payload_cache_invalid_after_non_matching_payload(
+    test_client: TestClient,
+):
+    response = test_client.post(
+        "/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca78/invalidate",
+        content=json.dumps(payload_cache_invalid_after_input),
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_set_payload_cache_invalid_after_non_existing_payload(
+    test_client: TestClient,
+):
+    custom_payload_input = payload_cache_invalid_after_input
+    custom_payload_input["id"] = "ade69fe7-1d7d-472e-9f36-7242cc2aca78"
+    response = test_client.post(
+        "/payloadCacheEntries/" + custom_payload_input["id"] + "/invalidate",
+        content=json.dumps(payload_cache_invalid_after_input),
+    )
+    assert response.status_code == 404
