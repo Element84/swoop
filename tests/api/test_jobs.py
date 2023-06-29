@@ -1,5 +1,3 @@
-import urllib.parse
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -167,36 +165,6 @@ async def test_get_single_job(test_client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_get_all_jobs_start(test_client: TestClient):
-    url: str = "/jobs/?" + urllib.parse.urlencode(
-        {"startDatetime": "2023-04-28T15:49:00+00:00"}
-    )
-    response = test_client.get(url)
-    assert response.status_code == 200
-    assert response.json() == all_jobs(url)
-
-
-@pytest.mark.asyncio
-async def test_get_no_job_start(test_client: TestClient):
-    url: str = "/jobs/?" + urllib.parse.urlencode(
-        {"startDatetime": "2023-04-29T15:49:00+00:00"}
-    )
-    response = test_client.get(url)
-    assert response.status_code == 200
-    assert response.json()["jobs"] == []
-
-
-@pytest.mark.asyncio
-async def test_get_no_job_end(test_client: TestClient):
-    url: str = "/jobs/?" + urllib.parse.urlencode(
-        {"endDatetime": "2023-04-27T15:49:00+00:00"}
-    )
-    response = test_client.get(url)
-    assert response.status_code == 200
-    assert response.json()["jobs"] == []
-
-
-@pytest.mark.asyncio
 async def test_get_job_by_process(test_client: TestClient):
     url: str = "/jobs/?processID=action_1"
     response = test_client.get(url)
@@ -350,6 +318,64 @@ async def test_get_job_by_status_and_swoop_status_filter_contradict(
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_datetime_filter(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=2023-04-28T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_datetime_interval_filter(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=2023-04-01T15:49:00.000000Z/2023-04-30T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_datetime_interval_filter_no_match(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=2023-03-01T15:49:00.000000Z/2023-03-30T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_datetime_filter_invalid(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?datetime=2023-03-0115:49:00.000000Z"
+    response = test_client.get(url)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_process_id_datetime_filter(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?processID=action_1&datetime=2023-04-28T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert len(response.json()["jobs"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_job_by_job_id_datetime_filter(
+    test_client: TestClient,
+):
+    url: str = "/jobs/?jobID=2595f2da-81a6-423c-84db-935e6791046e&\
+    datetime=2023-04-28T15:49:00.000000Z"
+    response = test_client.get(url)
+    assert len(response.json()["jobs"]) == 1
 
 
 @pytest.mark.asyncio

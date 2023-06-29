@@ -27,6 +27,8 @@ h11==0.14.0
     # via uvicorn
 idna==3.4
     # via anyio
+iso8601==2.0.0
+    # via swoop (pyproject.toml)
 minio==7.1.15
     # via swoop (pyproject.toml)
 pydantic==1.10.8

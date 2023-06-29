@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from swoop.api.models.jobs import (
     JobList,
@@ -17,6 +15,7 @@ from swoop.api.models.jobs import (
     status_dict,
 )
 from swoop.api.models.shared import APIException, Link, Results
+from swoop.api.rfc3339 import rfc3339_str_to_datetime, str_to_interval
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +27,10 @@ router: APIRouter = APIRouter(
 )
 
 
-class Params(BaseModel):
-    startDatetime: datetime | None
-    endDatetime: datetime | None
-
-
 @router.get(
     "/",
     response_model=JobList,
-    responses={"404": {"model": APIException}},
+    responses={"404": {"model": APIException}, "422": {"model": APIException}},
     response_model_exclude_unset=True,
 )
 async def list_jobs(
@@ -47,12 +41,26 @@ async def list_jobs(
     types: Annotated[list[str] | None, Query(alias="type")] = None,
     status: Annotated[list[StatusCode], Query()] = None,
     swoopStatus: Annotated[list[SwoopStatusCode], Query()] = None,
-    params: Params = Depends(),
+    datetime: Annotated[str, Query()] = None,
 ) -> JobList | APIException:
     """
     retrieve the list of jobs.
     """
-    queryparams = params.dict(exclude_none=True)
+
+    try:
+        if datetime is None:
+            start = None
+            end = None
+            dt = None
+        elif "/" in datetime:
+            start, end = str_to_interval(datetime)
+            dt = None
+        else:
+            dt = rfc3339_str_to_datetime(datetime)
+            start = None
+            end = None
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid datetime parameter(s).")
 
     if status is not None:
         statuses = [
@@ -97,6 +105,10 @@ async def list_jobs(
                 OR :end_datetime::TIMESTAMPTZ IS NULL
               )
             )
+            AND (
+                a.created_at = :dt::TIMESTAMPTZ
+                OR :dt::TIMESTAMPTZ IS NULL
+              )
             LIMIT :limit::integer;
             """,
             processes=processID,
@@ -109,8 +121,9 @@ async def list_jobs(
             status_where=status_clause,
             swoop_status=swoop_status,
             swoop_status_where=swoop_status_clause,
-            start_datetime=queryparams.get("startDatetime"),
-            end_datetime=queryparams.get("endDatetime"),
+            start_datetime=start,
+            end_datetime=end,
+            dt=dt,
             limit=limit,
         )
         records = await conn.fetch(q, *p)
