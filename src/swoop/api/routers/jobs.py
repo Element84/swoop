@@ -42,6 +42,8 @@ async def list_workflow_executions(
     status: Annotated[list[StatusCode], Query()] = None,
     swoopStatus: Annotated[list[SwoopStatusCode], Query()] = None,
     datetime: Annotated[str, Query()] = None,
+    minDuration: Annotated[list[int], Query()] = None,
+    maxDuration: Annotated[list[int], Query()] = None,
 ) -> JobList | APIException:
     """
     Returns a list of all available workflow executions
@@ -74,42 +76,118 @@ async def list_workflow_executions(
     else:
         swoop_status = None
 
+    duration_status = [
+        i
+        for i in status_dict
+        if status_dict[i] in ["running", "successful", "failed", "dismissed"]
+    ]
+
+    completed_status = [
+        i
+        for i in status_dict
+        if status_dict[i] in ["successful", "failed", "dismissed"]
+    ]
+
+    if minDuration is not None:
+        minDuration = minDuration[0]
+    if maxDuration is not None:
+        maxDuration = maxDuration[0]
+
     proc_clause = V("a.action_name") == funcs.any(processID)
     type_clause = V("a.handler_type") == funcs.any(types)
     job_clause = V("a.action_uuid") == funcs.any(jobID)
     status_clause = V("t.status") == funcs.any(statuses)
     swoop_status_clause = V("t.status") == funcs.any(swoop_status)
+    duration_status_clause = V("status") == funcs.any(duration_status)
+    completed_status_clause = V("t.status") == funcs.any(completed_status)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-            SELECT
-            *
-            FROM swoop.action a
-            INNER JOIN swoop.thread t
-            ON t.action_uuid = a.action_uuid
-            WHERE a.action_type = 'workflow'
-            AND (:processes::text[] IS NULL OR :proc_where)
-            AND (:types::text[] IS NULL OR :type_where)
-            AND (:jobs::uuid[] IS NULL OR :job_where)
-            AND (:status::text[] IS NULL OR :status_where)
-            AND (:swoop_status::text[] IS NULL OR :swoop_status_where)
-            AND (
-              (
-                a.created_at >= :start_datetime::TIMESTAMPTZ
-                OR :start_datetime::TIMESTAMPTZ IS NULL
-              )
-              AND
-              (
-                a.created_at <= :end_datetime::TIMESTAMPTZ
-                OR :end_datetime::TIMESTAMPTZ IS NULL
-              )
+            WITH jobs AS (
+                SELECT
+                    a.action_name,
+                    a.action_uuid,
+                    a.handler_type,
+                    t.status AS status,
+                    t.created_at,
+                    t.last_update,
+                    a.payload_uuid,
+                    t.started_at,
+                    CASE
+                        WHEN t.status = 'RUNNING'
+                            THEN EXTRACT(EPOCH FROM (NOW() - t.started_at))
+                        WHEN :completed_where
+                            THEN EXTRACT(EPOCH FROM (t.last_update - t.started_at))
+                    END AS duration
+                FROM swoop.action a
+                INNER JOIN swoop.thread t
+                ON t.action_uuid = a.action_uuid
+                WHERE a.action_type = 'workflow'
+                AND (:processes::text[] IS NULL OR :proc_where)
+                AND (:types::text[] IS NULL OR :type_where)
+                AND (:jobs::uuid[] IS NULL OR :job_where)
+                AND (:status::text[] IS NULL OR :status_where)
+                AND (:swoop_status::text[] IS NULL OR :swoop_status_where)
+                AND (
+                        (
+                            a.created_at >= :start_datetime::TIMESTAMPTZ
+                            OR :start_datetime::TIMESTAMPTZ IS NULL
+                        )
+                        AND
+                        (
+                            a.created_at <= :end_datetime::TIMESTAMPTZ
+                            OR :end_datetime::TIMESTAMPTZ IS NULL
+                        )
+                )
+                AND (
+                    a.created_at = :dt::TIMESTAMPTZ
+                    OR :dt::TIMESTAMPTZ IS NULL
+                )
+                LIMIT :limit::integer
             )
-            AND (
-                a.created_at = :dt::TIMESTAMPTZ
-                OR :dt::TIMESTAMPTZ IS NULL
-              )
-            LIMIT :limit::integer;
+            SELECT *
+            FROM jobs
+            WHERE
+                (
+                    duration IS NOT NULL
+
+                    AND
+                    (
+                        duration >= :min_duration::integer
+                        OR :min_duration::integer IS NULL
+                    )
+                    AND
+                    (
+                        duration <= :max_duration::integer
+                        OR :max_duration::integer IS NULL
+                    )
+                    AND
+                    (
+                        CASE
+                            WHEN :status::text[] IS NULL AND
+                                (:min_duration::integer IS NOT NULL OR
+                                :max_duration::integer IS NOT NULL)
+                            THEN :dur_status_where ELSE TRUE
+                        END
+                    )
+                )
+
+                OR (
+                    CASE
+                        WHEN duration IS NULL AND
+                            (:min_duration::integer IS NOT NULL OR
+                            :max_duration::integer IS NOT NULL)
+                        THEN :dur_status_where
+                    END
+                )
+
+                OR (
+                    duration IS NULL
+                    AND (:min_duration::integer IS NULL AND
+                        :max_duration::integer IS NULL)
+                );
+
             """,
             processes=processID,
             proc_where=proc_clause,
@@ -121,10 +199,14 @@ async def list_workflow_executions(
             status_where=status_clause,
             swoop_status=swoop_status,
             swoop_status_where=swoop_status_clause,
+            dur_status_where=duration_status_clause,
+            completed_where=completed_status_clause,
             start_datetime=start,
             end_datetime=end,
             dt=dt,
             limit=limit,
+            min_duration=minDuration,
+            max_duration=maxDuration,
         )
         records = await conn.fetch(q, *p)
 
@@ -156,7 +238,13 @@ async def get_workflow_execution_details(
         q, p = render(
             """
                 SELECT
-                *
+                    a.action_name,
+                    a.action_uuid,
+                    t.status,
+                    t.created_at,
+                    t.last_update,
+                    a.payload_uuid,
+                    t.started_at
                 FROM swoop.action a
                 INNER JOIN swoop.thread t
                 ON t.action_uuid = a.action_uuid

@@ -470,3 +470,59 @@ async def test_get_workflow_execution_details_404(test_client: TestClient):
         "/jobs/00000000-1111-2222-3333-444444444444",
     )
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_job_min_duration(test_client: TestClient):
+    url: str = "/jobs/?minDuration=0"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_max_duration(test_client: TestClient):
+    url: str = "/jobs/?maxDuration=5"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_min_max_duration(test_client: TestClient):
+    url: str = "/jobs/?minDuration=1&maxDuration=5"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_same_min_max_duration_not_found(test_client: TestClient):
+    url: str = "/jobs/?minDuration=0&maxDuration=0"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_job_same_max_duration_at_edge(test_client: TestClient):
+    url: str = "/jobs/?minDuration=0&maxDuration=1"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_min_max_duration_applicable_status(test_client: TestClient):
+    url: str = "/jobs/?status=successful&minDuration=0&maxDuration=10"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == single_job(url)
+
+
+@pytest.mark.asyncio
+async def test_get_job_min_max_duration_not_applicable_status(test_client: TestClient):
+    url: str = "/jobs/?status=accepted&minDuration=0&maxDuration=10"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json()["jobs"] == []
