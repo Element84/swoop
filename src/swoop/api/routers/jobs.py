@@ -42,8 +42,8 @@ async def list_workflow_executions(
     status: Annotated[list[StatusCode], Query()] = None,
     swoopStatus: Annotated[list[SwoopStatusCode], Query()] = None,
     datetime: Annotated[str, Query()] = None,
-    minDuration: Annotated[list[int], Query()] = None,
-    maxDuration: Annotated[list[int], Query()] = None,
+    minDuration: Annotated[int, Query()] = None,
+    maxDuration: Annotated[int, Query()] = None,
 ) -> JobList | APIException:
     """
     Returns a list of all available workflow executions
@@ -87,11 +87,6 @@ async def list_workflow_executions(
         for i in status_dict
         if status_dict[i] in ["successful", "failed", "dismissed"]
     ]
-
-    if minDuration is not None:
-        minDuration = minDuration[0]
-    if maxDuration is not None:
-        maxDuration = maxDuration[0]
 
     proc_clause = V("a.action_name") == funcs.any(processID)
     type_clause = V("a.handler_type") == funcs.any(types)
