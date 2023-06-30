@@ -31,7 +31,9 @@ class PayloadCacheEntry(BaseModel):
                 Link.root_link(request),
                 Link.self_link(
                     href=str(
-                        request.url_for("get_payload_cache_entry", payloadID=self.id)
+                        request.url_for(
+                            "get_input_payload_cache_entry", payloadID=self.id
+                        )
                     ),
                 ),
             ]
@@ -40,7 +42,11 @@ class PayloadCacheEntry(BaseModel):
             for job_id in jobIDs:
                 self.links.append(
                     Link(
-                        href=str(request.url_for("get_job_status", jobID=job_id)),
+                        href=str(
+                            request.url_for(
+                                "get_workflow_execution_details", jobID=job_id
+                            )
+                        ),
                         type="application/json",
                         # TODO: verify appropriate rel
                         rel="job",

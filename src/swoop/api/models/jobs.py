@@ -75,7 +75,7 @@ class StatusInfo(BaseModel):
         if request:
             url = str(
                 request.url_for(
-                    "get_job_status",
+                    "get_workflow_execution_details",
                     jobID=self.jobID,
                 )
             )
@@ -99,7 +99,7 @@ class StatusInfo(BaseModel):
                 Link(
                     href=str(
                         request.url_for(
-                            "get_process_description",
+                            "get_workflow_description",
                             processID=self.processID,
                         )
                     ),
@@ -110,7 +110,7 @@ class StatusInfo(BaseModel):
                 Link(
                     href=str(
                         request.url_for(
-                            "get_payload_cache_entry",
+                            "get_input_payload_cache_entry",
                             payloadID=payload_uuid,
                         )
                     ),

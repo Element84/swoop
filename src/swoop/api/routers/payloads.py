@@ -22,13 +22,13 @@ router: APIRouter = APIRouter(
     response_model=PayloadCacheList,
     response_model_exclude_unset=True,
 )
-async def list_payload_cache(
+async def list_input_payload_cache_entries(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
     processID: list[str] | None = Query(default=None),
 ) -> PayloadCacheList | APIException:
     """
-    retrieve the list of payloads.
+    Returns a list of cached input payloads and the association with workflow executions
     """
     proc_clause = V("c.workflow_name") == funcs.any(processID)
 
@@ -73,12 +73,12 @@ async def list_payload_cache(
     },
     response_model_exclude_unset=True,
 )
-async def get_payload_cache_entry(
+async def get_input_payload_cache_entry(
     request: Request,
     payloadID: UUID,
 ) -> PayloadCacheEntry | APIException:
     """
-    retrieve info for a payload
+    Retrieve details of cached input payload by payloadID
     """
 
     async with request.app.state.readpool.acquire() as conn:
@@ -122,12 +122,12 @@ async def get_payload_cache_entry(
     },
     response_model_exclude_unset=True,
 )
-async def retrieve_payload_cache_details_by_payload_input(
+async def retrieve_payload_cache_entry_by_payload_input(
     request: Request,
     body: Execute,
 ) -> PayloadCacheEntry | APIException:
     """
-    retrieve info for a payload via the payload hash
+    Retrieves details of cached input payload via a payload hash lookup
     """
 
     payload = body.inputs.payload
@@ -136,7 +136,7 @@ async def retrieve_payload_cache_details_by_payload_input(
     try:
         workflow = workflows[payload.current_process_definition().workflow]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Process not found")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
     payload_hash = base64.b64encode(
         workflow.hash_payload(payload=payload.dict())
@@ -184,13 +184,13 @@ async def retrieve_payload_cache_details_by_payload_input(
     },
     response_model_exclude_unset=True,
 )
-async def update_payload_cache_invalidation(
+async def update_input_payload_cache_entry_invalidation(
     request: Request,
     payloadID: UUID,
     body: PayloadCacheEntry,
 ) -> APIException:
     """
-    updates invalidation datetime on payload cache
+    Updates input payload cache invalidation
     """
 
     if body.id != payloadID:

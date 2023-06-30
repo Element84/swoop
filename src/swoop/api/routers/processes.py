@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from swoop.api.models.jobs import StatusInfo
 from swoop.api.models.shared import APIException, Link
 from swoop.api.models.workflows import Execute, Process, ProcessList, Workflow
-from swoop.api.routers.jobs import get_job_status
+from swoop.api.routers.jobs import get_workflow_execution_details
 
 DEFAULT_PROCESS_LIMIT = 1000
 
@@ -25,14 +25,14 @@ router: APIRouter = APIRouter(
     responses={},
     response_model_exclude_unset=True,
 )
-async def list_processes(
+async def list_workflows(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
     handlers: Annotated[list[str] | None, Query(alias="handler")] = None,
     types: Annotated[list[str] | None, Query(alias="type")] = None,
 ) -> ProcessList | APIException:
     """
-    retrieve the list of available processes
+    Returns a list of all available workflows
     """
     workflows: list[Workflow] = list(request.app.state.workflows.values())
 
@@ -71,18 +71,18 @@ async def list_processes(
     },
     response_model_exclude_unset=True,
 )
-async def get_process_description(
+async def get_workflow_description(
     request: Request, processID
 ) -> Process | APIException:
     """
-    retrieve a process description
+    Returns workflow details by processID
     """
     workflows = request.app.state.workflows
 
     try:
         workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Process not found")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
     return workflow.to_process(request=request)
 
@@ -99,13 +99,13 @@ async def get_process_description(
     status_code=201,
     response_model_exclude_unset=True,
 )
-async def execute_process(
+async def execute_workflow(
     processID: str,
     request: Request,
     body: Execute,
 ) -> RedirectResponse | StatusInfo | APIException:
     """
-    execute a process.
+    Starts a workflow execution (Job)
     """
 
     payload = body.inputs.payload
@@ -122,7 +122,7 @@ async def execute_process(
     try:
         workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Process not found")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
     hashed_pl = workflow.hash_payload(payload=payload.dict())
 
@@ -155,7 +155,9 @@ async def execute_process(
 
             if action_uuid:
                 return RedirectResponse(
-                    request.url_for("get_job_status", jobID=action_uuid),
+                    request.url_for(
+                        "get_workflow_execution_details", jobID=action_uuid
+                    ),
                     status_code=303,
                 )
 
@@ -197,4 +199,4 @@ async def execute_process(
                 object_content=json.dumps(payload.dict()),
             )
 
-    return await get_job_status(request, jobID=action_uuid)
+    return await get_workflow_execution_details(request, jobID=action_uuid)

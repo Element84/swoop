@@ -33,7 +33,7 @@ router: APIRouter = APIRouter(
     responses={"404": {"model": APIException}, "422": {"model": APIException}},
     response_model_exclude_unset=True,
 )
-async def list_jobs(
+async def list_workflow_executions(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_JOB_LIMIT),
     processID: Annotated[list[str] | None, Query()] = None,
@@ -44,7 +44,7 @@ async def list_jobs(
     datetime: Annotated[str, Query()] = None,
 ) -> JobList | APIException:
     """
-    retrieve the list of jobs.
+    Returns a list of all available workflow executions
     """
 
     try:
@@ -146,9 +146,11 @@ async def list_jobs(
     },
     response_model_exclude_unset=True,
 )
-async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIException:
+async def get_workflow_execution_details(
+    request: Request, jobID: UUID
+) -> StatusInfo | APIException:
     """
-    retrieve the status of a job
+    Returns workflow execution status by jobID
     """
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
@@ -165,7 +167,7 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
         )
         record = await conn.fetchrow(q, *p)
         if not record:
-            raise HTTPException(status_code=404, detail="Job not found")
+            raise HTTPException(status_code=404, detail="Workflow execution not found")
 
         return StatusInfo.from_action_record(record, request)
 
@@ -178,17 +180,19 @@ async def get_job_status(request: Request, jobID: UUID) -> StatusInfo | APIExcep
         "500": {"model": APIException},
     },
 )
-async def get_job_result(
+async def get_workflow_execution_result(
     request: Request,
     jobID,
 ) -> Results | APIException:
     """
-    retrieve the result(s) of a job
+    Retrieves workflow execution output payload by jobID
     """
     results = request.app.state.io.get_object(f"/execution/{jobID}/output.json")
 
     if not results:
-        raise HTTPException(status_code=404, detail="Job output not found")
+        raise HTTPException(
+            status_code=404, detail="Workflow execution output payload not found"
+        )
 
     return results
 
@@ -201,14 +205,16 @@ async def get_job_result(
         "500": {"model": APIException},
     },
 )
-async def get_job_inputs(request: Request, jobID) -> dict | APIException:
+async def get_workflow_execution_inputs(request: Request, jobID) -> dict | APIException:
     """
-    retrieve the input payload of a job
+    Retrieves workflow execution input payload by jobID
     """
     payload = request.app.state.io.get_object(f"/execution/{jobID}/input.json")
 
     if not payload:
-        raise HTTPException(status_code=404, detail="Job input payload not found")
+        raise HTTPException(
+            status_code=404, detail="Workflow execution input payload not found"
+        )
 
     return payload
 

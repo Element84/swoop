@@ -181,7 +181,7 @@ class ProcessSummary(DescriptionType):
                 Link.root_link(request),
                 Link.self_link(
                     href=str(
-                        request.url_for("get_process_description", processID=self.id)
+                        request.url_for("get_workflow_description", processID=self.id)
                     ),
                 ),
             ]

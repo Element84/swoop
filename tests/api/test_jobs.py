@@ -416,7 +416,7 @@ async def test_get_job_by_job_id_404(test_client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_get_job_results(test_client: TestClient):
+async def test_get_workflow_execution_results(test_client: TestClient):
     response = test_client.get(
         "/jobs/2595f2da-81a6-423c-84db-935e6791046e/results",
     )
@@ -428,7 +428,7 @@ async def test_get_job_results(test_client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_get_job_results_404(test_client: TestClient):
+async def test_get_workflow_execution_results_404(test_client: TestClient):
     response = test_client.get(
         "/jobs/00000000-1111-2222-3333-444444444444/results",
     )
@@ -456,7 +456,7 @@ async def test_get_job_payload_404(test_client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_get_job_status(test_client: TestClient):
+async def test_get_workflow_execution_details(test_client: TestClient):
     response = test_client.get(
         "/jobs/2595f2da-81a6-423c-84db-935e6791046e",
     )
@@ -465,7 +465,7 @@ async def test_get_job_status(test_client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_get_job_status_404(test_client: TestClient):
+async def test_get_workflow_execution_details_404(test_client: TestClient):
     response = test_client.get(
         "/jobs/00000000-1111-2222-3333-444444444444",
     )
