@@ -172,6 +172,77 @@ def all_processes(request_endpoint: str):
     }
 
 
+def all_processes_reorder(request_endpoint: str):
+    return {
+        "processes": [
+            {
+                "title": "mirror",
+                "description": "A workflow to copy STAC items into a local mirror",
+                "id": "mirror",
+                "version": "2",
+                "jobControlOptions": ["async-execute"],
+                "handler_type": "argo-workflow",
+                "links": [
+                    {
+                        "href": "http://testserver/",
+                        "rel": "root",
+                        "type": "application/json",
+                    },
+                    {
+                        "href": "http://testserver/processes/mirror",
+                        "rel": "self",
+                        "type": "application/json",
+                    },
+                ],
+            },
+            {
+                "title": "Cirrus example workflow",
+                "description": "An example workflow config for a cirrus workflow",
+                "id": "cirrus-example",
+                "version": "1",
+                "jobControlOptions": ["async-execute"],
+                "handler_type": "cirrus-workflow",
+                "links": [
+                    {
+                        "href": "https://example.com/repo",
+                        "rel": "external",
+                        "type": "text/html",
+                        "title": "source repository",
+                    },
+                    {
+                        "href": "https://example.com/docs",
+                        "rel": "external",
+                        "type": "text/html",
+                        "title": "process documentation",
+                    },
+                    {
+                        "href": "http://testserver/",
+                        "rel": "root",
+                        "type": "application/json",
+                    },
+                    {
+                        "href": "http://testserver/processes/cirrus-example",
+                        "rel": "self",
+                        "type": "application/json",
+                    },
+                ],
+            },
+        ],
+        "links": [
+            {
+                "href": "http://testserver/",
+                "rel": "root",
+                "type": "application/json",
+            },
+            {
+                "href": f"http://testserver{request_endpoint}",
+                "rel": "self",
+                "type": "application/json",
+            },
+        ],
+    }
+
+
 mirror_workflow_process = {
     "title": "mirror",
     "description": "A workflow to copy STAC items into a local mirror",
@@ -360,7 +431,7 @@ async def test_get_all_processes_handler_multiple(test_client: TestClient) -> No
     url: str = "/processes/?handler=argo-handler&handler=cirrus-handler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == all_processes(url)
+    assert response.json() == all_processes_reorder(url)
 
 
 @pytest.mark.asyncio
@@ -384,7 +455,7 @@ async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
     url: str = "/processes/?type=argo-workflow&type=cirrus-workflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
-    assert response.json() == all_processes(url)
+    assert response.json() == all_processes_reorder(url)
 
 
 @pytest.mark.asyncio
