@@ -94,7 +94,9 @@ class Workflows(dict[str, Workflow]):
     @classmethod
     def from_yaml(cls, path: Path) -> Workflows:
         try:
-            workflows = yaml.safe_load(path.read_text())["workflows"]
+            workflows = dict(
+                sorted(dict(yaml.safe_load(path.read_text())["workflows"]).items())
+            )
             for name, workflow in workflows.items():
                 workflow["id"] = name
             return cls(**cls._type.parse_obj(workflows).__root__)

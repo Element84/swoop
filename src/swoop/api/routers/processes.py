@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Annotated
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse
 
 from buildpg import Values, render
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -30,6 +31,7 @@ async def list_workflows(
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
     handlers: Annotated[list[str] | None, Query(alias="handler")] = None,
     types: Annotated[list[str] | None, Query(alias="type")] = None,
+    lastID: Annotated[str | None, Query(alias="lastID")] = None,
 ) -> ProcessList | APIException:
     """
     Returns a list of all available workflows
@@ -48,17 +50,32 @@ async def list_workflows(
             _workflows += [wf for wf in workflows if wf.handler_type == _type]
         workflows = _workflows
 
+    index = 0
+    if lastID:
+        for w in workflows:
+            index += 1
+            if w.id == lastID:
+                break
+        workflows = workflows[index:] if index < len(workflows) else []
+
+    links = [
+        Link.root_link(request),
+        Link.self_link(href=str(request.url)),
+    ]
+
     if limit and limit < len(workflows):
+        url = urlparse(str(request.url))
+        query = dict(parse_qsl(url.query))
+        query.update({"lastID": workflows[limit - 1].id})
+        pagination_url = url._replace(query=urlencode(query)).geturl()
+        links.append(Link.rel_link(href=unquote(str(pagination_url))))
         workflows = workflows[:limit]
 
     return ProcessList(
         processes=[
             workflow.to_process_summary(request=request) for workflow in workflows
         ],
-        links=[
-            Link.root_link(request),
-            Link.self_link(href=str(request.url)),
-        ],
+        links=links,
     )
 
 

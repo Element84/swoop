@@ -56,6 +56,16 @@ class Link(BaseModel):
         attrs.update(**kwargs)
         return cls(**attrs)
 
+    @classmethod
+    def rel_link(cls, *, href: AnyUrl | str, **kwargs) -> Link:
+        attrs = dict(
+            href=href,
+            rel="next",
+            type="application/json",
+        )
+        attrs.update(**kwargs)
+        return cls(**attrs)
+
 
 class Subscriber(BaseModel):
     successUri: AnyUrl | None = None
