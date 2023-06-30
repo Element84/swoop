@@ -33,12 +33,12 @@ a_payload_details = deepcopy(a_payload)
 a_payload_details["links"].extend(
     [
         {
-            "href": "http://testserver/jobs/2595f2da-81a6-423c-84db-935e6791046e",
+            "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91",
             "rel": "job",
             "type": "application/json",
         },
         {
-            "href": "http://testserver/jobs/81842304-0aa9-4609-89f0-1c86819b0752",
+            "href": "http://testserver/jobs/0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
             "rel": "job",
             "type": "application/json",
         },
