@@ -1,20 +1,30 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from asyncpg import Record
 from fastapi import Request
-from pydantic import UUID5, BaseModel
+from pydantic import UUID5, BaseModel, validator
 
 from swoop.api.models.shared import Link
+
+
+class Invalid(BaseModel):
+    invalidAfter: datetime | Literal["now"]
+
+    @validator("invalidAfter")
+    def coerce_to_now(cls, v):
+        if v == "now":
+            return datetime.utcnow()
+        return v
 
 
 class PayloadCacheEntry(BaseModel):
     id: UUID5
     processID: str
     invalidAfter: datetime | None
-    invalidNow: bool | None = False
     links: list[Link] = []
 
     def __init__(

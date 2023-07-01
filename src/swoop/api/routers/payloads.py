@@ -3,9 +3,9 @@ from __future__ import annotations
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 
-from swoop.api.models.payloads import PayloadCacheEntry, PayloadCacheList
+from swoop.api.models.payloads import Invalid, PayloadCacheEntry, PayloadCacheList
 from swoop.api.models.shared import APIException, Link
 from swoop.api.models.workflows import Execute, Workflows
 
@@ -174,48 +174,26 @@ async def retrieve_payload_cache_entry_by_payload_input(
 async def update_input_payload_cache_entry_invalidation(
     request: Request,
     payloadID: UUID,
-    body: PayloadCacheEntry,
-) -> APIException:
+    body: Invalid,
+) -> Response | APIException:
     """
-    Updates input payload cache invalidation
+    Set invalidAfter property on a payload cache entry
     """
-
-    if body.id != payloadID:
-        raise HTTPException(
-            status_code=422, detail="Input id does not match payload ID"
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+            UPDATE
+                swoop.payload_cache
+                SET invalid_after = :invalid_after::timestamptz
+            WHERE
+                payload_uuid=:payload_id::uuid;
+            """,
+            payload_id=payloadID,
+            invalid_after=body.invalidAfter,
         )
-
-    response = ""
-    if body.invalidNow:
-        async with request.app.state.readpool.acquire() as conn:
-            q, p = render(
-                """
-                UPDATE
-                    swoop.payload_cache
-                SET invalid_after=now()
-                WHERE
-                    payload_uuid=:payload_id::uuid;
-                """,
-                payload_id=payloadID,
-            )
-            response = await conn.execute(q, *p)
-
-    else:
-        async with request.app.state.readpool.acquire() as conn:
-            q, p = render(
-                """
-                UPDATE
-                    swoop.payload_cache
-                SET invalid_after=:invalid_after::TIMESTAMPTZ
-                WHERE
-                    payload_uuid=:payload_id::uuid;
-                """,
-                payload_id=payloadID,
-                invalid_after=body.invalidAfter,
-            )
-            response = await conn.execute(q, *p)
+        response = await conn.execute(q, *p)
 
     if not response or response == "UPDATE 0":
         raise HTTPException(status_code=404, detail="Payload ID not found")
 
-    return response
+    return Response()

@@ -197,6 +197,20 @@ components:
       - $ref: '#/components/schemas/BinaryInputValue'
       - $ref: '#/components/schemas/Bbox'
       title: InputValueNoObject
+    Invalid:
+      properties:
+        invalidAfter:
+          anyOf:
+          - format: date-time
+            type: string
+          - enum:
+            - now
+            type: string
+          title: Invalidafter
+      required:
+      - invalidAfter
+      title: Invalid
+      type: object
     JobControlOptions:
       description: An enumeration.
       enum:
@@ -346,10 +360,6 @@ components:
           format: date-time
           title: Invalidafter
           type: string
-        invalidNow:
-          default: false
-          title: Invalidnow
-          type: boolean
         links:
           default: []
           items:
@@ -1247,7 +1257,7 @@ paths:
       - Payloads
   /payloadCacheEntries/{payloadID}/invalidate:
     post:
-      description: Updates input payload cache invalidation
+      description: Set invalidAfter property on a payload cache entry
       operationId: update_input_payload_cache_entry_invalidation_payloadCacheEntries__payloadID__invalidate_post
       parameters:
       - in: path
@@ -1261,7 +1271,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PayloadCacheEntry'
+              $ref: '#/components/schemas/Invalid'
         required: true
       responses:
         '200':

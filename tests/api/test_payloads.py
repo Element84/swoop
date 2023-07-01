@@ -657,14 +657,6 @@ no_payload_id_exception = {
     "detail": "No payload that matches payload uuid found",
 }
 
-payload_cache_invalid_after_input = {
-    "id": "ade69fe7-1d7d-572e-9f36-7242cc2aca77",
-    "processID": "string",
-    "invalidAfter": "2023-06-29T18:03:38.478Z",
-    "invalidNow": False,
-    "links": [],
-}
-
 
 # Tests for GET/payloads endpoint
 
@@ -756,32 +748,36 @@ async def test_retrieve_payload_cache_details(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_set_payload_cache_invalid_after(test_client: TestClient):
     response = test_client.post(
-        "/payloadCacheEntries/"
-        + payload_cache_invalid_after_input["id"]
-        + "/invalidate",
-        content=json.dumps(payload_cache_invalid_after_input),
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        content=json.dumps(
+            {
+                "invalidAfter": "2023-06-29T18:03:38.478Z",
+            }
+        ),
     )
     assert response.status_code == 200
+    response = test_client.get(
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/"
+    )
+    assert response.json()["invalidAfter"] == "2023-06-29T18:03:38.478000+00:00"
 
 
 @pytest.mark.asyncio
 async def test_set_payload_cache_invalid_after_invalidate_now(test_client: TestClient):
-    custom_payload_input = payload_cache_invalid_after_input
-    custom_payload_input["invalidNow"] = True
     response = test_client.post(
-        "/payloadCacheEntries/" + custom_payload_input["id"] + "/invalidate",
-        content=json.dumps(payload_cache_invalid_after_input),
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        content=json.dumps({"invalidAfter": "now"}),
     )
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_set_payload_cache_invalid_after_non_matching_payload(
+async def test_set_payload_cache_invalid_after_bad_value(
     test_client: TestClient,
 ):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca78/invalidate",
-        content=json.dumps(payload_cache_invalid_after_input),
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        content=json.dumps({"invalidAfter": "random-string"}),
     )
     assert response.status_code == 422
 
@@ -790,10 +786,12 @@ async def test_set_payload_cache_invalid_after_non_matching_payload(
 async def test_set_payload_cache_invalid_after_non_existing_payload(
     test_client: TestClient,
 ):
-    custom_payload_input = payload_cache_invalid_after_input
-    custom_payload_input["id"] = "ade69fe7-1d7d-572e-9f36-7242cc2aca78"
     response = test_client.post(
-        "/payloadCacheEntries/" + custom_payload_input["id"] + "/invalidate",
-        content=json.dumps(payload_cache_invalid_after_input),
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca78/invalidate",
+        content=json.dumps(
+            {
+                "invalidAfter": "2023-06-29T18:03:38.478Z",
+            }
+        ),
     )
     assert response.status_code == 404
