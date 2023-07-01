@@ -124,19 +124,19 @@ class StatusInfo(BaseModel):
     def from_action_record(
         cls, record: Record, request: Request | None = None
     ) -> StatusInfo:
+        status = status_dict[record["status"]]
+        is_terminal = status in ["successful", "failed", "dismissed"]
         return cls(
             processID=record["action_name"],
             type=Type("process"),
             jobID=str(record["action_uuid"]),
-            status=StatusCode(status_dict[record["status"]]),
+            status=StatusCode(status),
             created=record["created_at"],
             updated=record["last_update"],
             request=request,
             payload_uuid=record["payload_uuid"],
             started=record["started_at"],
-            finished=record["last_update"]
-            if status_dict[record["status"]] in ["successful", "failed", "dismissed"]
-            else None,
+            finished=record["last_update"] if is_terminal else None,
         )
 
 
