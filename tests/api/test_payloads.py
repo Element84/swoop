@@ -665,53 +665,6 @@ payload_cache_invalid_after_input = {
     "links": [],
 }
 
-{
-    "payloads": [
-        {
-            "id": "ade69fe7-1d7d-572e-9f36-7242cc2aca77",
-            "processID": "some_workflow",
-            "invalidAfter": None,
-            "links": [
-                {
-                    "href": "http://testserver/",
-                    "rel": "root",
-                    "type": "application/json",
-                },
-                {
-                    "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
-                    "rel": "self",
-                    "type": "application/json",
-                },
-            ],
-        },
-        {
-            "id": "5c46d3b6-17e4-5e31-bfb2-7918cf0b33a0",
-            "processID": "mirror",
-            "invalidAfter": None,
-            "links": [
-                {
-                    "href": "http://testserver/",
-                    "rel": "root",
-                    "type": "application/json",
-                },
-                {
-                    "href": "http://testserver/payloadCacheEntries/5c46d3b6-17e4-4e31-bfb2-7918cf0b33a0",
-                    "rel": "self",
-                    "type": "application/json",
-                },
-            ],
-        },
-    ],
-    "links": [
-        {"href": "http://testserver/", "rel": "root", "type": "application/json"},
-        {
-            "href": "http://testserver/payloadCacheEntries/",
-            "rel": "self",
-            "type": "application/json",
-        },
-    ],
-}
-
 
 # Tests for GET/payloads endpoint
 
