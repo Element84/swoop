@@ -25,40 +25,56 @@ async def list_input_payload_cache_entries(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
     processID: list[str] | None = Query(default=None),
+    lastID: UUID | None = None,
 ) -> PayloadCacheList | APIException:
     """
     Returns a list of cached input payloads and the association with workflow executions
     """
-    proc_clause = V("c.workflow_name") == funcs.any(processID)
+    proc_clause = V("workflow_name") == funcs.any(processID)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
             SELECT
-                c.payload_uuid as id,
-                c.workflow_name as "processID",
-                c.invalid_after as "invalidAfter"
-            FROM swoop.payload_cache AS c
+                payload_uuid as id,
+                workflow_name as "processID",
+                invalid_after as "invalidAfter"
+            FROM swoop.payload_cache
             WHERE
                 (:processes::text[] IS NULL OR :proc_where)
-            LIMIT :limit::integer
+                AND
+                (:last::uuid IS NULL OR payload_uuid > :last)
+            ORDER BY payload_uuid
+            LIMIT :limit
             """,
             processes=processID,
             proc_where=proc_clause,
-            limit=limit,
+            last=lastID,
+            limit=limit + 1,
         )
 
         records = await conn.fetch(q, *p)
+
+        links = [
+            Link.root_link(request),
+            Link.self_link(href=str(request.url)),
+        ]
+
+        if len(records) > limit:
+            records.pop(-1)
+            lastID = records[-1]["id"]
+            links.append(
+                Link.next_link(
+                    href=str(request.url.include_query_params(lastID=lastID)),
+                ),
+            )
 
         return PayloadCacheList(
             payloads=[
                 PayloadCacheEntry.from_cache_record(record, request)
                 for record in records
             ],
-            links=[
-                Link.root_link(request),
-                Link.self_link(href=str(request.url)),
-            ],
+            links=links,
         )
 
 
