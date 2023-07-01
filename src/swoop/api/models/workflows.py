@@ -96,7 +96,7 @@ class Workflows(dict[str, Workflow]):
     def from_yaml(cls, path: Path) -> Workflows:
         try:
             workflows = dict(
-                sorted(dict(yaml.safe_load(path.read_text())["workflows"]).items())
+                sorted(yaml.safe_load(path.read_text())["workflows"].items())
             )
             for name, workflow in workflows.items():
                 workflow["id"] = name
