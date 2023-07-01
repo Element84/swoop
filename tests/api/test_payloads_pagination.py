@@ -31,7 +31,7 @@ $$;
 
 
 @pytest.mark.asyncio
-async def test_get_payloads_filter_limit_test(test_client: TestClient, database: str):
+async def test_get_payloads_pagination(test_client: TestClient, database: str):
     await SwoopDB.execute_sql(sql, database=database)
 
     # get first page
