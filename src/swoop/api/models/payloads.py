@@ -1,28 +1,85 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel
+from asyncpg import Record
+from fastapi import Request
+from pydantic import UUID5, BaseModel, validator
 
-from ..models import JobSummary, Link
-
-
-class PayloadSummary(BaseModel):
-    payload_id: str | None = None
-    href: str | None = None
-    type: str | None = None
+from swoop.api.models.shared import Link
 
 
-class PayloadList(BaseModel):
-    payloads: list[PayloadSummary]
+class Invalid(BaseModel):
+    invalidAfter: datetime | Literal["now"]
+
+    @validator("invalidAfter")
+    def coerce_to_now(cls, v):
+        if v == "now":
+            return datetime.utcnow()
+        return v
+
+
+class PayloadCacheEntry(BaseModel):
+    id: UUID5
+    processID: str
+    invalidAfter: datetime | None
+    links: list[Link] = []
+
+    def __init__(
+        self,
+        request: Request | None = None,
+        jobIDs: list[UUID] | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+
+        if request:
+            self.links += [
+                Link.root_link(request),
+                Link.self_link(
+                    href=str(
+                        request.url_for(
+                            "get_input_payload_cache_entry", payloadID=self.id
+                        )
+                    ),
+                ),
+            ]
+
+        if request and jobIDs:
+            for job_id in jobIDs:
+                self.links.append(
+                    Link(
+                        href=str(
+                            request.url_for(
+                                "get_workflow_execution_details", jobID=job_id
+                            )
+                        ),
+                        type="application/json",
+                        # TODO: verify appropriate rel
+                        rel="job",
+                    )
+                )
+
+    @classmethod
+    def from_cache_record(
+        cls,
+        record: Record,
+        request: Request | None = None,
+    ):
+        return cls(request=request, **record)
+
+
+class PayloadCacheList(BaseModel):
+    payloads: list[PayloadCacheEntry]
     links: list[Link]
 
+    def __init__(self, request: Request | None = None, **kwargs) -> None:
+        super().__init__(**kwargs)
 
-class PayloadInfo(BaseModel):
-    payload_id: str | None = None
-    payload_hash: bytes | None = None
-    workflow_version: int | None = None
-    workflow_name: str | None = None
-    created_at: datetime | None = None
-    invalid_after: datetime | None = None
-    jobs: list[JobSummary] | None = None
+        if request:
+            self.links += [
+                Link.root_link(request),
+                Link.self_link(href=str(request.url)),
+            ]

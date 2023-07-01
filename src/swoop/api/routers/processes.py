@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated
 
 from buildpg import Values, render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 
-from swoop.api.models import Exception as APIException
-from swoop.api.models import Link, Process, ProcessList, ProcessSummary, StatusInfo
-from swoop.api.models.workflows import Execute, Workflow
-from swoop.api.routers.jobs import get_job_status
+from swoop.api.models.jobs import StatusInfo
+from swoop.api.models.shared import APIException, Link
+from swoop.api.models.workflows import (
+    Execute,
+    Process,
+    ProcessList,
+    Workflow,
+    Workflows,
+)
+from swoop.api.routers.jobs import get_workflow_execution_details
 
 DEFAULT_PROCESS_LIMIT = 1000
 
@@ -19,94 +25,94 @@ router: APIRouter = APIRouter(
 )
 
 
-class Params(BaseModel):
-    process_id: str | None
-    version: str | None
-    title: str | None
-    description: str | None
-    handler: str | None
-
-
-def to_process_summary(workflowConfig: Workflow) -> ProcessSummary:
-    return ProcessSummary(
-        id=workflowConfig.name,
-        title=workflowConfig.name,
-        name=workflowConfig.name,
-        processID=workflowConfig.name,
-        version=str(workflowConfig.version),
-        description=workflowConfig.description,
-        handler=workflowConfig.handler,
-        cacheKeyHashIncludes=workflowConfig.cache_key_hash_includes,
-        cacheKeyHashExcludes=workflowConfig.cache_key_hash_excludes,
-    )
-
-
-def processes_parameter_translation(workflowConfig: dict) -> dict:
-    if workflowConfig.get("process_id"):
-        workflowConfig["name"] = workflowConfig.pop("process_id")
-    if workflowConfig.get("version"):
-        workflowConfig["version"] = int(workflowConfig["version"])
-    return workflowConfig
-
-
 @router.get(
     "/",
     response_model=ProcessList,
-    responses={"404": {"model": APIException}},
+    responses={},
+    response_model_exclude_unset=True,
 )
-async def list_processes(
+async def list_workflows(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PROCESS_LIMIT),
-    params: Params = Depends(),
+    handlers: Annotated[list[str] | None, Query(alias="handler")] = None,
+    types: Annotated[list[str] | None, Query(alias="type")] = None,
+    lastID: Annotated[str | None, Query(alias="lastID")] = None,
 ) -> ProcessList | APIException:
     """
-    retrieve the list of available processes
+    Returns a list of all available workflows
     """
-    queryparams = processes_parameter_translation(params.dict(exclude_none=True))
     workflows: list[Workflow] = list(request.app.state.workflows.values())
 
-    if queryparams:
-        workflows = [wf for wf in workflows if queryparams.items() <= wf.dict().items()]
+    if handlers:
+        _workflows: list[Workflow] = []
+        for handler in handlers:
+            _workflows += [wf for wf in workflows if wf.handler_name == handler]
+        workflows = _workflows
+
+    if types:
+        _workflows: list[Workflow] = []
+        for _type in types:
+            _workflows += [wf for wf in workflows if wf.handler_type == _type]
+        workflows = _workflows
+
+    index = 0
+    if lastID:
+        for w in workflows:
+            index += 1
+            if w.id == lastID:
+                break
+        workflows = workflows[index:] if index < len(workflows) else []
+
+    links = [
+        Link.root_link(request),
+        Link.self_link(href=str(request.url)),
+    ]
 
     if limit and limit < len(workflows):
+        links.append(
+            Link.next_link(
+                href=str(
+                    request.url.include_query_params(lastID=workflows[limit - 1].id)
+                ),
+            )
+        )
         workflows = workflows[:limit]
 
     return ProcessList(
-        processes=[to_process_summary(workflow) for workflow in workflows],
-        links=[
-            Link(
-                href="http://www.example.com",
-            )
+        processes=[
+            workflow.to_process_summary(request=request) for workflow in workflows
         ],
+        links=links,
     )
 
 
 @router.get(
-    "/{process_id}",
+    "/{processID}",
     response_model=Process,
     responses={
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
+    response_model_exclude_unset=True,
 )
-async def get_process_description(
-    request: Request, process_id
-) -> ProcessSummary | APIException:
+async def get_workflow_description(
+    request: Request, processID
+) -> Process | APIException:
     """
-    retrieve a process description
+    Returns workflow details by processID
     """
     workflows = request.app.state.workflows
 
     try:
-        workflow = workflows[process_id]
+        workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Process not found")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    return to_process_summary(workflow)
+    return workflow.to_process(request=request)
 
 
 @router.post(
-    "/{process_id}/execution",
+    "/{processID}/execution",
     response_model=None,
     responses={
         "201": {"model": StatusInfo},
@@ -115,34 +121,37 @@ async def get_process_description(
         "422": {"model": APIException},
     },
     status_code=201,
+    response_model_exclude_unset=True,
 )
-async def execute_process(
-    process_id: str,
+async def execute_workflow(
+    processID: str,
     request: Request,
     body: Execute,
 ) -> RedirectResponse | StatusInfo | APIException:
     """
-    execute a process.
+    Starts a workflow execution (Job)
     """
 
-    payload = body.dict().get("inputs", {}).get("payload", {})
+    payload = body.inputs.payload
 
-    wf_name = payload.get("process", [{}])[0].get("workflow")
-    if process_id != wf_name:
+    wf_name = payload.current_process_definition().workflow
+
+    if processID != wf_name:
         raise HTTPException(
             status_code=422, detail="Workflow name in payload does not match process ID"
         )
 
-    workflows = request.app.state.workflows
+    workflows: Workflows = request.app.state.workflows
 
     try:
-        workflow = workflows[process_id]
+        workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Process not found")
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    hashed_pl = workflow.hash_payload(payload=payload)
+    payload_uuid = workflow.generate_payload_uuid(payload)
 
-    lock_id = int.from_bytes(hashed_pl[:3])
+    # cut the uuid down into a 32-bit int for use as a lock value
+    lock_id = payload_uuid.int & 0xFFFF
 
     async with request.app.state.writepool.acquire() as conn:
         async with conn.transaction():
@@ -160,33 +169,35 @@ async def execute_process(
             q, p = render(
                 """
                 SELECT swoop.find_cached_action_for_payload(
-                    :plhash,
+                    :payload_uuid,
                     :wf_version::smallint
                 )
                 """,
-                plhash=hashed_pl,
+                payload_uuid=payload_uuid,
                 wf_version=workflow.version,
             )
             action_uuid = await conn.fetchval(q, *p)
 
             if action_uuid:
                 return RedirectResponse(
-                    request.url_for("get_job_status", job_id=action_uuid),
+                    request.url_for(
+                        "get_workflow_execution_details", jobID=action_uuid
+                    ),
                     status_code=303,
                 )
 
             q, p = render(
                 """
                 INSERT INTO swoop.payload_cache (:values__names) VALUES :values
-                ON CONFLICT (payload_hash) DO UPDATE
+                ON CONFLICT (payload_uuid) DO UPDATE
                 SET invalid_after = NULL
-                RETURNING payload_uuid;
                 """,
-                values=Values(payload_hash=hashed_pl, workflow_name=workflow.name),
+                values=Values(
+                    payload_uuid=payload_uuid,
+                    workflow_name=workflow.id,
+                ),
             )
-            pl_uuid = await conn.fetchval(q, *p)
-
-            # Insert into action table
+            await conn.execute(q, *p)
 
             q, p = render(
                 """
@@ -196,20 +207,18 @@ async def execute_process(
                 """,
                 values=Values(
                     action_type="workflow",
-                    action_name=workflow.name,
-                    handler_name=workflow.handler,
+                    action_name=workflow.id,
+                    handler_name=workflow.handler_name,
+                    handler_type=workflow.handler_type,
                     workflow_version=workflow.version,
-                    payload_uuid=pl_uuid,
+                    payload_uuid=payload_uuid,
                 ),
             )
-            rec = await conn.fetchrow(q, *p)
-            action_uuid = str(rec["action_uuid"])
-
-            # Write to object storage
+            action_uuid = await conn.fetchval(q, *p)
 
             request.app.state.io.put_object(
                 object_name=f"executions/{action_uuid}/input.json",
-                object_content=json.dumps(payload),
+                object_content=json.dumps(payload.dict()),
             )
 
-    return await get_job_status(request, job_id=action_uuid)
+    return await get_workflow_execution_details(request, jobID=action_uuid)

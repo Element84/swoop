@@ -16,9 +16,7 @@ async def test_read_main(test_client):
         "links": [
             {
                 "href": "http://testserver/conformance",
-                "hreflang": None,
                 "rel": "http://www.opengis.net/def/rel/ogc/1.0/conformance",
-                "title": None,
                 "type": "application/json",
             },
         ],

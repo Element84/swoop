@@ -3,12 +3,14 @@ from fastapi import FastAPI
 from swoop.api.config import Settings
 from swoop.api.db import close_db_connection, connect_to_db
 from swoop.api.io import IOClient
-from swoop.api.routers import jobs, metrics, payloads, processes, root
+from swoop.api.routers import jobs, payloads, processes, root
 from swoop.api.workflows import init_workflows_config
 
 
 def get_app() -> FastAPI:
-    app: FastAPI = FastAPI()
+    app: FastAPI = FastAPI(
+        title="swoop-api",
+    )
 
     app.state.settings = Settings()
 
@@ -42,10 +44,7 @@ def get_app() -> FastAPI:
     )
     app.include_router(
         payloads.router,
-        prefix="/payloads",
-    )
-    app.include_router(
-        metrics.router,
+        prefix="/payloadCacheEntries",
     )
 
     return app

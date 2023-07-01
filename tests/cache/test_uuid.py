@@ -1,10 +1,10 @@
 # ruff: noqa: E501
 
-from swoop.cache.hashing import hash_dict
 from swoop.cache.types import JSONFilter
+from swoop.cache.uuid import generate_payload_uuid
 
 
-def test_hashing():
+def test_generate_payload_uuid():
     includes = [
         ".process.workflow",
         ".features[].id",
@@ -16,8 +16,11 @@ def test_hashing():
     ]
     f = JSONFilter(includes, excludes)
     result = f(payload_3)
-    hashed = hash_dict(result)
-    assert hashed == b'>\xca\x96\xc5\xd2\xa3\x02:\xd5\xd7\xe0nyy\xc0KW\x16"\x15'
+    payload_uuid = generate_payload_uuid(
+        payload_3["process"]["workflow"],
+        result,
+    )
+    assert str(payload_uuid) == "6db45591-11ba-5638-9e8c-96ab5fc7cda3"
 
 
 payload_3 = {

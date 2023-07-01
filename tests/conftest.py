@@ -152,7 +152,6 @@ def test_app(database, bucket_name):
     app = get_app()
     app.state.settings.db_name = database
     app.state.settings.bucket_name = bucket_name
-    print(app.state.settings)
     return app
 
 

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from ..models import ConfClasses
-from ..models import Exception as APIException
-from ..models import LandingPage, Link
+from swoop.api.models.root import ConfClasses, LandingPage
+from swoop.api.models.shared import APIException, Link
 
 router: APIRouter = APIRouter()
 
@@ -27,7 +26,6 @@ def get_landing_page(request: Request) -> LandingPage | APIException:
                 href=str(request.url_for("get_conformance_classes")),
                 rel="http://www.opengis.net/def/rel/ogc/1.0/conformance",
                 type="application/json",
-                hreflang=None,
             ),
         ],
     )

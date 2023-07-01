@@ -2,20 +2,30 @@ workflows:
   mirror:
     description: "A workflow to copy STAC items into a local mirror"
     version: 2
-    handler: argo-handler
-    type: argo-workflow
-    argo_template: workflowtemplate/mirror-workflow
-    cache_key_hash_includes:
+    handler_name: argo-handler
+    handler_type: argo-workflow
+    argoTemplate: workflowtemplate/mirror-workflow
+    cacheKeyHashIncludes:
       - .features[].id
       - .features[].collection
-    cache_key_hash_excludes: []
+    cacheKeyHashExcludes: []
   cirrus-example:
+    title: "Cirrus example workflow"
     description: "An example workflow config for a cirrus workflow"
     version: 1
-    handler: cirrus-handler
-    type: cirrus-workflow
-    sfn_arn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
-    cache_key_hash_includes:
+    handler_name: cirrus-handler
+    handler_type: cirrus-workflow
+    sfnArn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
+    cacheKeyHashIncludes:
       - .features[].id
       - .features[].collection
-    cache_key_hash_excludes: []
+    cacheKeyHashExcludes: []
+    links:
+      - href: https://example.com/repo
+        rel: external
+        type: text/html
+        title: "source repository"
+      - href: https://example.com/docs
+        rel: external
+        type: text/html
+        title: "process documentation"

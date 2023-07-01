@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from asyncpg import Record
-from buildpg import V, funcs, render
-from fastapi import APIRouter, HTTPException, Path, Query, Request
+from uuid import UUID
 
-from ..models import Exception as APIException
-from ..models import InlineResponse200, JobSummary, Link, StatusInfo
-from ..models.payloads import PayloadInfo, PayloadList, PayloadSummary
+from buildpg import V, funcs, render
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+
+from swoop.api.models.payloads import Invalid, PayloadCacheEntry, PayloadCacheList
+from swoop.api.models.shared import APIException, Link
+from swoop.api.models.workflows import Execute, Workflows
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -15,140 +16,184 @@ router: APIRouter = APIRouter(
 )
 
 
-def to_payload_summary(record: Record, request: Request) -> PayloadSummary:
-    return PayloadSummary(
-        payload_id=str(record["payload_uuid"]),
-        href=str(
-            request.url_for("get_payload_status", payload_id=record["payload_uuid"])
-        ),
-        type="payload",
-    )
-
-
-def to_job_summary(action_uuid: str, request: Request) -> JobSummary:
-    return JobSummary(
-        job_id=action_uuid,
-        href=str(request.url_for("get_job_status", job_id=action_uuid)),
-        type="job",
-    )
-
-
-# The behavior here more or less requires we store payloads with a single
-# unique key. That is, we need unique key in addition to the unique composite
-# key formed by process_id and item collections and IDs.
-
-
-@router.get("/", response_model=PayloadList)
-async def list_payloads(
+@router.get(
+    "/",
+    response_model=PayloadCacheList,
+    response_model_exclude_unset=True,
+)
+async def list_input_payload_cache_entries(
     request: Request,
     limit: int = Query(ge=1, default=DEFAULT_PAYLOAD_LIMIT),
-    process_id: list[str] | None = Query(default=None),
-) -> PayloadList | APIException:
+    processID: list[str] | None = Query(default=None),
+    lastID: UUID | None = None,
+) -> PayloadCacheList | APIException:
     """
-    retrieve the list of payloads.
+    Returns a list of cached input payloads and the association with workflow executions
     """
-    proc_clause = V("c.workflow_name") == funcs.any(process_id)
+    proc_clause = V("workflow_name") == funcs.any(processID)
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
             SELECT
-                DISTINCT(c.payload_uuid)
-            FROM swoop.payload_cache AS c
+                payload_uuid as id,
+                workflow_name as "processID",
+                invalid_after as "invalidAfter"
+            FROM swoop.payload_cache
             WHERE
                 (:processes::text[] IS NULL OR :proc_where)
-            LIMIT :limit::integer
+                AND
+                (:last::uuid IS NULL OR payload_uuid > :last)
+            ORDER BY payload_uuid
+            LIMIT :limit
             """,
-            processes=process_id,
+            processes=processID,
             proc_where=proc_clause,
-            limit=limit,
+            last=lastID,
+            limit=limit + 1,
         )
 
         records = await conn.fetch(q, *p)
 
-        return PayloadList(
-            payloads=[to_payload_summary(record, request) for record in records],
-            links=[
-                Link(
-                    href="http://www.example.com",
-                )
+        links = [
+            Link.root_link(request),
+            Link.self_link(href=str(request.url)),
+        ]
+
+        if len(records) > limit:
+            records.pop(-1)
+            lastID = records[-1]["id"]
+            links.append(
+                Link.next_link(
+                    href=str(request.url.include_query_params(lastID=lastID)),
+                ),
+            )
+
+        return PayloadCacheList(
+            payloads=[
+                PayloadCacheEntry.from_cache_record(record, request)
+                for record in records
             ],
+            links=links,
         )
 
 
-@router.get(
-    "/{payload_id}",
-    response_model=PayloadInfo,
-    responses={
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-)
-async def get_payload_status(
-    request: Request, payload_id
-) -> PayloadInfo | APIException:
-    """
-    retrieve info for a payload
-    """
-
+async def get_payload_cache_entry_from_db(
+    request: Request,
+    payload_uuid: UUID,
+) -> PayloadCacheEntry:
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
-                SELECT
-                c.payload_uuid,
-                c.payload_hash,
-                (SELECT MAX(workflow_version) FROM swoop.action
-                 WHERE payload_uuid = c.payload_uuid) AS workflow_version,
-                c.workflow_name,
-                c.created_at,
-                c.invalid_after,
+            SELECT
+                c.payload_uuid as id,
+                c.workflow_name as "processID",
+                c.invalid_after as "invalidAfter",
                 array(
                     SELECT
-                    action_uuid
+                        action_uuid
                     FROM swoop.action
                     WHERE
-                    payload_uuid = c.payload_uuid
-                ) AS action_uuids
-                FROM swoop.payload_cache AS c
-                WHERE
+                        payload_uuid = c.payload_uuid
+                    ORDER BY created_at DESC
+                ) AS "jobIDs"
+            FROM swoop.payload_cache AS c
+            WHERE
                 c.payload_uuid = :payload_id::uuid
-
             """,
-            payload_id=payload_id,
+            payload_id=payload_uuid,
         )
-        records = await conn.fetch(q, *p)
+        record = await conn.fetchrow(q, *p)
 
-        if not records:
-            raise HTTPException(
-                status_code=404, detail="No payload that matches payload uuid found"
-            )
-
-        actionids = {str(record) for record in records[0]["action_uuids"]}
-
-        return PayloadInfo(
-            payload_id=payload_id,
-            payload_hash=str(records[0]["payload_hash"]),
-            workflow_version=records[0]["workflow_version"],
-            workflow_name=records[0]["workflow_name"],
-            created_at=records[0]["created_at"],
-            invalid_after=records[0]["invalid_after"],
-            jobs=[to_job_summary(a, request) for a in actionids],
+    if not record:
+        raise HTTPException(
+            status_code=404, detail="No payload that matches payload uuid found"
         )
 
+    return PayloadCacheEntry.from_cache_record(record, request)
 
-@router.post(
-    "/{payload_id}/rerun",
-    response_model=InlineResponse200,
+
+@router.get(
+    "/{payloadID}",
+    response_model=PayloadCacheEntry,
     responses={
-        "201": {"model": StatusInfo},
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
+    response_model_exclude_unset=True,
 )
-def rerun_payload(
-    payload_id: str = Path(..., alias="payloadId"),
-) -> InlineResponse200 | StatusInfo | APIException:
+async def get_input_payload_cache_entry(
+    request: Request,
+    payloadID: UUID,
+) -> PayloadCacheEntry | APIException:
     """
-    rerun a payload.
+    Retrieve details of cached input payload by payloadID
     """
-    pass
+    return await get_payload_cache_entry_from_db(request, payloadID)
+
+
+@router.post(
+    "/",
+    response_model=PayloadCacheEntry,
+    responses={
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+    response_model_exclude_unset=True,
+)
+async def retrieve_payload_cache_entry_by_payload_input(
+    request: Request,
+    body: Execute,
+) -> PayloadCacheEntry | APIException:
+    """
+    Retrieves details of cached input payload via a payload hash lookup
+    """
+
+    payload = body.inputs.payload
+    workflows: Workflows = request.app.state.workflows
+
+    try:
+        workflow = workflows[payload.current_process_definition().workflow]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    payload_uuid = workflow.generate_payload_uuid(payload)
+    return await get_payload_cache_entry_from_db(request, payload_uuid)
+
+
+@router.post(
+    "/{payloadID}/invalidate",
+    response_model=None,
+    responses={
+        "404": {"model": APIException},
+        "422": {"model": APIException},
+        "500": {"model": APIException},
+    },
+    response_model_exclude_unset=True,
+)
+async def update_input_payload_cache_entry_invalidation(
+    request: Request,
+    payloadID: UUID,
+    body: Invalid,
+) -> Response | APIException:
+    """
+    Set invalidAfter property on a payload cache entry
+    """
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+            UPDATE
+                swoop.payload_cache
+                SET invalid_after = :invalid_after::timestamptz
+            WHERE
+                payload_uuid=:payload_id::uuid;
+            """,
+            payload_id=payloadID,
+            invalid_after=body.invalidAfter,
+        )
+        response = await conn.execute(q, *p)
+
+    if not response or response == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Payload ID not found")
+
+    return Response()
