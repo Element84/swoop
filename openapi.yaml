@@ -976,6 +976,13 @@ paths:
         schema:
           title: Maxduration
           type: integer
+      - in: query
+        name: lastID
+        required: false
+        schema:
+          format: uuid
+          title: Lastid
+          type: string
       responses:
         '200':
           content:

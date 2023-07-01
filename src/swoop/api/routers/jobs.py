@@ -44,6 +44,7 @@ async def list_workflow_executions(
     datetime: Annotated[str, Query()] = None,
     minDuration: Annotated[int, Query()] = None,
     maxDuration: Annotated[int, Query()] = None,
+    lastID: UUID | None = None,
 ) -> JobList | APIException:
     """
     Returns a list of all available workflow executions
@@ -139,50 +140,54 @@ async def list_workflow_executions(
                     a.created_at = :dt::TIMESTAMPTZ
                     OR :dt::TIMESTAMPTZ IS NULL
                 )
-                LIMIT :limit::integer
             )
             SELECT *
             FROM jobs
             WHERE
                 (
-                    duration IS NOT NULL
+                    (
+                        duration IS NOT NULL
 
-                    AND
-                    (
-                        duration >= :min_duration::integer
-                        OR :min_duration::integer IS NULL
+                        AND
+                        (
+                            duration >= :min_duration::integer
+                            OR :min_duration::integer IS NULL
+                        )
+                        AND
+                        (
+                            duration <= :max_duration::integer
+                            OR :max_duration::integer IS NULL
+                        )
+                        AND
+                        (
+                            CASE
+                                WHEN :status::text[] IS NULL AND
+                                    (:min_duration::integer IS NOT NULL OR
+                                    :max_duration::integer IS NOT NULL)
+                                THEN :dur_status_where ELSE TRUE
+                            END
+                        )
                     )
-                    AND
-                    (
-                        duration <= :max_duration::integer
-                        OR :max_duration::integer IS NULL
-                    )
-                    AND
-                    (
+
+                    OR (
                         CASE
-                            WHEN :status::text[] IS NULL AND
+                            WHEN duration IS NULL AND
                                 (:min_duration::integer IS NOT NULL OR
                                 :max_duration::integer IS NOT NULL)
-                            THEN :dur_status_where ELSE TRUE
+                            THEN :dur_status_where
                         END
                     )
+
+                    OR (
+                        duration IS NULL
+                        AND (:min_duration::integer IS NULL AND
+                            :max_duration::integer IS NULL)
+                    )
                 )
-
-                OR (
-                    CASE
-                        WHEN duration IS NULL AND
-                            (:min_duration::integer IS NOT NULL OR
-                            :max_duration::integer IS NOT NULL)
-                        THEN :dur_status_where
-                    END
-                )
-
-                OR (
-                    duration IS NULL
-                    AND (:min_duration::integer IS NULL AND
-                        :max_duration::integer IS NULL)
-                );
-
+                AND
+                (:last::uuid IS NULL OR action_uuid < :last)
+            ORDER BY action_uuid DESC
+            LIMIT :limit
             """,
             processes=processID,
             proc_where=proc_clause,
@@ -199,18 +204,30 @@ async def list_workflow_executions(
             start_datetime=start,
             end_datetime=end,
             dt=dt,
-            limit=limit,
+            limit=limit + 1,
             min_duration=minDuration,
             max_duration=maxDuration,
+            last=lastID,
         )
         records = await conn.fetch(q, *p)
 
+    links = [
+        Link.root_link(request),
+        Link.self_link(href=str(request.url)),
+    ]
+
+    if len(records) > limit:
+        records.pop(-1)
+        lastID = records[-1]["action_uuid"]
+        links.append(
+            Link.next_link(
+                href=str(request.url.include_query_params(lastID=lastID)),
+            ),
+        )
+
     return JobList(
         jobs=[StatusInfo.from_action_record(group, request) for group in records],
-        links=[
-            Link.root_link(request),
-            Link.self_link(href=str(request.url)),
-        ],
+        links=links,
     )
 
 

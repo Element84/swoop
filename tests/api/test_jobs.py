@@ -130,8 +130,8 @@ def single_job(request_endpoint: str):
 def all_jobs(request_endpoint: str):
     return {
         "jobs": [
-            another_job,
             a_job,
+            another_job,
         ],
         "links": [
             {
