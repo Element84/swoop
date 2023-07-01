@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from typing import Annotated
-from urllib.parse import parse_qsl, unquote, urlencode, urlparse
 
 from buildpg import Values, render
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -70,11 +69,13 @@ async def list_workflows(
     ]
 
     if limit and limit < len(workflows):
-        url = urlparse(str(request.url))
-        query = dict(parse_qsl(url.query))
-        query.update({"lastID": workflows[limit - 1].id})
-        pagination_url = url._replace(query=urlencode(query)).geturl()
-        links.append(Link.rel_link(href=unquote(str(pagination_url))))
+        links.append(
+            Link.next_link(
+                href=str(
+                    request.url.include_query_params(lastID=workflows[limit - 1].id)
+                ),
+            )
+        )
         workflows = workflows[:limit]
 
     return ProcessList(

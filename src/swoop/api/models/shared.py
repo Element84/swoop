@@ -57,7 +57,7 @@ class Link(BaseModel):
         return cls(**attrs)
 
     @classmethod
-    def rel_link(cls, *, href: AnyUrl | str, **kwargs) -> Link:
+    def next_link(cls, *, href: AnyUrl | str, **kwargs) -> Link:
         attrs = dict(
             href=href,
             rel="next",
