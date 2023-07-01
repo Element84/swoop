@@ -8,7 +8,9 @@ from swoop.api.workflows import init_workflows_config
 
 
 def get_app() -> FastAPI:
-    app: FastAPI = FastAPI()
+    app: FastAPI = FastAPI(
+        title="swoop-api",
+    )
 
     app.state.settings = Settings()
 

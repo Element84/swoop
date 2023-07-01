@@ -1,0 +1,1415 @@
+components:
+  schemas:
+    APIException:
+      properties:
+        detail:
+          title: Detail
+          type: string
+        instance:
+          title: Instance
+          type: string
+        status:
+          title: Status
+          type: integer
+        title:
+          title: Title
+          type: string
+        type:
+          title: Type
+          type: string
+      required:
+      - type
+      title: APIException
+      type: object
+    AdditionalParameter:
+      properties:
+        name:
+          title: Name
+          type: string
+        value:
+          items:
+            anyOf:
+            - type: string
+            - type: number
+            - type: integer
+            - items:
+                type: object
+              type: array
+            - type: object
+          title: Value
+          type: array
+      required:
+      - name
+      - value
+      title: AdditionalParameter
+      type: object
+    AdditionalParameters:
+      properties:
+        href:
+          title: Href
+          type: string
+        parameters:
+          items:
+            $ref: '#/components/schemas/AdditionalParameter'
+          title: Parameters
+          type: array
+        role:
+          title: Role
+          type: string
+        title:
+          title: Title
+          type: string
+      title: AdditionalParameters
+      type: object
+    Bbox:
+      properties:
+        bbox:
+          items:
+            type: number
+          title: Bbox
+          type: array
+        crs:
+          allOf:
+          - $ref: '#/components/schemas/Crs'
+          default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+      required:
+      - bbox
+      title: Bbox
+      type: object
+    BinaryInputValue:
+      title: BinaryInputValue
+      type: string
+    ConfClasses:
+      properties:
+        conformsTo:
+          items:
+            type: string
+          title: Conformsto
+          type: array
+      required:
+      - conformsTo
+      title: ConfClasses
+      type: object
+    Crs:
+      description: An enumeration.
+      enum:
+      - http://www.opengis.net/def/crs/OGC/1.3/CRS84
+      - http://www.opengis.net/def/crs/OGC/0/CRS84h
+      title: Crs
+    Execute:
+      properties:
+        inputs:
+          $ref: '#/components/schemas/InputPayload'
+        response:
+          default: document
+          enum:
+          - document
+          title: Response
+          type: string
+      required:
+      - inputs
+      title: Execute
+      type: object
+    Feature:
+      properties:
+        collection:
+          title: Collection
+          type: string
+        id:
+          title: Id
+          type: string
+      required:
+      - id
+      title: Feature
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    InlineOrRefData:
+      anyOf:
+      - $ref: '#/components/schemas/InputValueNoObject'
+      - $ref: '#/components/schemas/QualifiedInputValue'
+      - $ref: '#/components/schemas/Link'
+      title: InlineOrRefData
+    InputDescription:
+      properties:
+        additionalParameters:
+          $ref: '#/components/schemas/AdditionalParameters'
+        description:
+          title: Description
+          type: string
+        keywords:
+          items:
+            type: string
+          title: Keywords
+          type: array
+        maxOccurs:
+          anyOf:
+          - type: integer
+          - $ref: '#/components/schemas/MaxOccur'
+          title: Maxoccurs
+        metadata:
+          items:
+            $ref: '#/components/schemas/Metadata'
+          title: Metadata
+          type: array
+        minOccurs:
+          default: 1
+          title: Minoccurs
+          type: integer
+        schema:
+          $ref: '#/components/schemas/Schema'
+        title:
+          title: Title
+          type: string
+      required:
+      - schema
+      title: InputDescription
+      type: object
+    InputPayload:
+      properties:
+        payload:
+          $ref: '#/components/schemas/Payload'
+      required:
+      - payload
+      title: InputPayload
+      type: object
+    InputValue:
+      anyOf:
+      - $ref: '#/components/schemas/InputValueNoObject'
+      - type: object
+      title: InputValue
+    InputValueNoObject:
+      anyOf:
+      - type: string
+      - type: number
+      - type: integer
+      - type: boolean
+      - items:
+          type: string
+        type: array
+      - $ref: '#/components/schemas/BinaryInputValue'
+      - $ref: '#/components/schemas/Bbox'
+      title: InputValueNoObject
+    JobControlOptions:
+      description: An enumeration.
+      enum:
+      - async-execute
+      title: JobControlOptions
+    JobList:
+      properties:
+        jobs:
+          items:
+            $ref: '#/components/schemas/StatusInfo'
+          title: Jobs
+          type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+      required:
+      - jobs
+      - links
+      title: JobList
+      type: object
+    LandingPage:
+      properties:
+        description:
+          example: Example server implementing the OGC API - Processes 1.0 Standard
+          title: Description
+          type: string
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        title:
+          example: Example processing server
+          title: Title
+          type: string
+      required:
+      - links
+      title: LandingPage
+      type: object
+    Link:
+      properties:
+        href:
+          format: uri
+          maxLength: 65536
+          minLength: 1
+          title: Href
+          type: string
+        hreflang:
+          title: Hreflang
+          type: string
+        rel:
+          example: service
+          title: Rel
+          type: string
+        title:
+          title: Title
+          type: string
+        type:
+          example: application/json
+          title: Type
+          type: string
+      required:
+      - href
+      - rel
+      - type
+      title: Link
+      type: object
+    MaxOccur:
+      description: An enumeration.
+      enum:
+      - unbounded
+      title: MaxOccur
+    Metadata:
+      properties:
+        href:
+          title: Href
+          type: string
+        role:
+          title: Role
+          type: string
+        title:
+          title: Title
+          type: string
+      title: Metadata
+      type: object
+    OutputDescription:
+      properties:
+        additionalParameters:
+          $ref: '#/components/schemas/AdditionalParameters'
+        description:
+          title: Description
+          type: string
+        keywords:
+          items:
+            type: string
+          title: Keywords
+          type: array
+        metadata:
+          items:
+            $ref: '#/components/schemas/Metadata'
+          title: Metadata
+          type: array
+        schema:
+          $ref: '#/components/schemas/Schema'
+        title:
+          title: Title
+          type: string
+      required:
+      - schema
+      title: OutputDescription
+      type: object
+    Payload:
+      properties:
+        features:
+          default: []
+          items:
+            $ref: '#/components/schemas/Feature'
+          title: Features
+          type: array
+        process:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ProcessDefinition'
+            - items:
+                $ref: '#/components/schemas/ProcessDefinition'
+              type: array
+          minItems: 1
+          title: Process
+          type: array
+        type:
+          default: FeatureCollection
+          title: Type
+          type: string
+      required:
+      - process
+      title: Payload
+      type: object
+    PayloadCacheEntry:
+      properties:
+        id:
+          format: uuid5
+          title: Id
+          type: string
+        invalidAfter:
+          format: date-time
+          title: Invalidafter
+          type: string
+        invalidNow:
+          default: false
+          title: Invalidnow
+          type: boolean
+        links:
+          default: []
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        processID:
+          title: Processid
+          type: string
+      required:
+      - id
+      - processID
+      title: PayloadCacheEntry
+      type: object
+    PayloadCacheList:
+      properties:
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        payloads:
+          items:
+            $ref: '#/components/schemas/PayloadCacheEntry'
+          title: Payloads
+          type: array
+      required:
+      - payloads
+      - links
+      title: PayloadCacheList
+      type: object
+    Process:
+      properties:
+        additionalParameters:
+          $ref: '#/components/schemas/AdditionalParameters'
+        cacheKeyHashExcludes:
+          items:
+            type: string
+          title: Cachekeyhashexcludes
+          type: array
+        cacheKeyHashIncludes:
+          items:
+            type: string
+          title: Cachekeyhashincludes
+          type: array
+        description:
+          title: Description
+          type: string
+        handler_type:
+          title: Handler Type
+          type: string
+        id:
+          title: Id
+          type: string
+        inputs:
+          additionalProperties:
+            $ref: '#/components/schemas/InputDescription'
+          title: Inputs
+          type: object
+        jobControlOptions:
+          default:
+          - async-execute
+          items:
+            $ref: '#/components/schemas/JobControlOptions'
+          type: array
+        keywords:
+          items:
+            type: string
+          title: Keywords
+          type: array
+        links:
+          default: []
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        metadata:
+          items:
+            $ref: '#/components/schemas/Metadata'
+          title: Metadata
+          type: array
+        outputTransmission:
+          items:
+            $ref: '#/components/schemas/TransmissionMode'
+          type: array
+        outputs:
+          additionalProperties:
+            $ref: '#/components/schemas/OutputDescription'
+          title: Outputs
+          type: object
+        title:
+          title: Title
+          type: string
+        version:
+          title: Version
+          type: string
+      required:
+      - id
+      - version
+      - handler_type
+      title: Process
+      type: object
+    ProcessDefinition:
+      properties:
+        description:
+          title: Description
+          type: string
+        tasks:
+          default: {}
+          title: Tasks
+          type: object
+        upload_options:
+          $ref: '#/components/schemas/UploadOptions'
+        workflow:
+          title: Workflow
+          type: string
+      required:
+      - upload_options
+      - workflow
+      title: ProcessDefinition
+      type: object
+    ProcessList:
+      properties:
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        processes:
+          items:
+            $ref: '#/components/schemas/ProcessSummary'
+          title: Processes
+          type: array
+      required:
+      - processes
+      - links
+      title: ProcessList
+      type: object
+    ProcessSummary:
+      properties:
+        additionalParameters:
+          $ref: '#/components/schemas/AdditionalParameters'
+        description:
+          title: Description
+          type: string
+        handler_type:
+          title: Handler Type
+          type: string
+        id:
+          title: Id
+          type: string
+        jobControlOptions:
+          default:
+          - async-execute
+          items:
+            $ref: '#/components/schemas/JobControlOptions'
+          type: array
+        keywords:
+          items:
+            type: string
+          title: Keywords
+          type: array
+        links:
+          default: []
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        metadata:
+          items:
+            $ref: '#/components/schemas/Metadata'
+          title: Metadata
+          type: array
+        outputTransmission:
+          items:
+            $ref: '#/components/schemas/TransmissionMode'
+          type: array
+        title:
+          title: Title
+          type: string
+        version:
+          title: Version
+          type: string
+      required:
+      - id
+      - version
+      - handler_type
+      title: ProcessSummary
+      type: object
+    QualifiedInputValue:
+      properties:
+        encoding:
+          title: Encoding
+          type: string
+        mediaType:
+          title: Mediatype
+          type: string
+        schema:
+          anyOf:
+          - type: string
+          - type: object
+          title: Schema
+        value:
+          $ref: '#/components/schemas/InputValue'
+      required:
+      - value
+      title: QualifiedInputValue
+      type: object
+    Reference:
+      properties:
+        $ref:
+          title: $Ref
+          type: string
+      required:
+      - $ref
+      title: Reference
+      type: object
+    Results:
+      additionalProperties:
+        $ref: '#/components/schemas/InlineOrRefData'
+      title: Results
+      type: object
+    Schema:
+      anyOf:
+      - $ref: '#/components/schemas/Reference'
+      - $ref: '#/components/schemas/SchemaItem'
+      title: Schema
+    SchemaItem:
+      additionalProperties: false
+      properties:
+        additionalProperties:
+          anyOf:
+          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/Reference'
+          - type: boolean
+          default: true
+          title: Additionalproperties
+        allOf:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/Schema'
+            - $ref: '#/components/schemas/Reference'
+          title: Allof
+          type: array
+        anyOf:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/Schema'
+            - $ref: '#/components/schemas/Reference'
+          title: Anyof
+          type: array
+        contentEncoding:
+          title: Contentencoding
+          type: string
+        contentMediaType:
+          title: Contentmediatype
+          type: string
+        contentSchema:
+          title: Contentschema
+          type: string
+        default:
+          title: Default
+          type: object
+        deprecated:
+          default: false
+          title: Deprecated
+          type: boolean
+        description:
+          title: Description
+          type: string
+        enum:
+          items:
+            type: object
+          minItems: 1
+          title: Enum
+          type: array
+          uniqueItems: false
+        example:
+          title: Example
+          type: object
+        exclusiveMaximum:
+          default: false
+          title: Exclusivemaximum
+          type: boolean
+        exclusiveMinimum:
+          default: false
+          title: Exclusiveminimum
+          type: boolean
+        format:
+          title: Format
+          type: string
+        items:
+          anyOf:
+          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/Reference'
+          title: Items
+        maxItems:
+          minimum: 0.0
+          title: Maxitems
+          type: integer
+        maxLength:
+          minimum: 0.0
+          title: Maxlength
+          type: integer
+        maxProperties:
+          minimum: 0.0
+          title: Maxproperties
+          type: integer
+        maximum:
+          title: Maximum
+          type: number
+        minItems:
+          default: 0
+          minimum: 0.0
+          title: Minitems
+          type: integer
+        minLength:
+          default: 0
+          minimum: 0.0
+          title: Minlength
+          type: integer
+        minProperties:
+          default: 0
+          minimum: 0.0
+          title: Minproperties
+          type: integer
+        minimum:
+          title: Minimum
+          type: number
+        multipleOf:
+          exclusiveMinimum: 0.0
+          title: Multipleof
+          type: number
+        not:
+          anyOf:
+          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/Reference'
+          title: Not
+        nullable:
+          default: false
+          title: Nullable
+          type: boolean
+        oneOf:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/Schema'
+            - $ref: '#/components/schemas/Reference'
+          title: Oneof
+          type: array
+        pattern:
+          title: Pattern
+          type: string
+        properties:
+          additionalProperties:
+            anyOf:
+            - $ref: '#/components/schemas/Schema'
+            - $ref: '#/components/schemas/Reference'
+          title: Properties
+          type: object
+        readOnly:
+          default: false
+          title: Readonly
+          type: boolean
+        required:
+          items:
+            type: string
+          minItems: 1
+          title: Required
+          type: array
+          uniqueItems: true
+        title:
+          title: Title
+          type: string
+        type:
+          $ref: '#/components/schemas/Type1'
+        uniqueItems:
+          default: false
+          title: Uniqueitems
+          type: boolean
+        writeOnly:
+          default: false
+          title: Writeonly
+          type: boolean
+      title: SchemaItem
+      type: object
+    StatusCode:
+      description: An enumeration.
+      enum:
+      - accepted
+      - running
+      - successful
+      - failed
+      - dismissed
+      title: StatusCode
+      type: string
+    StatusInfo:
+      properties:
+        created:
+          format: date-time
+          title: Created
+          type: string
+        finished:
+          format: date-time
+          title: Finished
+          type: string
+        jobID:
+          format: uuid
+          title: Jobid
+          type: string
+        links:
+          default: []
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
+        message:
+          title: Message
+          type: string
+        processID:
+          title: Processid
+          type: string
+        started:
+          format: date-time
+          title: Started
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusCode'
+        type:
+          $ref: '#/components/schemas/Type'
+        updated:
+          format: date-time
+          title: Updated
+          type: string
+      required:
+      - processID
+      - type
+      - jobID
+      - status
+      title: StatusInfo
+      type: object
+    SwoopStatusCode:
+      description: An enumeration.
+      enum:
+      - PENDING
+      - QUEUED
+      - RUNNING
+      - SUCCESSFUL
+      - FAILED
+      - CANCELED
+      - TIMED_OUT
+      - UNKNOWN
+      - BACKOFF
+      - INVALID
+      - RETRIES_EXHAUSTED
+      title: SwoopStatusCode
+      type: string
+    TransmissionMode:
+      description: An enumeration.
+      enum:
+      - value
+      - reference
+      title: TransmissionMode
+    Type:
+      description: An enumeration.
+      enum:
+      - process
+      title: Type
+    Type1:
+      description: An enumeration.
+      enum:
+      - array
+      - boolean
+      - integer
+      - number
+      - object
+      - string
+      title: Type1
+    UploadOptions:
+      properties:
+        collections:
+          title: Collections
+          type: object
+        path_template:
+          title: Path Template
+          type: string
+      required:
+      - path_template
+      - collections
+      title: UploadOptions
+      type: object
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+info:
+  title: swoop-api
+  version: 0.1.0
+openapi: 3.0.2
+paths:
+  /:
+    get:
+      description: landing page of this API
+      operationId: get_landing_page__get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandingPage'
+          description: Successful Response
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Landing Page
+      tags:
+      - Capabilities
+  /conformance:
+    get:
+      description: information about standards that this API conforms to
+      operationId: get_conformance_classes_conformance_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfClasses'
+          description: Successful Response
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Conformance Classes
+      tags:
+      - ConformanceDeclaration
+  /jobs/:
+    get:
+      description: Returns a list of all available workflow executions
+      operationId: list_workflow_executions_jobs__get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          minimum: 1.0
+          title: Limit
+          type: integer
+      - in: query
+        name: processID
+        required: false
+        schema:
+          items:
+            type: string
+          title: Processid
+          type: array
+      - in: query
+        name: jobID
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+          title: Jobid
+          type: array
+      - in: query
+        name: type
+        required: false
+        schema:
+          items:
+            type: string
+          title: Type
+          type: array
+      - in: query
+        name: status
+        required: false
+        schema:
+          items:
+            $ref: '#/components/schemas/StatusCode'
+          type: array
+      - in: query
+        name: swoopStatus
+        required: false
+        schema:
+          items:
+            $ref: '#/components/schemas/SwoopStatusCode'
+          type: array
+      - in: query
+        name: datetime
+        required: false
+        schema:
+          title: Datetime
+          type: string
+      - in: query
+        name: minDuration
+        required: false
+        schema:
+          title: Minduration
+          type: integer
+      - in: query
+        name: maxDuration
+        required: false
+        schema:
+          title: Maxduration
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Unprocessable Entity
+      summary: List Workflow Executions
+      tags:
+      - Jobs
+  /jobs/{jobID}:
+    get:
+      description: Returns workflow execution status by jobID
+      operationId: get_workflow_execution_details_jobs__jobID__get
+      parameters:
+      - in: path
+        name: jobID
+        required: true
+        schema:
+          format: uuid
+          title: Jobid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusInfo'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Workflow Execution Details
+      tags:
+      - Jobs
+  /jobs/{jobID}/inputs:
+    get:
+      description: Retrieves workflow execution input payload by jobID
+      operationId: get_workflow_execution_inputs_jobs__jobID__inputs_get
+      parameters:
+      - in: path
+        name: jobID
+        required: true
+        schema:
+          title: Jobid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                title: Response Get Workflow Execution Inputs Jobs  Jobid  Inputs
+                  Get
+                type: object
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Workflow Execution Inputs
+      tags:
+      - Jobs
+  /jobs/{jobID}/results:
+    get:
+      description: Retrieves workflow execution output payload by jobID
+      operationId: get_workflow_execution_result_jobs__jobID__results_get
+      parameters:
+      - in: path
+        name: jobID
+        required: true
+        schema:
+          title: Jobid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Results'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Workflow Execution Result
+      tags:
+      - Jobs
+  /payloadCacheEntries/:
+    get:
+      description: Returns a list of cached input payloads and the association with
+        workflow executions
+      operationId: list_input_payload_cache_entries_payloadCacheEntries__get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          minimum: 1.0
+          title: Limit
+          type: integer
+      - in: query
+        name: processID
+        required: false
+        schema:
+          items:
+            type: string
+          title: Processid
+          type: array
+      - in: query
+        name: lastID
+        required: false
+        schema:
+          format: uuid
+          title: Lastid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheList'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Input Payload Cache Entries
+      tags:
+      - Payloads
+    post:
+      description: Retrieves details of cached input payload via a payload hash lookup
+      operationId: retrieve_payload_cache_entry_by_payload_input_payloadCacheEntries__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Execute'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheEntry'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Retrieve Payload Cache Entry By Payload Input
+      tags:
+      - Payloads
+  /payloadCacheEntries/{payloadID}:
+    get:
+      description: Retrieve details of cached input payload by payloadID
+      operationId: get_input_payload_cache_entry_payloadCacheEntries__payloadID__get
+      parameters:
+      - in: path
+        name: payloadID
+        required: true
+        schema:
+          format: uuid
+          title: Payloadid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheEntry'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Input Payload Cache Entry
+      tags:
+      - Payloads
+  /payloadCacheEntries/{payloadID}/invalidate:
+    post:
+      description: Updates input payload cache invalidation
+      operationId: update_input_payload_cache_entry_invalidation_payloadCacheEntries__payloadID__invalidate_post
+      parameters:
+      - in: path
+        name: payloadID
+        required: true
+        schema:
+          format: uuid
+          title: Payloadid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadCacheEntry'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Update Input Payload Cache Entry Invalidation
+      tags:
+      - Payloads
+  /processes/:
+    get:
+      description: Returns a list of all available workflows
+      operationId: list_workflows_processes__get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          minimum: 1.0
+          title: Limit
+          type: integer
+      - in: query
+        name: handler
+        required: false
+        schema:
+          items:
+            type: string
+          title: Handler
+          type: array
+      - in: query
+        name: type
+        required: false
+        schema:
+          items:
+            type: string
+          title: Type
+          type: array
+      - in: query
+        name: lastID
+        required: false
+        schema:
+          title: Lastid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessList'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Workflows
+      tags:
+      - Processes
+  /processes/{processID}:
+    get:
+      description: Returns workflow details by processID
+      operationId: get_workflow_description_processes__processID__get
+      parameters:
+      - in: path
+        name: processID
+        required: true
+        schema:
+          title: Processid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Process'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Workflow Description
+      tags:
+      - Processes
+  /processes/{processID}/execution:
+    post:
+      description: Starts a workflow execution (Job)
+      operationId: execute_workflow_processes__processID__execution_post
+      parameters:
+      - in: path
+        name: processID
+        required: true
+        schema:
+          title: Processid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Execute'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusInfo'
+          description: Successful Response
+        '303':
+          description: See existing job
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Unprocessable Entity
+      summary: Execute Workflow
+      tags:
+      - Processes

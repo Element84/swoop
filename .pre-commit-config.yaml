@@ -77,3 +77,9 @@ repos:
       #  'types_or': [python, pyi]
       #  args: ["--ignore-missing-imports", "--scripts-are-modules"]
       #  require_serial: true
+      - id: generate-openapi-yaml
+        name: generate-openapi-yaml
+        entry: ./bin/export-openapi-yaml.py
+        language: system
+        description: "Dump the API spec to openapi.yaml"
+        require_serial: true
