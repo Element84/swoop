@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Union
 import yaml
 from fastapi import Request
 from pydantic import (
+    UUID5,
     BaseModel,
     Extra,
     Field,
@@ -20,8 +21,8 @@ from pydantic import (
 
 from swoop.api.exceptions import WorkflowConfigError
 from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
-from swoop.cache.hashing import hash_dict
 from swoop.cache.types import JSONFilter
+from swoop.cache.uuid import generate_payload_uuid
 
 
 class Response(Enum):
@@ -50,8 +51,8 @@ class BaseWorkflow(BaseModel, ABC):
             self.cacheKeyHashExcludes,
         )
 
-    def hash_payload(self, payload) -> bytes:
-        return hash_dict(self._json_filter(payload))
+    def generate_payload_uuid(self, payload: Payload) -> UUID5:
+        return generate_payload_uuid(self.id, self._json_filter(payload.dict()))
 
     def to_process_summary(self, request: Request | None = None) -> ProcessSummary:
         return ProcessSummary(

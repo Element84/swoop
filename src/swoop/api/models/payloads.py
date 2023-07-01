@@ -5,14 +5,13 @@ from uuid import UUID
 
 from asyncpg import Record
 from fastapi import Request
-from pydantic import BaseModel
+from pydantic import UUID5, BaseModel
 
 from swoop.api.models.shared import Link
 
 
 class PayloadCacheEntry(BaseModel):
-    id: UUID
-    payloadHash: str
+    id: UUID5
     processID: str
     invalidAfter: datetime | None
     invalidNow: bool | None = False

@@ -10,7 +10,13 @@ from fastapi.responses import RedirectResponse
 
 from swoop.api.models.jobs import StatusInfo
 from swoop.api.models.shared import APIException, Link
-from swoop.api.models.workflows import Execute, Process, ProcessList, Workflow
+from swoop.api.models.workflows import (
+    Execute,
+    Process,
+    ProcessList,
+    Workflow,
+    Workflows,
+)
 from swoop.api.routers.jobs import get_workflow_execution_details
 
 DEFAULT_PROCESS_LIMIT = 1000
@@ -134,16 +140,17 @@ async def execute_workflow(
             status_code=422, detail="Workflow name in payload does not match process ID"
         )
 
-    workflows = request.app.state.workflows
+    workflows: Workflows = request.app.state.workflows
 
     try:
         workflow = workflows[processID]
     except KeyError:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    hashed_pl = workflow.hash_payload(payload=payload.dict())
+    payload_uuid = workflow.generate_payload_uuid(payload)
 
-    lock_id = int.from_bytes(hashed_pl[:3])
+    # cut the uuid down into a 32-bit int for use as a lock value
+    lock_id = payload_uuid.int & 0xFFFF
 
     async with request.app.state.writepool.acquire() as conn:
         async with conn.transaction():
@@ -161,11 +168,11 @@ async def execute_workflow(
             q, p = render(
                 """
                 SELECT swoop.find_cached_action_for_payload(
-                    :plhash,
+                    :payload_uuid,
                     :wf_version::smallint
                 )
                 """,
-                plhash=hashed_pl,
+                payload_uuid=payload_uuid,
                 wf_version=workflow.version,
             )
             action_uuid = await conn.fetchval(q, *p)
@@ -181,15 +188,15 @@ async def execute_workflow(
             q, p = render(
                 """
                 INSERT INTO swoop.payload_cache (:values__names) VALUES :values
-                ON CONFLICT (payload_hash) DO UPDATE
+                ON CONFLICT (payload_uuid) DO UPDATE
                 SET invalid_after = NULL
-                RETURNING payload_uuid;
                 """,
-                values=Values(payload_hash=hashed_pl, workflow_name=workflow.id),
+                values=Values(
+                    payload_uuid=payload_uuid,
+                    workflow_name=workflow.id,
+                ),
             )
-            pl_uuid = await conn.fetchval(q, *p)
-
-            # Insert into action table
+            await conn.execute(q, *p)
 
             q, p = render(
                 """
@@ -203,13 +210,10 @@ async def execute_workflow(
                     handler_name=workflow.handler_name,
                     handler_type=workflow.handler_type,
                     workflow_version=workflow.version,
-                    payload_uuid=pl_uuid,
+                    payload_uuid=payload_uuid,
                 ),
             )
-            rec = await conn.fetchrow(q, *p)
-            action_uuid = str(rec["action_uuid"])
-
-            # Write to object storage
+            action_uuid = await conn.fetchval(q, *p)
 
             request.app.state.io.put_object(
                 object_name=f"executions/{action_uuid}/input.json",

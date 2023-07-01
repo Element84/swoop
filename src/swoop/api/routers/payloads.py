@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from uuid import UUID
 
 from buildpg import V, funcs, render
@@ -8,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from swoop.api.models.payloads import PayloadCacheEntry, PayloadCacheList
 from swoop.api.models.shared import APIException, Link
-from swoop.api.models.workflows import Execute
+from swoop.api.models.workflows import Execute, Workflows
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -37,7 +36,6 @@ async def list_input_payload_cache_entries(
             """
             SELECT
                 c.payload_uuid as id,
-                encode(c.payload_hash, 'base64') as "payloadHash",
                 c.workflow_name as "processID",
                 c.invalid_after as "invalidAfter"
             FROM swoop.payload_cache AS c
@@ -64,6 +62,41 @@ async def list_input_payload_cache_entries(
         )
 
 
+async def get_payload_cache_entry_from_db(
+    request: Request,
+    payload_uuid: UUID,
+) -> PayloadCacheEntry:
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+            SELECT
+                c.payload_uuid as id,
+                c.workflow_name as "processID",
+                c.invalid_after as "invalidAfter",
+                array(
+                    SELECT
+                        action_uuid
+                    FROM swoop.action
+                    WHERE
+                        payload_uuid = c.payload_uuid
+                    ORDER BY created_at DESC
+                ) AS "jobIDs"
+            FROM swoop.payload_cache AS c
+            WHERE
+                c.payload_uuid = :payload_id::uuid
+            """,
+            payload_id=payload_uuid,
+        )
+        record = await conn.fetchrow(q, *p)
+
+    if not record:
+        raise HTTPException(
+            status_code=404, detail="No payload that matches payload uuid found"
+        )
+
+    return PayloadCacheEntry.from_cache_record(record, request)
+
+
 @router.get(
     "/{payloadID}",
     response_model=PayloadCacheEntry,
@@ -80,37 +113,7 @@ async def get_input_payload_cache_entry(
     """
     Retrieve details of cached input payload by payloadID
     """
-
-    async with request.app.state.readpool.acquire() as conn:
-        q, p = render(
-            """
-            SELECT
-                c.payload_uuid as id,
-                encode(c.payload_hash, 'base64') as "payloadHash",
-                c.workflow_name as "processID",
-                c.invalid_after as "invalidAfter",
-                array(
-                    SELECT
-                        action_uuid
-                    FROM swoop.action
-                    WHERE
-                        payload_uuid = c.payload_uuid
-                    ORDER BY created_at DESC
-                ) AS "jobIDs"
-            FROM swoop.payload_cache AS c
-            WHERE
-                c.payload_uuid = :payload_id::uuid
-            """,
-            payload_id=payloadID,
-        )
-        record = await conn.fetchrow(q, *p)
-
-        if not record:
-            raise HTTPException(
-                status_code=404, detail="No payload that matches payload uuid found"
-            )
-
-        return PayloadCacheEntry.from_cache_record(record, request)
+    return await get_payload_cache_entry_from_db(request, payloadID)
 
 
 @router.post(
@@ -131,47 +134,15 @@ async def retrieve_payload_cache_entry_by_payload_input(
     """
 
     payload = body.inputs.payload
-    workflows = request.app.state.workflows
+    workflows: Workflows = request.app.state.workflows
 
     try:
         workflow = workflows[payload.current_process_definition().workflow]
     except KeyError:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    payload_hash = base64.b64encode(
-        workflow.hash_payload(payload=payload.dict())
-    ).decode()
-
-    async with request.app.state.readpool.acquire() as conn:
-        q, p = render(
-            """
-            SELECT
-                c.payload_uuid as id,
-                encode(c.payload_hash, 'base64') as "payloadHash",
-                c.workflow_name as "processID",
-                c.invalid_after as "invalidAfter",
-                array(
-                    SELECT
-                        action_uuid
-                    FROM swoop.action
-                    WHERE
-                        payload_uuid = c.payload_uuid
-                    ORDER BY created_at DESC
-                ) AS "jobIDs"
-            FROM swoop.payload_cache AS c
-            WHERE
-                c.payload_hash = decode(:payload_hash::text, 'base64')
-            """,
-            payload_hash=payload_hash,
-        )
-        record = await conn.fetchrow(q, *p)
-
-        if not record:
-            raise HTTPException(
-                status_code=404, detail="No payload that matches payload hash found"
-            )
-
-        return PayloadCacheEntry.from_cache_record(record, request)
+    payload_uuid = workflow.generate_payload_uuid(payload)
+    return await get_payload_cache_entry_from_db(request, payload_uuid)
 
 
 @router.post(

@@ -10,8 +10,7 @@ inject_database_fixture(["base_01"], __name__)
 
 
 a_payload = {
-    "id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
-    "payloadHash": "PsqWxdKjAjrV1+BueXnAS1cWIhU=",
+    "id": "ade69fe7-1d7d-572e-9f36-7242cc2aca77",
     "processID": "some_workflow",
     "invalidAfter": None,
     "links": [
@@ -21,7 +20,7 @@ a_payload = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77",
+            "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "rel": "self",
             "type": "application/json",
         },
@@ -659,8 +658,7 @@ no_payload_id_exception = {
 }
 
 payload_cache_invalid_after_input = {
-    "id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
-    "payloadHash": "string",
+    "id": "ade69fe7-1d7d-572e-9f36-7242cc2aca77",
     "processID": "string",
     "invalidAfter": "2023-06-29T18:03:38.478Z",
     "invalidNow": False,
@@ -670,8 +668,7 @@ payload_cache_invalid_after_input = {
 {
     "payloads": [
         {
-            "id": "ade69fe7-1d7d-472e-9f36-7242cc2aca77",
-            "payloadHash": "PsqWxdKjAjrV1+BueXnAS1cWIhU=",
+            "id": "ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "processID": "some_workflow",
             "invalidAfter": None,
             "links": [
@@ -688,8 +685,7 @@ payload_cache_invalid_after_input = {
             ],
         },
         {
-            "id": "5c46d3b6-17e4-4e31-bfb2-7918cf0b33a0",
-            "payloadHash": "zCWwEwvjI4ZmCVeACwigKnntpi8=",
+            "id": "5c46d3b6-17e4-5e31-bfb2-7918cf0b33a0",
             "processID": "mirror",
             "invalidAfter": None,
             "links": [
@@ -757,7 +753,7 @@ async def test_get_payloads_filter_only_invalid_process_id(test_client: TestClie
 @pytest.mark.asyncio
 async def test_get_payloadid_match(test_client: TestClient):
     response = test_client.get(
-        "/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca77"
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77"
     )
     assert response.json() == a_payload_details
     assert response.status_code == 200
@@ -766,7 +762,7 @@ async def test_get_payloadid_match(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_get_payloadid_no_match(test_client: TestClient):
     response = test_client.get(
-        "/payloadCacheEntries/d5d64165-82df-4836-b78e-af4daee55d38"
+        "/payloadCacheEntries/d5d64165-82df-5836-b78e-af4daee55d38"
     )
     assert response.json() == no_payload_id_exception
     assert response.status_code == 404
@@ -831,7 +827,7 @@ async def test_set_payload_cache_invalid_after_non_matching_payload(
     test_client: TestClient,
 ):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-472e-9f36-7242cc2aca78/invalidate",
+        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca78/invalidate",
         content=json.dumps(payload_cache_invalid_after_input),
     )
     assert response.status_code == 422
@@ -842,7 +838,7 @@ async def test_set_payload_cache_invalid_after_non_existing_payload(
     test_client: TestClient,
 ):
     custom_payload_input = payload_cache_invalid_after_input
-    custom_payload_input["id"] = "ade69fe7-1d7d-472e-9f36-7242cc2aca78"
+    custom_payload_input["id"] = "ade69fe7-1d7d-572e-9f36-7242cc2aca78"
     response = test_client.post(
         "/payloadCacheEntries/" + custom_payload_input["id"] + "/invalidate",
         content=json.dumps(payload_cache_invalid_after_input),
