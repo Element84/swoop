@@ -442,8 +442,10 @@ async def test_get_job_payload(test_client: TestClient):
     )
     assert response.status_code == 200
     assert response.json() == {
-        "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
-        "payload": "test_input",
+        "payload": {
+            "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
+            "payload": "test_input",
+        }
     }
 
 

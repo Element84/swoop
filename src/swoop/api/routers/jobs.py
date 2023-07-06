@@ -316,7 +316,9 @@ async def get_workflow_execution_inputs(request: Request, jobID) -> dict | APIEx
             status_code=404, detail="Workflow execution input payload not found"
         )
 
-    return payload
+    inputs = {"payload": payload}
+
+    return inputs
 
 
 # @router.post(
