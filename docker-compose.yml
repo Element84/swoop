@@ -34,7 +34,7 @@ services:
       SWOOP_SECRET_ACCESS_KEY: "${SWOOP_SECRET_ACCESS_KEY:-password}"
       SWOOP_S3_ENDPOINT: "http://minio:9000"
       SWOOP_BUCKET_NAME: "${SWOOP_BUCKET_NAME:-swoop}"
-      SWOOP_EXECUTION_DIR: "${SWOOP_EXECUTION_DIR:-s3://swoop/execution}"
+      SWOOP_EXECUTION_DIR: "${SWOOP_EXECUTION_DIR:-s3://swoop/executions}"
       SWOOP_WORKFLOW_CONFIG_FILE: "${SWOOP_WORKFLOW_CONFIG_FILE:-workflow-config.yml}"
       PGDATABASE: "${PGDATABASE:-swoop}"
       PGHOST: "postgres"
