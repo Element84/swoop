@@ -143,3 +143,8 @@ class StatusInfo(BaseModel):
 class JobList(BaseModel):
     jobs: list[StatusInfo]
     links: list[Link]
+
+
+class WorkflowExecutionInput(BaseModel):
+    inputs: dict
+    links: list[Link]

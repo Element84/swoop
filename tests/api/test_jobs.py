@@ -441,11 +441,22 @@ async def test_get_job_payload(test_client: TestClient):
         "/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/inputs",
     )
     assert response.status_code == 200
+
     assert response.json() == {
-        "payload": {
-            "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
-            "payload": "test_input",
-        }
+        "inputs": {
+            "payload": {
+                "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
+                "payload": "test_input",
+            }
+        },
+        "links": [
+            {"href": "http://testserver/", "rel": "root", "type": "application/json"},
+            {
+                "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/inputs",
+                "rel": "self",
+                "type": "application/json",
+            },
+        ],
     }
 
 

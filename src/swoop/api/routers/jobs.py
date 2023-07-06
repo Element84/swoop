@@ -12,6 +12,7 @@ from swoop.api.models.jobs import (
     StatusCode,
     StatusInfo,
     SwoopStatusCode,
+    WorkflowExecutionInput,
     status_dict,
 )
 from swoop.api.models.shared import APIException, Link, Results
@@ -316,9 +317,15 @@ async def get_workflow_execution_inputs(request: Request, jobID) -> dict | APIEx
             status_code=404, detail="Workflow execution input payload not found"
         )
 
-    inputs = {"payload": payload}
+    links = [
+        Link.root_link(request),
+        Link.self_link(href=str(request.url)),
+    ]
 
-    return inputs
+    return WorkflowExecutionInput(
+        inputs={"payload": payload},
+        links=links,
+    )
 
 
 # @router.post(
