@@ -8,8 +8,22 @@ RUN apt-get update
 
 RUN apt-get install -y gcc musl-dev python3-dev python3-pip
 
-# Resolving libcurl vulnerability https://security-tracker.debian.org/tracker/CVE-2023-23914
-RUN apt-get install -y libcurl4>=7.88.1-9 curl>=7.88.1-9
+# Resolving libcurl4 vulnerability https://security-tracker.debian.org/tracker/CVE-2023-23914
+# Resolving libcurl4 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-CURL-5561883
+RUN apt-get install -y libcurl4>=7.88.1-10 curl>=7.88.1-10
+
+# Resolving libcap2 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-LIBCAP2-5537069
+RUN apt-get install -y libcap2>=1:2.66-4
+
+# Resolving libwebp7 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-LIBWEBP-5489176
+RUN apt-get install -y libwebp7>=1.2.4-0.2
+
+# Resolving libx11-data vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-LIBX11-5710892
+RUN apt-get install -y libx11-data>=2:1.8.4-2+deb12u1
+
+# Resolving libssl3 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-OPENSSL-5661565
+# Resolving libssl3 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-OPENSSL-3368733
+RUN apt-get install -y libssl3>=3.0.9-1
 
 # Resolving libaom vulnerabilities:
 #  - https://security-tracker.debian.org/tracker/CVE-2021-30473
