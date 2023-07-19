@@ -10,6 +10,7 @@ RUN apt-get install -y gcc musl-dev python3-dev python3-pip
 
 # Resolving libcurl4 vulnerability https://security-tracker.debian.org/tracker/CVE-2023-23914
 # Resolving libcurl4 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-CURL-5561883
+# Resolving libcurl4 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-CURL-5561882
 RUN apt-get install -y libcurl4>=7.88.1-10 curl>=7.88.1-10
 
 # Resolving libcap2 vulnerability https://security.snyk.io/vuln/SNYK-DEBIAN12-LIBCAP2-5537069
