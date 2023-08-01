@@ -408,8 +408,8 @@ components:
         description:
           title: Description
           type: string
-        handler_type:
-          title: Handler Type
+        handlerType:
+          title: Handlertype
           type: string
         id:
           title: Id
@@ -459,7 +459,7 @@ components:
       required:
       - id
       - version
-      - handler_type
+      - handlerType
       title: Process
       type: object
     ProcessDefinition:
@@ -505,8 +505,8 @@ components:
         description:
           title: Description
           type: string
-        handler_type:
-          title: Handler Type
+        handlerType:
+          title: Handlertype
           type: string
         id:
           title: Id
@@ -546,7 +546,7 @@ components:
       required:
       - id
       - version
-      - handler_type
+      - handlerType
       title: ProcessSummary
       type: object
     QualifiedInputValue:

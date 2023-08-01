@@ -15,7 +15,7 @@ def mirror_workflow(request_endpoint: str):
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "argo-workflow",
+                "handlerType": "argoWorkflow",
                 "links": [
                     {
                         "href": "http://testserver/",
@@ -54,7 +54,7 @@ def cirrus_workflow(request_endpoint: str):
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "cirrus-workflow",
+                "handlerType": "cirrusWorkflow",
                 "links": [
                     {
                         "href": "https://example.com/repo",
@@ -110,7 +110,7 @@ def all_processes(request_endpoint: str):
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "cirrus-workflow",
+                "handlerType": "cirrusWorkflow",
                 "links": [
                     {
                         "href": "https://example.com/repo",
@@ -142,7 +142,7 @@ def all_processes(request_endpoint: str):
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "argo-workflow",
+                "handlerType": "argoWorkflow",
                 "links": [
                     {
                         "href": "http://testserver/",
@@ -181,7 +181,7 @@ def all_processes_reorder(request_endpoint: str):
                 "id": "mirror",
                 "version": "2",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "argo-workflow",
+                "handlerType": "argoWorkflow",
                 "links": [
                     {
                         "href": "http://testserver/",
@@ -201,7 +201,7 @@ def all_processes_reorder(request_endpoint: str):
                 "id": "cirrus-example",
                 "version": "1",
                 "jobControlOptions": ["async-execute"],
-                "handler_type": "cirrus-workflow",
+                "handlerType": "cirrusWorkflow",
                 "links": [
                     {
                         "href": "https://example.com/repo",
@@ -249,7 +249,7 @@ mirror_workflow_process = {
     "id": "mirror",
     "version": "2",
     "jobControlOptions": ["async-execute"],
-    "handler_type": "argo-workflow",
+    "handlerType": "argoWorkflow",
     "cacheKeyHashIncludes": [".features[].id", ".features[].collection"],
     "cacheKeyHashExcludes": [],
     "links": [
@@ -420,7 +420,7 @@ async def test_get_all_processes(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argo-handler"
+    url: str = "/processes/?handler=argoHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -428,7 +428,7 @@ async def test_get_all_processes_handler(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler_multiple(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argo-handler&handler=cirrus-handler"
+    url: str = "/processes/?handler=argoHandler&handler=cirrusHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_processes_reorder(url)
@@ -444,7 +444,7 @@ async def test_get_all_processes_limit(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_type(test_client: TestClient) -> None:
-    url: str = "/processes/?type=argo-workflow"
+    url: str = "/processes/?type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -452,7 +452,7 @@ async def test_get_all_processes_type(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
-    url: str = "/processes/?type=argo-workflow&type=cirrus-workflow"
+    url: str = "/processes/?type=argoWorkflow&type=cirrusWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_processes_reorder(url)
@@ -460,7 +460,7 @@ async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit_handler(test_client: TestClient) -> None:
-    url: str = "/processes/?limit=2&handler=argo-handler"
+    url: str = "/processes/?limit=2&handler=argoHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -468,7 +468,7 @@ async def test_get_all_processes_limit_handler(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit_type(test_client: TestClient) -> None:
-    url: str = "/processes/?limit=2&type=argo-workflow"
+    url: str = "/processes/?limit=2&type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -476,7 +476,7 @@ async def test_get_all_processes_limit_type(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler_type(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argo-handler&type=argo-workflow"
+    url: str = "/processes/?handler=argoHandler&type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)

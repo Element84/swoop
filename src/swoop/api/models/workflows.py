@@ -16,6 +16,7 @@ from pydantic import (
     StrictInt,
     StrictStr,
     conlist,
+    parse_obj_as,
     validator,
 )
 
@@ -30,7 +31,12 @@ class Response(Enum):
     document = "document"
 
 
-class BaseWorkflow(BaseModel, ABC):
+class Handler(BaseModel, extra=Extra.allow):
+    id: StrictStr
+    type: StrictStr
+
+
+class BaseWorkflow(BaseModel, ABC, extra=Extra.allow):
     id: StrictStr
     title: str = ""
     description: StrictStr
@@ -38,8 +44,8 @@ class BaseWorkflow(BaseModel, ABC):
     cacheKeyHashIncludes: list[StrictStr] = []
     cacheKeyHashExcludes: list[StrictStr] = []
     _json_filter: JSONFilter = PrivateAttr()
-    handler_name: StrictStr
-    handler_type: StrictStr
+    handler: StrictStr
+    handlerType: StrictStr
     links: list[Link] = []
 
     def __init__(self, **kwargs) -> None:
@@ -71,12 +77,12 @@ class BaseWorkflow(BaseModel, ABC):
 
 class ArgoWorkflow(BaseWorkflow):
     argoTemplate: StrictStr
-    handler_type: Literal["argo-workflow"]
+    handlerType: Literal["argoWorkflow"]
 
 
 class CirrusWorkflow(BaseWorkflow):
     sfnArn: StrictStr
-    handler_type: Literal["cirrus-workflow"]
+    handlerType: Literal["cirrusWorkflow"]
 
 
 Workflow = Annotated[
@@ -84,7 +90,7 @@ Workflow = Annotated[
         ArgoWorkflow,
         CirrusWorkflow,
     ],
-    Field(discriminator="handler_type"),
+    Field(discriminator="handlerType"),
 ]
 
 
@@ -95,11 +101,18 @@ class Workflows(dict[str, Workflow]):
     @classmethod
     def from_yaml(cls, path: Path) -> Workflows:
         try:
-            workflows = dict(
-                sorted(yaml.safe_load(path.read_text())["workflows"].items())
-            )
+            loaded = yaml.safe_load(path.read_text())
+
+            handlers = {}
+            for name, handler in loaded["handlers"].items():
+                handler["id"] = name
+                handlers[name] = parse_obj_as(Handler, handler)
+
+            workflows = dict(sorted(loaded["workflows"].items()))
             for name, workflow in workflows.items():
                 workflow["id"] = name
+                workflow["handlerType"] = handlers[workflow["handler"]].type
+
             return cls(**cls._type.parse_obj(workflows).__root__)
         except Exception as e:
             raise WorkflowConfigError("Could not load workflow configuration") from e
@@ -168,7 +181,7 @@ class JobControlOptions(Enum):
 class ProcessSummary(DescriptionType):
     id: str
     version: str
-    handler_type: str
+    handlerType: str
     jobControlOptions: list[JobControlOptions] | None = [
         JobControlOptions("async-execute")
     ]

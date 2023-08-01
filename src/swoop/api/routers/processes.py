@@ -46,13 +46,13 @@ async def list_workflows(
     if handlers:
         _workflows: list[Workflow] = []
         for handler in handlers:
-            _workflows += [wf for wf in workflows if wf.handler_name == handler]
+            _workflows += [wf for wf in workflows if wf.handler == handler]
         workflows = _workflows
 
     if types:
         _workflows: list[Workflow] = []
         for _type in types:
-            _workflows += [wf for wf in workflows if wf.handler_type == _type]
+            _workflows += [wf for wf in workflows if wf.handlerType == _type]
         workflows = _workflows
 
     index = 0
@@ -208,8 +208,8 @@ async def execute_workflow(
                 values=Values(
                     action_type="workflow",
                     action_name=workflow.id,
-                    handler_name=workflow.handler_name,
-                    handler_type=workflow.handler_type,
+                    handler_name=workflow.handler,
+                    handler_type=workflow.handlerType,
                     workflow_version=workflow.version,
                     payload_uuid=payload_uuid,
                 ),
