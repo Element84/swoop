@@ -1,20 +1,91 @@
+handlers:
+  argoHandler:
+    type: argoWorkflow
+
+  cirrusHandler:
+    type: cirrusWorkflow
+
+  publishS3Handler:
+    type: http
+    url: https://{secrets.minio-user}:{secrets.minio-password}@our-minio:9000
+    requestBody: |
+      {
+        "fixed": "a_value",
+        "name": "{{ .parameters.workflowName -}}",
+        "date": "{{ .parameters.feature.properties.datetime -}}"
+      }
+    operation: POST
+    secrets:
+      - name: user
+        type: file
+        path: /secrets-mount/username-secret
+        ttl: 1200
+    headers:
+      Authorization: "Basic {{ .secrets.user }} {{ .secrets.password}}"
+      Content-Type: "application/json"
+      X-Workflow-Name: "{{ .parameters.workflowName }}"
+    backoff:
+      retries: 10
+      seconds: 5
+      factor: 2
+      max: 25
+    errors:
+      - status: 400
+        retryable: false
+      - status: 400
+        message: ".*timed out.*"
+        retryable: true
+    parameters:
+      workflowName:
+        type: string
+        default: a_value
+      feature:
+        type: object
+
+conductors:
+  instance-a:
+    handlers:
+      - argoHandler
+      - publishS3Handler
+
+callbacks:
+  publishS3Push: &callbacksPublishS3Push
+    handler: publishS3Handler
+    type: perFeature
+    when:
+      - "successful"
+    featureFilter: "@.id =~ 'fake*' & @.properties.gsd <= 0"
+    parameters:
+      workflowName:
+        path: .input.features[0].id
+      feature:
+        value: { "feature": true }
+    enabled: true
+
 workflows:
   mirror:
     description: "A workflow to copy STAC items into a local mirror"
     version: 2
-    handler_name: argo-handler
-    handler_type: argo-workflow
+    handler: argoHandler
     argoTemplate: workflowtemplate/mirror-workflow
     cacheKeyHashIncludes:
       - .features[].id
       - .features[].collection
     cacheKeyHashExcludes: []
+    callbacks:
+      publishS3Push:
+        <<: *callbacksPublishS3Push
   cirrus-example:
+    callbacks:
+      publishS3Push:
+        <<: *callbacksPublishS3Push
+        when:
+          - "!failed"
+          - "successful"
     title: "Cirrus example workflow"
     description: "An example workflow config for a cirrus workflow"
     version: 1
-    handler_name: cirrus-handler
-    handler_type: cirrus-workflow
+    handler: cirrusHandler
     sfnArn: arn:aws:states:us-west-2:09876543210:stateMachine:cirrus-example
     cacheKeyHashIncludes:
       - .features[].id
