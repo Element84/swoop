@@ -10,10 +10,7 @@ services:
       POSTGRES_USER: "${PGUSER:-postgres}"
       POSTGRES_HOST_AUTH_METHOD: "${PGAUTHMETHOD:-trust}"
     ports:
-      - "${DATABASE_PORT:-5432}:5432"
-    volumes:
-      - "./:/swoop"
-    working_dir: "/swoop"
+      - "${PGPORT:-5432}:5432"
 
   minio:
     image: quay.io/minio/minio
