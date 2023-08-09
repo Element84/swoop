@@ -12,6 +12,7 @@ from swoop.api.models.jobs import (
     StatusCode,
     StatusInfo,
     SwoopStatusCode,
+    WorkflowExecutionInput,
     status_dict,
 )
 from swoop.api.models.shared import APIException, Link, Results
@@ -287,7 +288,7 @@ async def get_workflow_execution_result(
     """
     Retrieves workflow execution output payload by jobID
     """
-    results = request.app.state.io.get_object(f"/execution/{jobID}/output.json")
+    results = request.app.state.io.get_object(f"/executions/{jobID}/output.json")
 
     if not results:
         raise HTTPException(
@@ -309,14 +310,22 @@ async def get_workflow_execution_inputs(request: Request, jobID) -> dict | APIEx
     """
     Retrieves workflow execution input payload by jobID
     """
-    payload = request.app.state.io.get_object(f"/execution/{jobID}/input.json")
+    payload = request.app.state.io.get_object(f"/executions/{jobID}/input.json")
 
     if not payload:
         raise HTTPException(
             status_code=404, detail="Workflow execution input payload not found"
         )
 
-    return payload
+    links = [
+        Link.root_link(request),
+        Link.self_link(href=str(request.url)),
+    ]
+
+    return WorkflowExecutionInput(
+        inputs={"payload": payload},
+        links=links,
+    )
 
 
 # @router.post(

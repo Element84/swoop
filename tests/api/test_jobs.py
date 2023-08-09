@@ -8,11 +8,11 @@ inject_io_fixture(
     [
         {
             "source": "base_01",
-            "destination": "/execution/0187c88d-a9e0-788c-adcb-c0b951f8be91",
+            "destination": "/executions/0187c88d-a9e0-788c-adcb-c0b951f8be91",
         },
         {
             "source": "base_02",
-            "destination": "/execution/0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
+            "destination": "/executions/0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
         },
     ],
     __name__,
@@ -441,10 +441,22 @@ async def test_get_job_payload(test_client: TestClient):
         "/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/inputs",
     )
     assert response.status_code == 200
-    print(response.json())
+
     assert response.json() == {
-        "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
-        "payload": "test_input",
+        "inputs": {
+            "payload": {
+                "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
+                "payload": "test_input",
+            }
+        },
+        "links": [
+            {"href": "http://testserver/", "rel": "root", "type": "application/json"},
+            {
+                "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/inputs",
+                "rel": "self",
+                "type": "application/json",
+            },
+        ],
     }
 
 
