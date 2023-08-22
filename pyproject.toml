@@ -55,6 +55,8 @@ dev = [
     "isort >=5.12.0",
 ]
 
+[tool.setuptools_scm]
+
 [tool.setuptools.dynamic]
 version = {attr = "swoop.api.__version__"}
 readme = {file = "README.md"}

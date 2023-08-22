@@ -1,40 +1,77 @@
 name: Publish Image
 on:
+  release:
+    types:
+      - published
   push:
     branches:
       - main
-    tags:
+  pull_request:
+    branches:
       - '*'
-    paths:
-      - ./version.json
 
 jobs:
   build:
     env:
       context: .
       image_name: swoop
+      image_registry: "${{ secrets.REGISTRY_URI }}"
+      image_repository: "${{ secrets.REGISTRY_REPOSITORY }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install setuptools-scm
+
       - name: Get image tags
         id: image_tags
         run: |
-          echo -n ::set-output name=IMAGE_TAGS::
-          VERSION=$(jq -r '.version' ${context}/version.json)
-          TAGS=('latest')
-          if [ "${VERSION}" ] && [ "${VERSION}" != "latest" ]; then
-              TAGS+=("${VERSION}")
+          VERSION="$(python -m setuptools_scm | tr + -)"
+          TAGS=("${VERSION}")
+
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            MAJOR="$(<<<"${VERSION}" cut -d '.' -f 1)"
+            MINOR="${MAJOR}.$(<<<"${VERSION}" cut -d '.' -f 2)"
+            TAGS+=('latest' "${MAJOR}" "${MINOR}")
           fi
+
           if [[ "${GITHUB_REF}" =~ refs/tags/(.*) ]]; then
               TAGS+=("git-${BASH_REMATCH[1]}")
           fi
-          ( IFS=$','; echo "${TAGS[*]}" )
-      - name: Build and publish image to Quay
-        uses: docker/build-push-action@v1
+
+          PREFIX="${{ env.image_registry }}/${{ env.image_repository }}/${{ env.image_name }}"
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "IMAGE_TAGS<<$EOF" >> "$GITHUB_ENV"
+          for tag in "${TAGS[@]}"; do
+              echo "${PREFIX}:${tag}" >> "$GITHUB_ENV"
+          done
+          echo "$EOF" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
         with:
-          path: ${{ env.context }}
-          registry: ${{ secrets.REGISTRY_URI }}
-          repository: ${{ secrets.REGISTRY_REPOSITORY }}/${{ env.image_name }}
+          buildkitd-flags: --debug
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.image_registry }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
-          tags: "${{ steps.image_tags.outputs.IMAGE_TAGS }}"
+
+      - name: Build and publish image to Quay
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ env.context }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'release' }}
+          tags: ${{ env.IMAGE_TAGS }}
