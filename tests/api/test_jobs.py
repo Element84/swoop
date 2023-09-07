@@ -8,11 +8,11 @@ inject_io_fixture(
     [
         {
             "source": "base_01",
-            "destination": "/execution/0187c88d-a9e0-788c-adcb-c0b951f8be91",
+            "destination": "/executions/0187c88d-a9e0-788c-adcb-c0b951f8be91",
         },
         {
             "source": "base_02",
-            "destination": "/execution/0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
+            "destination": "/executions/0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
         },
     ],
     __name__,
