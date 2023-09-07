@@ -6,6 +6,7 @@ from uuid import UUID
 
 from buildpg import V, funcs, render
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from swoop.api.models.jobs import (
     JobList,
@@ -283,7 +284,7 @@ async def get_workflow_execution_details(
 async def get_workflow_execution_result(
     request: Request,
     jobID,
-) -> Results | APIException:
+) -> JSONResponse | APIException:
     """
     Retrieves workflow execution output payload by jobID
     """
@@ -294,7 +295,7 @@ async def get_workflow_execution_result(
             status_code=404, detail="Workflow execution output payload not found"
         )
 
-    return results
+    return JSONResponse(results)
 
 
 @router.get(
