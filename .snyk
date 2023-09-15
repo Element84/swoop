@@ -5,5 +5,9 @@ ignore:
   SNYK-DEBIAN12-POSTGRESQL15-5838227:
     - '*':
         reason: Although postgresql-15 package has been flagged as vulnerable, we're not installing postgres-15 on our base image.
-        expires: 2023-09-30T17:33:45.004Z
+        expires: 2030-01-01T00:00:00.000Z
+  SNYK:LIC:PIP:CERTIFI:MPL-2.0:
+    - '*':
+      reason: Flagged as an MPL 2.0 license issue by Snyk.
+      expires: 2030-01-01T00:00:00.000Z
 patch: {}
