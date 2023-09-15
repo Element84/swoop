@@ -1,1 +1,3 @@
-certifi
+This project has the following MPL-licensed dependencies:
+
+certifi: https://github.com/certifi/python-certifi
