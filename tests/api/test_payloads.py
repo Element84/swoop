@@ -20,7 +20,7 @@ a_payload = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
+            "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "rel": "self",
             "type": "application/json",
         },
@@ -663,7 +663,7 @@ no_payload_id_exception = {
 
 @pytest.mark.asyncio
 async def test_get_payloads_no_filter(test_client: TestClient):
-    url: str = "/payloadCacheEntries/"
+    url: str = "/cache/"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -671,7 +671,7 @@ async def test_get_payloads_no_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_only(test_client: TestClient):
-    url: str = "/payloadCacheEntries/?limit=1000"
+    url: str = "/cache/?limit=1000"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -679,7 +679,7 @@ async def test_get_payloads_filter_limit_only(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_process(test_client: TestClient):
-    url: str = "/payloadCacheEntries/?limit=1000&processID=some_workflow"
+    url: str = "/cache/?limit=1000&processID=some_workflow"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -687,28 +687,24 @@ async def test_get_payloads_filter_limit_process(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_only_invalid_process_id(test_client: TestClient):
-    response = test_client.get("/payloadCacheEntries/?limit=1000&processID=hello")
+    response = test_client.get("/cache/?limit=1000&processID=hello")
     assert response.json()["payloads"] == []
     assert response.status_code == 200
 
 
-# Tests for GET /payloadCacheEntries/{payload-id} endpoint
+# Tests for GET /cache/{payload-id} endpoint
 
 
 @pytest.mark.asyncio
 async def test_get_payloadid_match(test_client: TestClient):
-    response = test_client.get(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77"
-    )
+    response = test_client.get("/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77")
     assert response.json() == a_payload_details
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_payloadid_no_match(test_client: TestClient):
-    response = test_client.get(
-        "/payloadCacheEntries/d5d64165-82df-5836-b78e-af4daee55d38"
-    )
+    response = test_client.get("/cache/d5d64165-82df-5836-b78e-af4daee55d38")
     assert response.json() == no_payload_id_exception
     assert response.status_code == 404
 
@@ -716,7 +712,7 @@ async def test_get_payloadid_no_match(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_retrieve_invalid_payload_cache_details(test_client: TestClient):
     response = test_client.post(
-        "/payloadCacheEntries/",
+        "/cache/",
         content=json.dumps(payload_input_invalid),
     )
     assert response.status_code == 404
@@ -725,7 +721,7 @@ async def test_retrieve_invalid_payload_cache_details(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_retrieve_missing_payload_cache_details(test_client: TestClient):
     response = test_client.post(
-        "/payloadCacheEntries/",
+        "/cache/",
         content=json.dumps(payload_input_missing),
     )
     assert response.status_code == 404
@@ -739,7 +735,7 @@ async def test_retrieve_payload_cache_details(test_client: TestClient):
     )
     assert response.status_code == 201
     response = test_client.post(
-        "/payloadCacheEntries/",
+        "/cache/",
         content=json.dumps(payload_input_valid),
     )
     assert response.status_code == 200
@@ -748,7 +744,7 @@ async def test_retrieve_payload_cache_details(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_set_payload_cache_invalid_after(test_client: TestClient):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        "/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
         content=json.dumps(
             {
                 "invalidAfter": "2023-06-29T18:03:38.478Z",
@@ -756,16 +752,14 @@ async def test_set_payload_cache_invalid_after(test_client: TestClient):
         ),
     )
     assert response.status_code == 200
-    response = test_client.get(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/"
-    )
+    response = test_client.get("/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77/")
     assert response.json()["invalidAfter"] == "2023-06-29T18:03:38.478000+00:00"
 
 
 @pytest.mark.asyncio
 async def test_set_payload_cache_invalid_after_invalidate_now(test_client: TestClient):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        "/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
         content=json.dumps({"invalidAfter": "now"}),
     )
     assert response.status_code == 200
@@ -776,7 +770,7 @@ async def test_set_payload_cache_invalid_after_bad_value(
     test_client: TestClient,
 ):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
+        "/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77/invalidate",
         content=json.dumps({"invalidAfter": "random-string"}),
     )
     assert response.status_code == 422
@@ -787,7 +781,7 @@ async def test_set_payload_cache_invalid_after_non_existing_payload(
     test_client: TestClient,
 ):
     response = test_client.post(
-        "/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca78/invalidate",
+        "/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca78/invalidate",
         content=json.dumps(
             {
                 "invalidAfter": "2023-06-29T18:03:38.478Z",

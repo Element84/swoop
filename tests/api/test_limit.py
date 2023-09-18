@@ -22,5 +22,5 @@ def limit_sql_file(api_fixtures_path) -> Path:
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_test(test_client, limit_sql_file, database):
     await SwoopDB.run_sqlfile(SqlFile(path=limit_sql_file), database=database)
-    response = test_client.get("/payloadCacheEntries/?limit=2")
+    response = test_client.get("/cache/?limit=2")
     assert len(response.json()["payloads"]) == 2

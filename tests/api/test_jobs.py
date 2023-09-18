@@ -55,7 +55,7 @@ a_job = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
+            "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "rel": "cache",
             "type": "application/json",
         },
@@ -99,7 +99,7 @@ another_job = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/payloadCacheEntries/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
+            "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "rel": "cache",
             "type": "application/json",
         },

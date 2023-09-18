@@ -896,6 +896,173 @@ paths:
       summary: Get Landing Page
       tags:
       - Capabilities
+  /cache/:
+    get:
+      description: Returns a list of cached input payloads and the association with
+        workflow executions
+      operationId: list_input_payload_cache_entries_cache__get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          minimum: 1.0
+          title: Limit
+          type: integer
+      - in: query
+        name: processID
+        required: false
+        schema:
+          items:
+            type: string
+          title: Processid
+          type: array
+      - in: query
+        name: lastID
+        required: false
+        schema:
+          format: uuid
+          title: Lastid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheList'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Input Payload Cache Entries
+      tags:
+      - Payloads
+    post:
+      description: Retrieves details of cached input payload via a payload hash lookup
+      operationId: retrieve_payload_cache_entry_by_payload_input_cache__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Execute'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheEntry'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Retrieve Payload Cache Entry By Payload Input
+      tags:
+      - Payloads
+  /cache/{payloadID}:
+    get:
+      description: Retrieve details of cached input payload by payloadID
+      operationId: get_input_payload_cache_entry_cache__payloadID__get
+      parameters:
+      - in: path
+        name: payloadID
+        required: true
+        schema:
+          format: uuid
+          title: Payloadid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCacheEntry'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Input Payload Cache Entry
+      tags:
+      - Payloads
+  /cache/{payloadID}/invalidate:
+    post:
+      description: Set invalidAfter property on a payload cache entry
+      operationId: update_input_payload_cache_entry_invalidation_cache__payloadID__invalidate_post
+      parameters:
+      - in: path
+        name: payloadID
+        required: true
+        schema:
+          format: uuid
+          title: Payloadid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invalid'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Unprocessable Entity
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Update Input Payload Cache Entry Invalidation
+      tags:
+      - Payloads
   /conformance:
     get:
       description: information about standards that this API conforms to
@@ -1133,173 +1300,6 @@ paths:
       summary: Get Workflow Execution Result
       tags:
       - Jobs
-  /payloadCacheEntries/:
-    get:
-      description: Returns a list of cached input payloads and the association with
-        workflow executions
-      operationId: list_input_payload_cache_entries_payloadCacheEntries__get
-      parameters:
-      - in: query
-        name: limit
-        required: false
-        schema:
-          default: 1000
-          minimum: 1.0
-          title: Limit
-          type: integer
-      - in: query
-        name: processID
-        required: false
-        schema:
-          items:
-            type: string
-          title: Processid
-          type: array
-      - in: query
-        name: lastID
-        required: false
-        schema:
-          format: uuid
-          title: Lastid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PayloadCacheList'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: List Input Payload Cache Entries
-      tags:
-      - Payloads
-    post:
-      description: Retrieves details of cached input payload via a payload hash lookup
-      operationId: retrieve_payload_cache_entry_by_payload_input_payloadCacheEntries__post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Execute'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PayloadCacheEntry'
-          description: Successful Response
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Not Found
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Internal Server Error
-      summary: Retrieve Payload Cache Entry By Payload Input
-      tags:
-      - Payloads
-  /payloadCacheEntries/{payloadID}:
-    get:
-      description: Retrieve details of cached input payload by payloadID
-      operationId: get_input_payload_cache_entry_payloadCacheEntries__payloadID__get
-      parameters:
-      - in: path
-        name: payloadID
-        required: true
-        schema:
-          format: uuid
-          title: Payloadid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PayloadCacheEntry'
-          description: Successful Response
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Not Found
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Internal Server Error
-      summary: Get Input Payload Cache Entry
-      tags:
-      - Payloads
-  /payloadCacheEntries/{payloadID}/invalidate:
-    post:
-      description: Set invalidAfter property on a payload cache entry
-      operationId: update_input_payload_cache_entry_invalidation_payloadCacheEntries__payloadID__invalidate_post
-      parameters:
-      - in: path
-        name: payloadID
-        required: true
-        schema:
-          format: uuid
-          title: Payloadid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Invalid'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Not Found
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Unprocessable Entity
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIException'
-          description: Internal Server Error
-      summary: Update Input Payload Cache Entry Invalidation
-      tags:
-      - Payloads
   /processes/:
     get:
       description: Returns a list of all available workflows

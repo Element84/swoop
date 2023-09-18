@@ -42,7 +42,7 @@ def get_app() -> FastAPI:
     )
     app.include_router(
         payloads.router,
-        prefix="/payloadCacheEntries",
+        prefix="/cache",
     )
 
     return app
