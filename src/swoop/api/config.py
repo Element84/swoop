@@ -34,8 +34,6 @@ class Settings(BaseSettings):
     db_max_queries: int = 50000
     db_max_inactive_conn_lifetime: float = 300
 
-    access_key_id: str
-    secret_access_key: str
     bucket_name: str
     execution_dir: str
     s3_endpoint: str

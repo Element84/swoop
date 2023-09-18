@@ -18,10 +18,8 @@ def get_app() -> FastAPI:
     async def startup_event():
         """Connect to database on startup."""
         app.state.io = IOClient(
-            app.state.settings.s3_endpoint,
-            app.state.settings.access_key_id,
-            app.state.settings.secret_access_key,
             app.state.settings.bucket_name,
+            app.state.settings.s3_endpoint,
         )
         init_workflows_config(app)
         await connect_to_db(app)
