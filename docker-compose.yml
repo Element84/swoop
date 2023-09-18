@@ -26,18 +26,21 @@ services:
   api:
     build: .
     restart: always
+    profiles:
+      - api
     environment:
-      SWOOP_ACCESS_KEY_ID: "${SWOOP_ACCESS_KEY_ID:-minio}"
-      SWOOP_SECRET_ACCESS_KEY: "${SWOOP_SECRET_ACCESS_KEY:-password}"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-minio}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-password}"
       SWOOP_S3_ENDPOINT: "http://minio:9000"
       SWOOP_BUCKET_NAME: "${SWOOP_BUCKET_NAME:-swoop}"
       SWOOP_EXECUTION_DIR: "${SWOOP_EXECUTION_DIR:-s3://swoop/execution}"
-      SWOOP_WORKFLOW_CONFIG_FILE: "${SWOOP_WORKFLOW_CONFIG_FILE:-workflow-config.yml}"
       PGDATABASE: "${PGDATABASE:-swoop}"
       PGHOST: "postgres"
       PGUSER: "${PGUSER:-postgres}"
+      UVICORN_HOST: "${UVICORN_HOST:-0.0.0.0}"
+      UVICORN_PORT: "${UVICORN_PORT:-8000}"
     ports:
-      - "${SWOOP_API_PORT:-8000}:8000"
+      - "${UVICORN_PORT:-8000}:${UVICORN_PORT:-8000}"
     depends_on:
       - postgres
       - minio

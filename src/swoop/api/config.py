@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     bucket_name: str
     execution_dir: str
     s3_endpoint: str
-    workflow_config_file: Path
+    config_file: Path
 
     class Config:
         env_prefix = "swoop_"
