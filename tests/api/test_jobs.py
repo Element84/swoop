@@ -40,8 +40,13 @@ a_job = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/results",
-            "rel": "results",
+            "href": "http://testserver/processes/action_1",
+            "rel": "process",
+            "type": "application/json",
+        },
+        {
+            "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
+            "rel": "cache",
             "type": "application/json",
         },
         {
@@ -50,13 +55,8 @@ a_job = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/processes/action_1",
-            "rel": "process",
-            "type": "application/json",
-        },
-        {
-            "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
-            "rel": "cache",
+            "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/results",
+            "rel": "results",
             "type": "application/json",
         },
     ],
@@ -84,16 +84,6 @@ another_job = {
             "type": "application/json",
         },
         {
-            "href": "http://testserver/jobs/0187c88d-a9e0-757e-aa36-2fbb6c834cb5/results",
-            "rel": "results",
-            "type": "application/json",
-        },
-        {
-            "href": "http://testserver/jobs/0187c88d-a9e0-757e-aa36-2fbb6c834cb5/inputs",
-            "rel": "inputs",
-            "type": "application/json",
-        },
-        {
             "href": "http://testserver/processes/action_2",
             "rel": "process",
             "type": "application/json",
@@ -101,6 +91,11 @@ another_job = {
         {
             "href": "http://testserver/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77",
             "rel": "cache",
+            "type": "application/json",
+        },
+        {
+            "href": "http://testserver/jobs/0187c88d-a9e0-757e-aa36-2fbb6c834cb5/inputs",
+            "rel": "inputs",
             "type": "application/json",
         },
     ],
