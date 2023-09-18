@@ -7,6 +7,7 @@ from swoop.api.models.shared import Link
 
 class ConfClasses(BaseModel):
     conformsTo: list[str]
+    links: list[Link]
 
 
 class LandingPage(BaseModel):
