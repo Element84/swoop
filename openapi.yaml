@@ -86,8 +86,14 @@ components:
             type: string
           title: Conformsto
           type: array
+        links:
+          items:
+            $ref: '#/components/schemas/Link'
+          title: Links
+          type: array
       required:
       - conformsTo
+      - links
       title: ConfClasses
       type: object
     Crs:
