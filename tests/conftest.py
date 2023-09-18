@@ -48,10 +48,8 @@ def generate_io_fixture(fixtures, io_postfix=None, scope="module"):
         )
 
         ioclient = IOClient(
-            settings.s3_endpoint,
-            settings.access_key_id,
-            settings.secret_access_key,
             bucket_name,
+            settings.s3_endpoint,
         )
 
         def setup_io(ioclient):

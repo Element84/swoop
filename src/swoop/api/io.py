@@ -2,22 +2,40 @@ import io
 import logging
 
 from minio import Minio
+from minio.credentials import (
+    ChainedProvider,
+    EnvAWSProvider,
+    EnvMinioProvider,
+    IamAwsProvider,
+)
 from minio.error import S3Error
 
 logger = logging.getLogger(__name__)
 
 
 class IOClient:
-    def __init__(
-        self, s3_endpoint: str, access_key: str, secret_key: str, bucket_name: str
-    ):
+    def __init__(self, bucket_name: str, s3_endpoint: str = "s3.amazonaws.com"):
         """Initialize IO Client."""
+        secure = True
+
+        if s3_endpoint.startswith("https://"):
+            s3_endpoint = s3_endpoint[8:]
+        elif s3_endpoint.startswith("http://"):
+            s3_endpoint = s3_endpoint[7:]
+            secure = False
+
         self.client = Minio(
-            s3_endpoint.split("//").pop() if "http" in s3_endpoint else s3_endpoint,
-            access_key=access_key,
-            secret_key=secret_key,
-            secure="http://" not in s3_endpoint,
+            s3_endpoint,
+            secure=secure,
+            credentials=ChainedProvider(
+                [
+                    EnvMinioProvider(),
+                    EnvAWSProvider(),
+                    IamAwsProvider(),
+                ],
+            ),
         )
+
         self.bucket_name = bucket_name
         self.create_bucket()
 
