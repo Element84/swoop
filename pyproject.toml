@@ -66,3 +66,6 @@ profile = "black"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+
+[tool.ruff]
+ignore = ["E501"]
