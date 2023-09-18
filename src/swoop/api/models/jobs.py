@@ -85,18 +85,6 @@ class StatusInfo(BaseModel):
                     href=url,
                 ),
                 Link(
-                    href=url + "/results",
-                    # TODO: confirm rel
-                    rel="results",
-                    type="application/json",
-                ),
-                Link(
-                    href=url + "/inputs",
-                    # TODO: confirm rel
-                    rel="inputs",
-                    type="application/json",
-                ),
-                Link(
                     href=str(
                         request.url_for(
                             "get_workflow_description",
@@ -118,7 +106,23 @@ class StatusInfo(BaseModel):
                     rel="cache",
                     type="application/json",
                 ),
+                Link(
+                    href=url + "/inputs",
+                    # TODO: confirm rel
+                    rel="inputs",
+                    type="application/json",
+                ),
             ]
+
+            if kwargs.get("status", None) == StatusCode.successful:
+                self.links += (
+                    Link(
+                        href=url + "/results",
+                        # TODO: confirm rel
+                        rel="results",
+                        type="application/json",
+                    ),
+                )
 
     @classmethod
     def from_action_record(
