@@ -35,7 +35,7 @@ async def test_get_payloads_pagination(test_client: TestClient, database: str):
     await SwoopDB.execute_sql(sql, database=database)
 
     # get first page
-    base_url: str = "/cache/?limit=50"
+    base_url: str = "/cache?limit=50"
     url: str = base_url
     first_id: str = "cdc73916-500c-5501-a658-dd706a943500"
     last_id: str = "cdc73916-500c-5501-a658-dd706a943531"

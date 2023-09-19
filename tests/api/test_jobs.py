@@ -145,7 +145,7 @@ def all_jobs(request_endpoint: str):
 
 @pytest.mark.asyncio
 async def test_get_all_jobs(test_client: TestClient):
-    url: str = "/jobs/"
+    url: str = "/jobs"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_jobs(url)
@@ -153,7 +153,7 @@ async def test_get_all_jobs(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_single_job(test_client: TestClient):
-    url: str = "/jobs/?limit=1&processID=action_1"
+    url: str = "/jobs?limit=1&processID=action_1"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -161,7 +161,7 @@ async def test_get_single_job(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_process(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1"
+    url: str = "/jobs?processID=action_1"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -169,7 +169,7 @@ async def test_get_job_by_process(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_type_filter(test_client: TestClient):
-    url: str = "/jobs/?type=argo-workflow"
+    url: str = "/jobs?type=argo-workflow"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -177,7 +177,7 @@ async def test_get_job_by_type_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_type_filter_does_not_exist(test_client: TestClient):
-    url: str = "/jobs/?type=doesnotexist"
+    url: str = "/jobs?type=doesnotexist"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -185,7 +185,7 @@ async def test_get_job_by_type_filter_does_not_exist(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_job_id_filter(test_client: TestClient):
-    url: str = "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -193,7 +193,7 @@ async def test_get_job_by_job_id_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_status_filter(test_client: TestClient):
-    url: str = "/jobs/?status=successful"
+    url: str = "/jobs?status=successful"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -201,7 +201,7 @@ async def test_get_job_by_status_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_swoop_status_filter(test_client: TestClient):
-    url: str = "/jobs/?swoopStatus=SUCCESSFUL"
+    url: str = "/jobs?swoopStatus=SUCCESSFUL"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -209,7 +209,7 @@ async def test_get_job_by_swoop_status_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_process_id_job_id_filter(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1&jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
+    url: str = "/jobs?processID=action_1&jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -217,7 +217,7 @@ async def test_get_job_by_process_id_job_id_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_process_id_job_id_filter_no_match(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1&jobID=0100c88d-a5e0-788c-adcb-c0b941f8be91"
+    url: str = "/jobs?processID=action_1&jobID=0100c88d-a5e0-788c-adcb-c0b941f8be91"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -225,7 +225,7 @@ async def test_get_job_by_process_id_job_id_filter_no_match(test_client: TestCli
 
 @pytest.mark.asyncio
 async def test_get_job_by_process_id_type_filter(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1&type=argo-workflow"
+    url: str = "/jobs?processID=action_1&type=argo-workflow"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -233,7 +233,7 @@ async def test_get_job_by_process_id_type_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_process_id_status_filter(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1&status=successful"
+    url: str = "/jobs?processID=action_1&status=successful"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -241,7 +241,7 @@ async def test_get_job_by_process_id_status_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_process_id_swoop_status_filter(test_client: TestClient):
-    url: str = "/jobs/?processID=action_1&swoopStatus=SUCCESSFUL"
+    url: str = "/jobs?processID=action_1&swoopStatus=SUCCESSFUL"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -249,7 +249,7 @@ async def test_get_job_by_process_id_swoop_status_filter(test_client: TestClient
 
 @pytest.mark.asyncio
 async def test_get_job_by_type_job_id_filter(test_client: TestClient):
-    url: str = "/jobs/?type=argo-workflow&jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
+    url: str = "/jobs?type=argo-workflow&jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -257,7 +257,7 @@ async def test_get_job_by_type_job_id_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_type_job_id_filter_no_match(test_client: TestClient):
-    url: str = "/jobs/?type=argo-workflow&jobID=0187c88d-a9e0-757e-aa36-2fbb6c834cb5"
+    url: str = "/jobs?type=argo-workflow&jobID=0187c88d-a9e0-757e-aa36-2fbb6c834cb5"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -265,7 +265,7 @@ async def test_get_job_by_type_job_id_filter_no_match(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_job_id_status_filter(test_client: TestClient):
-    url: str = "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&status=successful"
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&status=successful"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -273,7 +273,7 @@ async def test_get_job_by_job_id_status_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_job_id_status_filter_no_match(test_client: TestClient):
-    url: str = "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&status=running"
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&status=running"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -281,9 +281,7 @@ async def test_get_job_by_job_id_status_filter_no_match(test_client: TestClient)
 
 @pytest.mark.asyncio
 async def test_get_job_by_job_id_swoop_status_filter(test_client: TestClient):
-    url: str = (
-        "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&swoopStatus=SUCCESSFUL"
-    )
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&swoopStatus=SUCCESSFUL"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -291,7 +289,7 @@ async def test_get_job_by_job_id_swoop_status_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_by_job_id_swoop_status_filter_no_match(test_client: TestClient):
-    url: str = "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&swoopStatus=CANCELED"
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&swoopStatus=CANCELED"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -299,7 +297,7 @@ async def test_get_job_by_job_id_swoop_status_filter_no_match(test_client: TestC
 
 @pytest.mark.asyncio
 async def test_get_job_by_status_and_swoop_status_filter_match(test_client: TestClient):
-    url: str = "/jobs/?status=successful&swoopStatus=SUCCESSFUL"
+    url: str = "/jobs?status=successful&swoopStatus=SUCCESSFUL"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -309,7 +307,7 @@ async def test_get_job_by_status_and_swoop_status_filter_match(test_client: Test
 async def test_get_job_by_status_and_swoop_status_filter_contradict(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?status=accepted&swoopStatus=SUCCESSFUL"
+    url: str = "/jobs?status=accepted&swoopStatus=SUCCESSFUL"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -319,7 +317,7 @@ async def test_get_job_by_status_and_swoop_status_filter_contradict(
 async def test_get_job_by_datetime_filter(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=2023-04-28T15:49:00.000000Z"
+    url: str = "/jobs?datetime=2023-04-28T15:49:00.000000Z"
     response = test_client.get(url)
     assert response.status_code == 200
     assert len(response.json()["jobs"]) == 2
@@ -329,7 +327,7 @@ async def test_get_job_by_datetime_filter(
 async def test_get_job_by_datetime_interval_filter(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=2023-04-01T15:49:00.000000Z/2023-04-30T15:49:00.000000Z"
+    url: str = "/jobs?datetime=2023-04-01T15:49:00.000000Z/2023-04-30T15:49:00.000000Z"
     response = test_client.get(url)
     assert response.status_code == 200
     assert len(response.json()["jobs"]) == 2
@@ -339,7 +337,7 @@ async def test_get_job_by_datetime_interval_filter(
 async def test_get_job_by_datetime_interval_end_open(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=2023-04-01T15:49:00.000000Z/.."
+    url: str = "/jobs?datetime=2023-04-01T15:49:00.000000Z/.."
     response = test_client.get(url)
     assert response.status_code == 200
     assert len(response.json()["jobs"]) == 2
@@ -349,7 +347,7 @@ async def test_get_job_by_datetime_interval_end_open(
 async def test_get_job_by_datetime_interval_start_open(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=../2023-04-30T15:49:00.000000Z"
+    url: str = "/jobs?datetime=../2023-04-30T15:49:00.000000Z"
     response = test_client.get(url)
     assert response.status_code == 200
     assert len(response.json()["jobs"]) == 2
@@ -359,7 +357,7 @@ async def test_get_job_by_datetime_interval_start_open(
 async def test_get_job_by_datetime_interval_filter_no_match(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=2023-03-01T15:49:00.000000Z/2023-03-30T15:49:00.000000Z"
+    url: str = "/jobs?datetime=2023-03-01T15:49:00.000000Z/2023-03-30T15:49:00.000000Z"
     response = test_client.get(url)
     assert response.status_code == 200
     assert len(response.json()["jobs"]) == 0
@@ -369,7 +367,7 @@ async def test_get_job_by_datetime_interval_filter_no_match(
 async def test_get_job_by_datetime_filter_invalid(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?datetime=2023-03-0115:49:00.000000Z"
+    url: str = "/jobs?datetime=2023-03-0115:49:00.000000Z"
     response = test_client.get(url)
     assert response.status_code == 422
 
@@ -378,7 +376,7 @@ async def test_get_job_by_datetime_filter_invalid(
 async def test_get_job_by_process_id_datetime_filter(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?processID=action_1&datetime=2023-04-28T15:49:00.000000Z"
+    url: str = "/jobs?processID=action_1&datetime=2023-04-28T15:49:00.000000Z"
     response = test_client.get(url)
     assert len(response.json()["jobs"]) == 1
 
@@ -387,7 +385,7 @@ async def test_get_job_by_process_id_datetime_filter(
 async def test_get_job_by_job_id_datetime_filter(
     test_client: TestClient,
 ):
-    url: str = "/jobs/?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&\
+    url: str = "/jobs?jobID=0187c88d-a9e0-788c-adcb-c0b951f8be91&\
     datetime=2023-04-28T15:49:00.000000Z"
     response = test_client.get(url)
     assert len(response.json()["jobs"]) == 1
@@ -470,7 +468,7 @@ async def test_get_workflow_execution_details_404(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_min_duration(test_client: TestClient):
-    url: str = "/jobs/?minDuration=0"
+    url: str = "/jobs?minDuration=0"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -478,7 +476,7 @@ async def test_get_job_min_duration(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_max_duration(test_client: TestClient):
-    url: str = "/jobs/?maxDuration=5"
+    url: str = "/jobs?maxDuration=5"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -486,7 +484,7 @@ async def test_get_job_max_duration(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_min_max_duration(test_client: TestClient):
-    url: str = "/jobs/?minDuration=1&maxDuration=5"
+    url: str = "/jobs?minDuration=1&maxDuration=5"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -494,7 +492,7 @@ async def test_get_job_min_max_duration(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_same_min_max_duration_not_found(test_client: TestClient):
-    url: str = "/jobs/?minDuration=0&maxDuration=0"
+    url: str = "/jobs?minDuration=0&maxDuration=0"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []
@@ -502,7 +500,7 @@ async def test_get_job_same_min_max_duration_not_found(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_same_max_duration_at_edge(test_client: TestClient):
-    url: str = "/jobs/?minDuration=0&maxDuration=1"
+    url: str = "/jobs?minDuration=0&maxDuration=1"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -510,7 +508,7 @@ async def test_get_job_same_max_duration_at_edge(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_job_min_max_duration_applicable_status(test_client: TestClient):
-    url: str = "/jobs/?status=successful&minDuration=0&maxDuration=10"
+    url: str = "/jobs?status=successful&minDuration=0&maxDuration=10"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == single_job(url)
@@ -518,7 +516,7 @@ async def test_get_job_min_max_duration_applicable_status(test_client: TestClien
 
 @pytest.mark.asyncio
 async def test_get_job_min_max_duration_not_applicable_status(test_client: TestClient):
-    url: str = "/jobs/?status=accepted&minDuration=0&maxDuration=10"
+    url: str = "/jobs?status=accepted&minDuration=0&maxDuration=10"
     response = test_client.get(url)
     assert response.status_code == 200
     assert response.json()["jobs"] == []

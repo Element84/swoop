@@ -34,19 +34,19 @@ async def test_read_main(test_client):
                 "title": "API conformance classes implemented by this server",
             },
             {
-                "href": "http://testserver/processes/",
+                "href": "http://testserver/processes",
                 "rel": "http://www.opengis.net/def/rel/ogc/1.0/processes",
                 "type": "application/json",
                 "title": "Metadata about the processes supported by this API",
             },
             {
-                "href": "http://testserver/jobs/",
+                "href": "http://testserver/jobs",
                 "rel": "http://www.opengis.net/def/rel/ogc/1.0/job-list",
                 "type": "application/json",
                 "title": "List jobs run by this serivce",
             },
             {
-                "href": "http://testserver/cache/",
+                "href": "http://testserver/cache",
                 "rel": "http://www.opengis.net/def/rel/ogc/1.0/cache-list",
                 "type": "application/json",
                 "title": "List cached input payload entries",

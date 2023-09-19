@@ -26,7 +26,7 @@ router: APIRouter = APIRouter(
 
 
 @router.get(
-    "/",
+    "",
     response_model=ProcessList,
     responses={},
     response_model_exclude_unset=True,
