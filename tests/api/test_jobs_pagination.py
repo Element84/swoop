@@ -61,7 +61,7 @@ async def test_get_jobs_pagination(test_client: TestClient, database: str):
     await SwoopDB.execute_sql(sql, database=database)
 
     # get first page
-    base_url: str = "/jobs/?limit=50"
+    base_url: str = "/jobs?limit=50"
     url: str = base_url
     first_id: str = "0187c88d-a9e0-788c-adcb-c0b951f8be64"
     last_id: str = "0187c88d-a9e0-788c-adcb-c0b951f8be33"

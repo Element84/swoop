@@ -29,7 +29,7 @@ router: APIRouter = APIRouter(
 
 
 @router.get(
-    "/",
+    "",
     response_model=JobList,
     responses={"404": {"model": APIException}, "422": {"model": APIException}},
     response_model_exclude_unset=True,

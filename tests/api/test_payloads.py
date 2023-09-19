@@ -663,7 +663,7 @@ no_payload_id_exception = {
 
 @pytest.mark.asyncio
 async def test_get_payloads_no_filter(test_client: TestClient):
-    url: str = "/cache/"
+    url: str = "/cache"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -671,7 +671,7 @@ async def test_get_payloads_no_filter(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_only(test_client: TestClient):
-    url: str = "/cache/?limit=1000"
+    url: str = "/cache?limit=1000"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -679,7 +679,7 @@ async def test_get_payloads_filter_limit_only(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_limit_process(test_client: TestClient):
-    url: str = "/cache/?limit=1000&processID=some_workflow"
+    url: str = "/cache?limit=1000&processID=some_workflow"
     response = test_client.get(url)
     assert response.json() == all_payloads(url)
     assert response.status_code == 200
@@ -687,7 +687,7 @@ async def test_get_payloads_filter_limit_process(test_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_payloads_filter_only_invalid_process_id(test_client: TestClient):
-    response = test_client.get("/cache/?limit=1000&processID=hello")
+    response = test_client.get("/cache?limit=1000&processID=hello")
     assert response.json()["payloads"] == []
     assert response.status_code == 200
 

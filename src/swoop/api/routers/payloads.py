@@ -17,7 +17,7 @@ router: APIRouter = APIRouter(
 
 
 @router.get(
-    "/",
+    "",
     response_model=PayloadCacheList,
     response_model_exclude_unset=True,
 )

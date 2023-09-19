@@ -902,11 +902,11 @@ paths:
       summary: Get Landing Page
       tags:
       - Capabilities
-  /cache/:
+  /cache:
     get:
       description: Returns a list of cached input payloads and the association with
         workflow executions
-      operationId: list_input_payload_cache_entries_cache__get
+      operationId: list_input_payload_cache_entries_cache_get
       parameters:
       - in: query
         name: limit
@@ -947,6 +947,7 @@ paths:
       summary: List Input Payload Cache Entries
       tags:
       - Payloads
+  /cache/:
     post:
       description: Retrieves details of cached input payload via a payload hash lookup
       operationId: retrieve_payload_cache_entry_by_payload_input_cache__post
@@ -1089,10 +1090,10 @@ paths:
       summary: Get Conformance Classes
       tags:
       - ConformanceDeclaration
-  /jobs/:
+  /jobs:
     get:
       description: Returns a list of all available workflow executions
-      operationId: list_workflow_executions_jobs__get
+      operationId: list_workflow_executions_jobs_get
       parameters:
       - in: query
         name: limit
@@ -1306,10 +1307,10 @@ paths:
       summary: Get Workflow Execution Result
       tags:
       - Jobs
-  /processes/:
+  /processes:
     get:
       description: Returns a list of all available workflows
-      operationId: list_workflows_processes__get
+      operationId: list_workflows_processes_get
       parameters:
       - in: query
         name: limit

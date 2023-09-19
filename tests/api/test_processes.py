@@ -412,7 +412,7 @@ process_payload_valid_wf_name_not_in_config = {
 
 @pytest.mark.asyncio
 async def test_get_all_processes(test_client: TestClient) -> None:
-    url: str = "/processes/"
+    url: str = "/processes"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_processes(url)
@@ -420,7 +420,7 @@ async def test_get_all_processes(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argoHandler"
+    url: str = "/processes?handler=argoHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -428,7 +428,7 @@ async def test_get_all_processes_handler(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler_multiple(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argoHandler&handler=cirrusHandler"
+    url: str = "/processes?handler=argoHandler&handler=cirrusHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_processes_reorder(url)
@@ -436,7 +436,7 @@ async def test_get_all_processes_handler_multiple(test_client: TestClient) -> No
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit(test_client: TestClient) -> None:
-    url: str = "/processes/?limit=1"
+    url: str = "/processes?limit=1"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == cirrus_workflow(url)
@@ -444,7 +444,7 @@ async def test_get_all_processes_limit(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_type(test_client: TestClient) -> None:
-    url: str = "/processes/?type=argoWorkflow"
+    url: str = "/processes?type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -452,7 +452,7 @@ async def test_get_all_processes_type(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
-    url: str = "/processes/?type=argoWorkflow&type=cirrusWorkflow"
+    url: str = "/processes?type=argoWorkflow&type=cirrusWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == all_processes_reorder(url)
@@ -460,7 +460,7 @@ async def test_get_all_processes_type_multiple(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit_handler(test_client: TestClient) -> None:
-    url: str = "/processes/?limit=2&handler=argoHandler"
+    url: str = "/processes?limit=2&handler=argoHandler"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -468,7 +468,7 @@ async def test_get_all_processes_limit_handler(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_limit_type(test_client: TestClient) -> None:
-    url: str = "/processes/?limit=2&type=argoWorkflow"
+    url: str = "/processes?limit=2&type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -476,7 +476,7 @@ async def test_get_all_processes_limit_type(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_handler_type(test_client: TestClient) -> None:
-    url: str = "/processes/?handler=argoHandler&type=argoWorkflow"
+    url: str = "/processes?handler=argoHandler&type=argoWorkflow"
     response: Response = test_client.get(url)
     assert response.status_code == 200
     assert response.json() == mirror_workflow(url)
@@ -484,7 +484,7 @@ async def test_get_all_processes_handler_type(test_client: TestClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_all_processes_invalid_type(test_client: TestClient) -> None:
-    response: Response = test_client.get("/processes/?type=invalid_type")
+    response: Response = test_client.get("/processes?type=invalid_type")
     assert response.status_code == 200
     assert response.json()["processes"] == []
 
