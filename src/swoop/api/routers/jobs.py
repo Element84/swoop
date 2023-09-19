@@ -5,9 +5,10 @@ from typing import Annotated
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 
+from swoop.api.exceptions import HTTPException
 from swoop.api.models.jobs import (
     JobList,
     StatusCode,
@@ -26,6 +27,13 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 router: APIRouter = APIRouter(
     tags=["Jobs"],
 )
+
+
+def job_not_found():
+    raise HTTPException(
+        status_code=404,
+        type="http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/no-such-job",
+    )
 
 
 @router.get(
@@ -268,7 +276,7 @@ async def get_workflow_execution_details(
         )
         record = await conn.fetchrow(q, *p)
         if not record:
-            raise HTTPException(status_code=404, detail="Workflow execution not found")
+            job_not_found()
 
         return StatusInfo.from_action_record(record, request)
 
@@ -291,9 +299,7 @@ async def get_workflow_execution_result(
     results = request.app.state.io.get_object(f"/executions/{jobID}/output.json")
 
     if not results:
-        raise HTTPException(
-            status_code=404, detail="Workflow execution output payload not found"
-        )
+        raise HTTPException(status_code=404)
 
     return JSONResponse(results)
 
@@ -313,9 +319,7 @@ async def get_workflow_execution_inputs(request: Request, jobID) -> dict | APIEx
     payload = request.app.state.io.get_object(f"/executions/{jobID}/input.json")
 
     if not payload:
-        raise HTTPException(
-            status_code=404, detail="Workflow execution input payload not found"
-        )
+        raise HTTPException(status_code=404)
 
     return payload
 
