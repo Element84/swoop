@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from swoop.api.config import Settings
 from swoop.api.db import close_db_connection, connect_to_db
+from swoop.api.exceptions import HTTPException
 from swoop.api.io import IOClient
 from swoop.api.routers import jobs, payloads, processes, root
 from swoop.api.workflows import init_workflows_config
@@ -44,5 +45,9 @@ def get_app() -> FastAPI:
         payloads.router,
         prefix="/cache",
     )
+
+    @app.exception_handler(HTTPException)
+    async def swoop_http_exception_handler(request: Request, exc: HTTPException):
+        return exc.to_json()
 
     return app

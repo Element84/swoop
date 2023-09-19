@@ -18,7 +18,8 @@ components:
           title: Type
           type: string
       required:
-      - type
+      - status
+      - detail
       title: APIException
       type: object
     AdditionalParameter:

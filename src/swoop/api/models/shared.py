@@ -11,10 +11,10 @@ class APIException(BaseModel):
     class Config:
         extra = Extra.allow
 
-    type: str
+    status: int
+    detail: str
+    type: str | None = None
     title: str | None = None
-    status: int | None = None
-    detail: str | None = None
     instance: str | None = None
 
 
