@@ -11,6 +11,10 @@ asyncpg==0.27.0
     #   dbami
     #   swoop (pyproject.toml)
     #   swoop-db
+attrs==23.1.0
+    # via
+    #   jsonschema
+    #   referencing
 buildpg==0.4
     # via
     #   dbami
@@ -29,6 +33,10 @@ idna==3.4
     # via anyio
 iso8601==2.0.0
     # via swoop (pyproject.toml)
+jsonschema==4.19.0
+    # via swoop (pyproject.toml)
+jsonschema-specifications==2023.7.1
+    # via jsonschema
 minio==7.1.15
     # via swoop (pyproject.toml)
 pydantic==1.10.8
@@ -37,6 +45,14 @@ pydantic==1.10.8
     #   swoop (pyproject.toml)
 pyyaml==6.0
     # via swoop (pyproject.toml)
+referencing==0.30.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
+rpds-py==0.10.3
+    # via
+    #   jsonschema
+    #   referencing
 sniffio==1.3.0
     # via anyio
 starlette==0.27.0
