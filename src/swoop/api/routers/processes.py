@@ -4,9 +4,10 @@ import json
 from typing import Annotated
 
 from buildpg import Values, render
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import RedirectResponse
 
+from swoop.api.exceptions import HTTPException
 from swoop.api.models.jobs import StatusInfo
 from swoop.api.models.shared import APIException, Link
 from swoop.api.models.workflows import (
@@ -23,6 +24,13 @@ DEFAULT_PROCESS_LIMIT = 1000
 router: APIRouter = APIRouter(
     tags=["Processes"],
 )
+
+
+def process_not_found():
+    raise HTTPException(
+        status_code=404,
+        type="http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/no-such-process",
+    )
 
 
 @router.get(
@@ -106,7 +114,7 @@ async def get_workflow_description(
     try:
         workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        process_not_found()
 
     return workflow.to_process(request=request)
 
@@ -146,7 +154,7 @@ async def execute_workflow(
     try:
         workflow = workflows[processID]
     except KeyError:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        process_not_found()
 
     payload_uuid = workflow.generate_payload_uuid(payload)
 
