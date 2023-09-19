@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from jsonschema import ValidationError
 
 from swoop.api.config import Settings
 from swoop.api.db import close_db_connection, connect_to_db
@@ -49,5 +51,17 @@ def get_app() -> FastAPI:
     @app.exception_handler(HTTPException)
     async def swoop_http_exception_handler(request: Request, exc: HTTPException):
         return exc.to_json()
+
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        status = 422
+        return JSONResponse(
+            status_code=status,
+            content={
+                "status": status,
+                "detail": exc.message,
+                "path": exc.json_path,
+            },
+        )
 
     return app

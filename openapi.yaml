@@ -122,33 +122,6 @@ components:
       - http://www.opengis.net/def/crs/OGC/0/CRS84h
       title: Crs
       type: string
-    Execute:
-      properties:
-        inputs:
-          $ref: '#/components/schemas/InputPayload'
-        response:
-          const: document
-          default: document
-          title: Response
-      required:
-      - inputs
-      title: Execute
-      type: object
-    Feature:
-      additionalProperties: true
-      properties:
-        collection:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Collection
-        id:
-          title: Id
-          type: string
-      required:
-      - id
-      title: Feature
-      type: object
     HTTPValidationError:
       properties:
         detail:
@@ -196,7 +169,7 @@ components:
           title: Minoccurs
           type: integer
         schema:
-          $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+          $ref: '#/components/schemas/Reference'
         title:
           anyOf:
           - type: string
@@ -213,14 +186,6 @@ components:
       - schema
       title: InputDescription
       type: object
-    InputPayload:
-      properties:
-        payload:
-          $ref: '#/components/schemas/Payload'
-      required:
-      - payload
-      title: InputPayload
-      type: object
     Invalid:
       properties:
         invalidAfter:
@@ -236,6 +201,7 @@ components:
     JobControlOptions:
       const: async-execute
       title: JobControlOptions
+      type: string
     JobList:
       properties:
         jobs:
@@ -341,6 +307,7 @@ components:
     MaxOccur:
       const: unbounded
       title: MaxOccur
+      type: string
     Metadata:
       properties:
         href:
@@ -390,7 +357,7 @@ components:
           - type: 'null'
           title: Metadata
         schema:
-          $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+          $ref: '#/components/schemas/Reference'
         title:
           anyOf:
           - type: string
@@ -404,32 +371,6 @@ components:
       - additionalParameters
       - schema
       title: OutputDescription
-      type: object
-    Payload:
-      properties:
-        features:
-          default: []
-          items:
-            $ref: '#/components/schemas/Feature'
-          title: Features
-          type: array
-        process:
-          items:
-            anyOf:
-            - $ref: '#/components/schemas/ProcessDefinition'
-            - items:
-                $ref: '#/components/schemas/ProcessDefinition'
-              type: array
-          minItems: 1
-          title: Process
-          type: array
-        type:
-          default: FeatureCollection
-          title: Type
-          type: string
-      required:
-      - process
-      title: Payload
       type: object
     PayloadCacheEntry:
       properties:
@@ -583,28 +524,6 @@ components:
       - cacheKeyHashExcludes
       title: Process
       type: object
-    ProcessDefinition:
-      additionalProperties: true
-      properties:
-        description:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Description
-        tasks:
-          default: {}
-          title: Tasks
-          type: object
-        upload_options:
-          $ref: '#/components/schemas/UploadOptions'
-        workflow:
-          title: Workflow
-          type: string
-      required:
-      - upload_options
-      - workflow
-      title: ProcessDefinition
-      type: object
     ProcessList:
       properties:
         links:
@@ -725,6 +644,7 @@ components:
       title: QualifiedInputValue
       type: object
     Reference:
+      additionalProperties: false
       properties:
         $ref:
           title: $Ref
@@ -733,11 +653,6 @@ components:
       - $ref
       title: Reference
       type: object
-    RootModel_Union_Reference__RootSchemaItem__:
-      anyOf:
-      - $ref: '#/components/schemas/Reference'
-      - $ref: '#/components/schemas/RootSchemaItem'
-      title: RootModel[Union[Reference, RootSchemaItem]]
     RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____QualifiedInputValue__Link__:
       anyOf:
       - $ref: '#/components/schemas/RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox__'
@@ -775,252 +690,6 @@ components:
     RootModel_str_:
       title: RootModel[str]
       type: string
-    RootSchemaItem:
-      additionalProperties: false
-      properties:
-        $defs:
-          anyOf:
-          - additionalProperties:
-              anyOf:
-              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-              - $ref: '#/components/schemas/Reference'
-            type: object
-          - type: 'null'
-          title: $Defs
-        additionalProperties:
-          anyOf:
-          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-          - $ref: '#/components/schemas/Reference'
-          - type: boolean
-          default: true
-          title: Additionalproperties
-        allOf:
-          anyOf:
-          - items:
-              anyOf:
-              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-              - $ref: '#/components/schemas/Reference'
-            type: array
-          - type: 'null'
-          title: Allof
-        anyOf:
-          anyOf:
-          - items:
-              anyOf:
-              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-              - $ref: '#/components/schemas/Reference'
-            type: array
-          - type: 'null'
-          title: Anyof
-        contentEncoding:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Contentencoding
-        contentMediaType:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Contentmediatype
-        contentSchema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Contentschema
-        default:
-          anyOf:
-          - type: object
-          - type: 'null'
-          title: Default
-        deprecated:
-          default: false
-          title: Deprecated
-          type: boolean
-        description:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Description
-        enum:
-          default: []
-          items:
-            type: object
-          title: Enum
-          type: array
-          uniqueItems: true
-        example:
-          anyOf:
-          - type: object
-          - type: 'null'
-          title: Example
-        exclusiveMaximum:
-          default: false
-          title: Exclusivemaximum
-          type: boolean
-        exclusiveMinimum:
-          default: false
-          title: Exclusiveminimum
-          type: boolean
-        format:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Format
-        items:
-          anyOf:
-          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-          - $ref: '#/components/schemas/Reference'
-          - type: 'null'
-          title: Items
-        maxItems:
-          anyOf:
-          - minimum: 0.0
-            type: integer
-          - type: 'null'
-          title: Maxitems
-        maxLength:
-          anyOf:
-          - minimum: 0.0
-            type: integer
-          - type: 'null'
-          title: Maxlength
-        maxProperties:
-          anyOf:
-          - minimum: 0.0
-            type: integer
-          - type: 'null'
-          title: Maxproperties
-        maximum:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Maximum
-        minItems:
-          default: 0
-          minimum: 0.0
-          title: Minitems
-          type: integer
-        minLength:
-          default: 0
-          minimum: 0.0
-          title: Minlength
-          type: integer
-        minProperties:
-          default: 0
-          minimum: 0.0
-          title: Minproperties
-          type: integer
-        minimum:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Minimum
-        multipleOf:
-          anyOf:
-          - exclusiveMinimum: 0.0
-            type: number
-          - type: 'null'
-          title: Multipleof
-        not:
-          anyOf:
-          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-          - $ref: '#/components/schemas/Reference'
-          - type: 'null'
-          title: Not
-        nullable:
-          default: false
-          title: Nullable
-          type: boolean
-        oneOf:
-          anyOf:
-          - items:
-              anyOf:
-              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-              - $ref: '#/components/schemas/Reference'
-            type: array
-          - type: 'null'
-          title: Oneof
-        pattern:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Pattern
-        properties:
-          anyOf:
-          - additionalProperties:
-              anyOf:
-              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
-              - $ref: '#/components/schemas/Reference'
-            type: object
-          - type: 'null'
-          title: Properties
-        readOnly:
-          default: false
-          title: Readonly
-          type: boolean
-        required:
-          default: []
-          items:
-            type: string
-          title: Required
-          type: array
-          uniqueItems: true
-        title:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Title
-        type:
-          anyOf:
-          - $ref: '#/components/schemas/Type1'
-          - type: 'null'
-        uniqueItems:
-          default: false
-          title: Uniqueitems
-          type: boolean
-        writeOnly:
-          default: false
-          title: Writeonly
-          type: boolean
-      required:
-      - title
-      - multipleOf
-      - maximum
-      - exclusiveMaximum
-      - minimum
-      - exclusiveMinimum
-      - maxLength
-      - minLength
-      - pattern
-      - maxItems
-      - minItems
-      - uniqueItems
-      - maxProperties
-      - minProperties
-      - required
-      - enum
-      - type
-      - not
-      - allOf
-      - oneOf
-      - anyOf
-      - items
-      - properties
-      - additionalProperties
-      - description
-      - format
-      - default
-      - nullable
-      - readOnly
-      - writeOnly
-      - example
-      - deprecated
-      - contentMediaType
-      - contentEncoding
-      - contentSchema
-      - $defs
-      title: RootSchemaItem
-      type: object
     StatusCode:
       enum:
       - accepted
@@ -1170,30 +839,7 @@ components:
     Type:
       const: process
       title: Type
-    Type1:
-      enum:
-      - array
-      - boolean
-      - integer
-      - number
-      - object
-      - string
-      title: Type1
       type: string
-    UploadOptions:
-      additionalProperties: true
-      properties:
-        collections:
-          title: Collections
-          type: object
-        path_template:
-          title: Path Template
-          type: string
-      required:
-      - path_template
-      - collections
-      title: UploadOptions
-      type: object
     ValidationError:
       properties:
         loc:
@@ -1297,7 +943,8 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Execute'
+              title: Body
+              type: object
         required: true
       responses:
         '200':
@@ -1769,7 +1416,8 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Execute'
+              title: Body
+              type: object
         required: true
       responses:
         '201':
@@ -1793,5 +1441,81 @@ paths:
                 $ref: '#/components/schemas/APIException'
           description: Unprocessable Entity
       summary: Execute Workflow
+      tags:
+      - Processes
+  /processes/{processID}/inputsschema:
+    get:
+      description: Returns process input jsonschema by processID
+      operationId: get_process_inputs_schema_processes__processID__inputsschema_get
+      parameters:
+      - in: path
+        name: processID
+        required: true
+        schema:
+          title: Processid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+            application/schema+json: {}
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Process Inputs Schema
+      tags:
+      - Processes
+  /processes/{processID}/outputsschema:
+    get:
+      description: Returns workflow input jsonschema by processID
+      operationId: get_process_outputs_schema_processes__processID__outputsschema_get
+      parameters:
+      - in: path
+        name: processID
+        required: true
+        schema:
+          title: Processid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+            application/schema+json: {}
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Process Outputs Schema
       tags:
       - Processes

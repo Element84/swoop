@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from buildpg import V, funcs, render
@@ -7,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from swoop.api.models.payloads import Invalid, PayloadCacheEntry, PayloadCacheList
 from swoop.api.models.shared import APIException, Link
-from swoop.api.models.workflows import Execute, Workflows
+from swoop.api.models.workflows import Payload, Workflows
 
 DEFAULT_PAYLOAD_LIMIT = 1000
 
@@ -143,19 +144,31 @@ async def get_input_payload_cache_entry(
 )
 async def retrieve_payload_cache_entry_by_payload_input(
     request: Request,
-    body: Execute,
+    # TODO: what about the Execute model here?
+    body: dict[str, Any],
 ) -> PayloadCacheEntry | APIException:
     """
     Retrieves details of cached input payload via a payload hash lookup
     """
 
-    payload = body.inputs.payload
+    inputs = body.get("inputs", None)
+
+    if inputs is None:
+        raise HTTPException(status_code=422, detail="inputs required")
+
+    payload = inputs.get("payload", {}).get("value")
+
+    validated = Payload(**payload)
+    workflow_name = validated.current_process_definition().workflow
+
     workflows: Workflows = request.app.state.workflows
 
     try:
-        workflow = workflows[payload.current_process_definition().workflow]
+        workflow = workflows[workflow_name]
     except KeyError:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow.validate_inputs(inputs)
 
     payload_uuid = workflow.generate_payload_uuid(payload)
     return await get_payload_cache_entry_from_db(request, payload_uuid)

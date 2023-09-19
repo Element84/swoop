@@ -48,7 +48,7 @@ class StatusCode(str, Enum):
     dismissed = "dismissed"
 
 
-class Type(Enum):
+class Type(str, Enum):
     process = "process"
 
 

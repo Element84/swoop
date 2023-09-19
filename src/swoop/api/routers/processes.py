@@ -1,22 +1,16 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 from buildpg import Values, render
 from fastapi import APIRouter, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from swoop.api.exceptions import HTTPException
 from swoop.api.models.jobs import StatusInfo
 from swoop.api.models.shared import APIException, Link
-from swoop.api.models.workflows import (
-    Execute,
-    Process,
-    ProcessList,
-    Workflow,
-    Workflows,
-)
+from swoop.api.models.workflows import Process, ProcessList, Workflow
 from swoop.api.routers.jobs import get_workflow_execution_details
 
 DEFAULT_PROCESS_LIMIT = 1000
@@ -119,6 +113,80 @@ async def get_workflow_description(
     return workflow.to_process(request=request)
 
 
+# TODO: do we need the workflow version in this path (or some other mechanism) to break caching?
+@router.get(
+    "/{processID}/inputsschema",
+    response_model=None,
+    responses={
+        "200": {
+            "content": {
+                "application/schema+json": {},
+            },
+        },
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+)
+async def get_process_inputs_schema(
+    request: Request,
+    processID,
+) -> JSONResponse | APIException:
+    """
+    Returns process input jsonschema by processID
+    """
+    workflows = request.app.state.workflows
+
+    try:
+        workflow = workflows[processID]
+    except KeyError:
+        process_not_found()
+
+    schema = workflow.inputSchema.root.copy()
+    schema["$schema"] = str(request.url)
+
+    return JSONResponse(
+        content=schema,
+        headers={"content-type": "application/schema+json"},
+    )
+
+
+# TODO: do we need the workflow version in this path (or some other mechanism) to break caching?
+@router.get(
+    "/{processID}/outputsschema",
+    response_model=None,
+    responses={
+        "200": {
+            "content": {
+                "application/schema+json": {},
+            },
+        },
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+)
+async def get_process_outputs_schema(
+    request: Request,
+    processID,
+) -> JSONResponse | APIException:
+    """
+    Returns workflow input jsonschema by processID
+    """
+    workflows = request.app.state.workflows
+
+    try:
+        workflow = workflows[processID]
+    except KeyError:
+        process_not_found()
+
+    schema = workflow.outputSchema.root.copy()
+    schema["$schema"] = str(request.url)
+
+    return JSONResponse(
+        content=schema,
+        headers={"content-type": "application/schema+json"},
+    )
+
+
 @router.post(
     "/{processID}/execution",
     response_model=None,
@@ -134,27 +202,24 @@ async def get_workflow_description(
 async def execute_workflow(
     processID: str,
     request: Request,
-    body: Execute,
+    body: dict[str, Any],
 ) -> RedirectResponse | StatusInfo | APIException:
     """
     Starts a workflow execution (Job)
     """
-
-    payload = body.inputs.payload
-
-    wf_name = payload.current_process_definition().workflow
-
-    if processID != wf_name:
-        raise HTTPException(
-            status_code=422, detail="Workflow name in payload does not match process ID"
-        )
-
-    workflows: Workflows = request.app.state.workflows
-
     try:
-        workflow = workflows[processID]
+        workflow: Workflow = request.app.state.workflows[processID]
     except KeyError:
         process_not_found()
+
+    inputs = body.get("inputs", None)
+
+    if inputs is None:
+        raise HTTPException(status_code=422, detail="inputs required")
+
+    workflow.validate_inputs(inputs)
+
+    payload = inputs.get("payload", {}).get("value")
 
     payload_uuid = workflow.generate_payload_uuid(payload)
 
@@ -226,7 +291,7 @@ async def execute_workflow(
 
             request.app.state.io.put_object(
                 object_name=f"executions/{action_uuid}/input.json",
-                object_content=json.dumps(payload.model_dump()),
+                object_content=json.dumps(payload),
             )
 
     return await get_workflow_execution_details(request, jobID=action_uuid)
