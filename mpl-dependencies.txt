@@ -1,3 +1,5 @@
 This project has the following MPL-licensed dependencies:
 
-certifi: https://github.com/certifi/python-certifi
+certifi (MPL 2.0)
+    * Source Code: https://github.com/certifi/python-certifi
+    * License: https://github.com/certifi/python-certifi/blob/master/LICENSE
