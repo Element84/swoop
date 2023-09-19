@@ -4,7 +4,8 @@ from enum import Enum
 from typing import Any
 
 from fastapi import Request
-from pydantic import AnyUrl, BaseModel, Field, PositiveFloat, RootModel, conint
+from jsonschema import Draft202012Validator
+from pydantic import AnyUrl, BaseModel, Field, PrivateAttr, RootModel, model_validator
 
 
 class APIException(BaseModel, extra="allow"):
@@ -56,24 +57,9 @@ class Link(BaseModel):
         return cls(**attrs)
 
 
-class Subscriber(BaseModel):
-    successUri: AnyUrl | None = None
-    inProgressUri: AnyUrl | None = None
-    failedUri: AnyUrl | None = None
-
-
-class TransmissionMode(Enum):
+class TransmissionMode(str, Enum):
     value = "value"
     reference = "reference"
-
-
-class Type1(Enum):
-    array = "array"
-    boolean = "boolean"
-    integer = "integer"
-    number = "number"
-    object = "object"
-    string = "string"
 
 
 class Format(BaseModel):
@@ -93,30 +79,26 @@ class AdditionalParameter(BaseModel):
     value: list[str | float | int | list[dict[str, Any]] | dict[str, Any]]
 
 
-class Reference(BaseModel):
+class Reference(BaseModel, extra="forbid"):
     field_ref: str = Field(..., alias="$ref")
 
 
 BinaryInputValue = RootModel[str]
 
 
-class Crs(Enum):
-    http___www_opengis_net_def_crs_OGC_1_3_CRS84 = (
-        "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
-    )
-    http___www_opengis_net_def_crs_OGC_0_CRS84h = (
-        "http://www.opengis.net/def/crs/OGC/0/CRS84h"
-    )
+class Crs(str, Enum):
+    OGC_1_3_CRS84 = "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+    OGC_0_CRS84h = "http://www.opengis.net/def/crs/OGC/0/CRS84h"
 
 
 class Bbox(BaseModel):
     bbox: list[float]
-    crs: Crs | None = "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+    crs: Crs | None = Crs.OGC_1_3_CRS84
 
 
 class Output(BaseModel):
     format: Format | None = None
-    transmissionMode: TransmissionMode = "value"
+    transmissionMode: TransmissionMode = TransmissionMode.value
 
 
 class AdditionalParameters(Metadata):
@@ -154,46 +136,18 @@ InlineResponse200 = RootModel[
 ]
 
 
-class SchemaItem(BaseModel, extra="forbid"):
-    title: str | None = None
-    multipleOf: PositiveFloat | None = None
-    maximum: float | None = None
-    exclusiveMaximum: bool = False
-    minimum: float | None = None
-    exclusiveMinimum: bool = False
-    maxLength: conint(ge=0) | None = None
-    minLength: conint(ge=0) = 0
-    pattern: str | None = None
-    maxItems: conint(ge=0) | None = None
-    minItems: conint(ge=0) = 0
-    uniqueItems: bool = False
-    maxProperties: conint(ge=0) | None = None
-    minProperties: conint(ge=0) = 0
-    required: list[str] = Field([], json_schema_extra={"uniqueItems": True})
-    enum: list[dict[str, Any]] = Field([], json_schema_extra={"uniqueItems": True})
-    type: Type1 | None = None
-    not_: Schema | Reference | None = Field(None, alias="not")
-    allOf: list[Schema | Reference] | None = None
-    oneOf: list[Schema | Reference] | None = None
-    anyOf: list[Schema | Reference] | None = None
-    items: Schema | Reference | None = None
-    properties: dict[str, Schema | Reference] | None = None
-    additionalProperties: Schema | Reference | bool = True
-    description: str | None = None
-    format: str | None = None
-    default: dict[str, Any] | None = None
-    nullable: bool = False
-    readOnly: bool = False
-    writeOnly: bool = False
-    example: dict[str, Any] | None = None
-    deprecated: bool = False
-    contentMediaType: str | None = None
-    contentEncoding: str | None = None
-    contentSchema: str | None = None
+class Schema(RootModel[dict[str, Any]]):
+    _validator: Draft202012Validator = PrivateAttr()
 
+    @model_validator(mode="before")
+    @classmethod
+    def check_schema(cls, data: Any) -> Any:
+        Draft202012Validator.check_schema(data)
+        return data
 
-class RootSchemaItem(SchemaItem):
-    defs: dict[str, Schema | Reference] | None = Field(None, alias="$defs")
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._validator = Draft202012Validator(kwargs)
 
-
-Schema = RootModel[Reference | RootSchemaItem]
+    def run_validator(self, data: dict[str, Any]):
+        self._validator.validate(data)

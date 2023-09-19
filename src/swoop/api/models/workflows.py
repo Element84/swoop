@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Literal, Union
+from typing import Annotated, Any, Literal, Union
 
 import yaml
 from fastapi import Request
@@ -22,12 +22,20 @@ from pydantic import (
 )
 
 from swoop.api.exceptions import WorkflowConfigError
-from swoop.api.models.shared import DescriptionType, Link, Schema, TransmissionMode
+from swoop.api.models.shared import (
+    DescriptionType,
+    InlineOrRefData,
+    Link,
+    Output,
+    Reference,
+    Schema,
+    TransmissionMode,
+)
 from swoop.cache.types import JSONFilter
 from swoop.cache.uuid import generate_payload_uuid
 
 
-class Response(Enum):
+class Response(str, Enum):
     # raw = "raw"
     document = "document"
 
@@ -48,6 +56,8 @@ class BaseWorkflow(BaseModel, ABC, extra="allow"):
     handler: StrictStr
     handlerType: StrictStr
     links: list[Link] = []
+    inputSchema: WorkflowSchema
+    outputSchema: WorkflowSchema
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -58,8 +68,8 @@ class BaseWorkflow(BaseModel, ABC, extra="allow"):
             self.cacheKeyHashExcludes,
         )
 
-    def generate_payload_uuid(self, payload: Payload) -> UUID5:
-        return generate_payload_uuid(self.id, self._json_filter(payload.model_dump()))
+    def generate_payload_uuid(self, payload: dict[str, Any]) -> UUID5:
+        return generate_payload_uuid(self.id, self._json_filter(payload))
 
     def to_process_summary(self, request: Request | None = None) -> ProcessSummary:
         return ProcessSummary(
@@ -72,8 +82,47 @@ class BaseWorkflow(BaseModel, ABC, extra="allow"):
         return Process(
             jobControlOptions=[JobControlOptions("async-execute")],
             request=request,
+            inputs={
+                "payload": InputDescription(
+                    minOccurs=1,
+                    maxOccurs=1,
+                    schema=Reference(
+                        **{
+                            "$ref": (
+                                str(
+                                    request.url_for(
+                                        "get_process_inputs_schema", processID=self.id
+                                    )
+                                )
+                                if request
+                                else ""
+                            ),
+                        }
+                    ),
+                ),
+            },
+            outputs={
+                "payload": OutputDescription(
+                    schema=Reference(
+                        **{
+                            "$ref": (
+                                str(
+                                    request.url_for(
+                                        "get_process_outputs_schema", processID=self.id
+                                    )
+                                )
+                                if request
+                                else ""
+                            ),
+                        }
+                    ),
+                ),
+            },
             **self.__dict__,
         )
+
+    def validate_inputs(self, inputs: dict[str, Any]):
+        self.inputSchema.run_validator(inputs)
 
 
 class ArgoWorkflow(BaseWorkflow):
@@ -95,7 +144,9 @@ Workflow = Annotated[
 ]
 
 
-class Workflows(RootModel[dict[str, Workflow]]):
+class Workflows(RootModel):
+    root: dict[str, Workflow]
+
     @classmethod
     def from_yaml(cls, path: Path) -> Workflows:
         try:
@@ -137,11 +188,6 @@ class Workflows(RootModel[dict[str, Workflow]]):
         return self.root.items()
 
 
-class Feature(BaseModel, extra="allow"):
-    id: StrictStr
-    collection: StrictStr | None = None
-
-
 class UploadOptions(BaseModel, extra="allow"):
     path_template: StrictStr
     collections: dict
@@ -165,7 +211,7 @@ ProcessArray = conlist(ProcessDefinition | list[ProcessDefinition], min_length=1
 
 class Payload(BaseModel):
     type: StrictStr = "FeatureCollection"
-    features: list[Feature] = []
+    features: list[Any] = []
     process: ProcessArray
 
     @field_validator("process")
@@ -180,23 +226,18 @@ class Payload(BaseModel):
         return self.process[0]
 
 
-class InputPayload(BaseModel):
-    payload: Payload
-
-
 class Execute(BaseModel):
-    inputs: InputPayload
-    # TODO: We should likely omit the ability to specify outputs
-    # outputs: dict[str, Output] | None = None
     # TODO: Response isn't really to be supported, all results are json
     response: Literal["document"] = "document"
     # subscriber: Subscriber | None = None
+    inputs: dict[str, InlineOrRefData | list[InlineOrRefData]] | None = None
+    outputs: dict[str, Output] | None = None
 
 
 # TODO: How we use this is uncertain. We should never execute jobs
 # asynchronously, but we may want to return cached results immediately,
 # as though the execution had run synchronously.
-class JobControlOptions(Enum):
+class JobControlOptions(str, Enum):
     # sync_execute = "sync-execute"
     async_execute = "async-execute"
     # dismiss = "dismiss"
@@ -227,18 +268,18 @@ class ProcessSummary(DescriptionType):
             ]
 
 
-class MaxOccur(Enum):
+class MaxOccur(str, Enum):
     unbounded = "unbounded"
 
 
 class InputDescription(DescriptionType):
     minOccurs: conint(ge=0) = 1
-    maxOccurs: conint(ge=0) | MaxOccur = "unbounded"
-    schema_: Schema = Field(..., alias="schema")
+    maxOccurs: conint(ge=0) | MaxOccur = MaxOccur.unbounded
+    schema_: Reference = Field(..., alias="schema")
 
 
 class OutputDescription(DescriptionType):
-    schema_: Schema = Field(..., alias="schema")
+    schema_: Reference = Field(..., alias="schema")
 
 
 class Process(ProcessSummary):
@@ -247,7 +288,37 @@ class Process(ProcessSummary):
     cacheKeyHashIncludes: list[str] | None = None
     cacheKeyHashExcludes: list[str] | None = None
 
+    def __init__(self, request: Request | None = None, **kwargs):
+        super().__init__(request=request, **kwargs)
+
 
 class ProcessList(BaseModel):
     processes: list[ProcessSummary]
     links: list[Link]
+
+
+class WorkflowSchema(Schema):
+    def __init__(self, **kwargs):
+        super().__init__(**self.wrap_payload_schema(kwargs))
+
+    @staticmethod
+    def wrap_payload_schema(payload_schema: dict[str, Any]) -> dict[str, Any]:
+        defs = payload_schema.pop("$defs", {})
+        return {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "value": payload_schema,
+                    },
+                    "required": [
+                        "value",
+                    ],
+                },
+            },
+            "required": [
+                "payload",
+            ],
+            "$defs": defs,
+        }

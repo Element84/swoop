@@ -75,6 +75,149 @@ workflows:
     callbacks:
       publishS3Push:
         <<: *callbacksPublishS3Push
+    inputSchema:
+      type: object
+      properties:
+        features:
+          items:
+            $ref: "#/$defs/feature"
+          minItems: 1
+          maxItems: 1
+          type: array
+          uniqueItems: true
+        id:
+          type: string
+        process:
+          $ref: "#/$defs/workflows"
+        type:
+          type: string
+          pattern: "^FeatureCollection$"
+      required:
+        - type
+        - features
+        - process
+      $defs:
+        feature:
+          type: object
+          properties:
+            id:
+              type: string
+            collection:
+              type:
+                - string
+                - "null"
+          required:
+            - id
+            - collection
+        tasks:
+          type: object
+        upload_options:
+          properties:
+            collections:
+              additionalProperties:
+                type: string
+              minProperties: 1
+              type: object
+            path_template:
+              type: string
+          type: object
+        workflow:
+          properties:
+            description:
+              type: string
+            replace:
+              type: boolean
+            tasks:
+              $ref: "#/$defs/tasks"
+            upload_options:
+              $ref: "#/$defs/upload_options"
+            workflow:
+              type: string
+              pattern: "^mirror$"
+          required:
+            - workflow
+            - upload_options
+          type: object
+        workflows:
+          prefixItems:
+            - $ref: "#/$defs/workflow"
+          additionalItems:
+            type:
+              - $ref: "#/$defs/workflow"
+              - items:
+                  $ref: "#/$defs/workflow"
+                type: array
+                uniqueItems: true
+                minItems: 1
+          minItems: 1
+          type: array
+          uniqueItems: true
+    outputSchema:
+      type: object
+      properties:
+        features:
+          items:
+            $ref: "#/$defs/feature"
+          minItems: 1
+          maxItems: 1
+          type: array
+          uniqueItems: true
+        id:
+          type: string
+        process:
+          $ref: "#/$defs/workflows"
+        type:
+          type: string
+          pattern: "^FeatureCollection$"
+      required:
+        - type
+        - features
+        - process
+      $defs:
+        feature:
+          type: object
+        tasks:
+          type: object
+        upload_options:
+          properties:
+            collections:
+              additionalProperties:
+                type: string
+              type: object
+            path_template:
+              type: string
+          type: object
+        workflow:
+          properties:
+            description:
+              type: string
+            replace:
+              type: boolean
+            tasks:
+              $ref: "#/$defs/tasks"
+            upload_options:
+              $ref: "#/$defs/upload_options"
+            workflow:
+              type: string
+              pattern: "^mirror$"
+          required:
+            - workflow
+            - upload_options
+          type: object
+        workflows:
+          prefixItems:
+            - $ref: "#/$defs/workflow"
+          additionalItems:
+            type:
+              - $ref: "#/$defs/workflow"
+              - items:
+                  $ref: "#/$defs/workflow"
+                type: array
+                uniqueItems: true
+                minItems: 1
+          minItems: 1
+          type: array
+          uniqueItems: true
   cirrus-example:
     callbacks:
       publishS3Push:
@@ -91,6 +234,10 @@ workflows:
       - .features[].id
       - .features[].collection
     cacheKeyHashExcludes: []
+    inputSchema:
+      type: object
+    outputSchema:
+      type: object
     links:
       - href: https://example.com/repo
         rel: external
