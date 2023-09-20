@@ -753,7 +753,7 @@ async def test_set_payload_cache_invalid_after(test_client: TestClient):
     )
     assert response.status_code == 200
     response = test_client.get("/cache/ade69fe7-1d7d-572e-9f36-7242cc2aca77/")
-    assert response.json()["invalidAfter"] == "2023-06-29T18:03:38.478000+00:00"
+    assert response.json()["invalidAfter"] == "2023-06-29T18:03:38.478000Z"
 
 
 @pytest.mark.asyncio

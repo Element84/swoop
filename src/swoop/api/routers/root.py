@@ -13,6 +13,7 @@ router: APIRouter = APIRouter()
     response_model=LandingPage,
     responses={"500": {"model": APIException}},
     tags=["Capabilities"],
+    response_model_exclude_unset=True,
 )
 def get_landing_page(request: Request) -> LandingPage | APIException:
     """
@@ -72,6 +73,7 @@ def get_landing_page(request: Request) -> LandingPage | APIException:
     response_model=ConfClasses,
     responses={"500": {"model": APIException}},
     tags=["ConformanceDeclaration"],
+    response_model_exclude_unset=True,
 )
 def get_conformance_classes(request: Request) -> ConfClasses | APIException:
     """

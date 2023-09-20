@@ -226,7 +226,7 @@ async def execute_workflow(
 
             request.app.state.io.put_object(
                 object_name=f"executions/{action_uuid}/input.json",
-                object_content=json.dumps(payload.dict()),
+                object_content=json.dumps(payload.model_dump()),
             )
 
     return await get_workflow_execution_details(request, jobID=action_uuid)

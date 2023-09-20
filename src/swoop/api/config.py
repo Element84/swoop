@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -8,6 +9,8 @@ class Settings(BaseSettings):
         if _env_file is not None:
             raise ValueError("swoop settings does not support loading an env file")
         super().__init__(*args, **kwargs)
+
+    model_config = SettingsConfigDict(env_prefix="swoop_")
 
     # DATABASE HOST SETTINGS
     #
@@ -19,15 +22,15 @@ class Settings(BaseSettings):
     # Only the reader host is required to be set. If the writer host is
     # unspecified only one connection pool will be created, and it will be
     # shared for both reads and writes.
-    db_reader_host: str | None
-    db_writer_host: str | None
+    db_reader_host: str | None = None
+    db_writer_host: str | None = None
 
     # DATABASE NAME SETTING
     #
     # We use PGDATABASE for compatibility with libpq env vars.
     # The only reason we pull the setting in here is to allow
     # overriding during tests.
-    db_name: str = Field(env="PGDATABASE")
+    db_name: str | None = Field(..., alias="PGDATABASE")
 
     db_min_conn_size: int = 2
     db_max_conn_size: int = 2
@@ -38,6 +41,3 @@ class Settings(BaseSettings):
     execution_dir: str
     s3_endpoint: str
     config_file: Path
-
-    class Config:
-        env_prefix = "swoop_"
