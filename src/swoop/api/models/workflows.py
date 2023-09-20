@@ -10,14 +10,15 @@ from fastapi import Request
 from pydantic import (
     UUID5,
     BaseModel,
-    Extra,
+    BeforeValidator,
     Field,
     PrivateAttr,
+    RootModel,
     StrictInt,
     StrictStr,
+    conint,
     conlist,
-    parse_obj_as,
-    validator,
+    field_validator,
 )
 
 from swoop.api.exceptions import WorkflowConfigError
@@ -31,12 +32,12 @@ class Response(Enum):
     document = "document"
 
 
-class Handler(BaseModel, extra=Extra.allow):
+class Handler(BaseModel, extra="allow"):
     id: StrictStr
     type: StrictStr
 
 
-class BaseWorkflow(BaseModel, ABC, extra=Extra.allow):
+class BaseWorkflow(BaseModel, ABC, extra="allow"):
     id: StrictStr
     title: str = ""
     description: StrictStr
@@ -58,20 +59,20 @@ class BaseWorkflow(BaseModel, ABC, extra=Extra.allow):
         )
 
     def generate_payload_uuid(self, payload: Payload) -> UUID5:
-        return generate_payload_uuid(self.id, self._json_filter(payload.dict()))
+        return generate_payload_uuid(self.id, self._json_filter(payload.model_dump()))
 
     def to_process_summary(self, request: Request | None = None) -> ProcessSummary:
         return ProcessSummary(
             jobControlOptions=[JobControlOptions("async-execute")],
             request=request,
-            **self.dict(),
+            **self.__dict__,
         )
 
     def to_process(self, request: Request | None = None) -> Process:
         return Process(
             jobControlOptions=[JobControlOptions("async-execute")],
             request=request,
-            **self.dict(),
+            **self.__dict__,
         )
 
 
@@ -94,10 +95,7 @@ Workflow = Annotated[
 ]
 
 
-class Workflows(dict[str, Workflow]):
-    class _type(BaseModel):
-        __root__: dict[str, Workflow]
-
+class Workflows(RootModel[dict[str, Workflow]]):
     @classmethod
     def from_yaml(cls, path: Path) -> Workflows:
         try:
@@ -106,53 +104,79 @@ class Workflows(dict[str, Workflow]):
             handlers = {}
             for name, handler in loaded["handlers"].items():
                 handler["id"] = name
-                handlers[name] = parse_obj_as(Handler, handler)
+                handlers[name] = Handler(**handler)
 
             workflows = dict(sorted(loaded["workflows"].items()))
             for name, workflow in workflows.items():
                 workflow["id"] = name
                 workflow["handlerType"] = handlers[workflow["handler"]].type
 
-            return cls(**cls._type.parse_obj(workflows).__root__)
+            return cls(**workflows)
         except Exception as e:
             raise WorkflowConfigError("Could not load workflow configuration") from e
 
+    def __getitem__(self, key) -> Workflow:
+        return self.root[key]
 
-class Feature(BaseModel, extra=Extra.allow):
+    def __len__(self) -> int:
+        return len(self.root)
+
+    def __iter__(self):
+        yield from self.root
+
+    def __contains__(self, key):
+        return key in self.root
+
+    def keys(self):
+        return self.root.keys()
+
+    def values(self):
+        return self.root.values()
+
+    def items(self):
+        return self.root.items()
+
+
+class Feature(BaseModel, extra="allow"):
     id: StrictStr
     collection: StrictStr | None = None
 
 
-class UploadOptions(BaseModel, extra=Extra.allow):
+class UploadOptions(BaseModel, extra="allow"):
     path_template: StrictStr
     collections: dict
 
-    @validator("collections")
+    @field_validator("collections")
     def collections_must_contain_at_least_one_item(cls, v):
         if not v:
             raise ValueError("Collections must contain at least one item in the map")
         return v
 
 
-class ProcessDefinition(BaseModel, extra=Extra.allow):
+class ProcessDefinition(BaseModel, extra="allow"):
     description: StrictStr | None = None
     tasks: dict = {}
     upload_options: UploadOptions
     workflow: StrictStr
 
 
-class Payload(BaseModel, smart_union=True):
+ProcessArray = conlist(ProcessDefinition | list[ProcessDefinition], min_length=1)
+
+
+class Payload(BaseModel):
     type: StrictStr = "FeatureCollection"
     features: list[Feature] = []
-    process: conlist(ProcessDefinition | list[ProcessDefinition], min_items=1)
+    process: ProcessArray
 
-    @validator("process")
+    @field_validator("process")
     def first_item_cannot_be_list(cls, v):
         if not isinstance(v[0], ProcessDefinition):
             raise ValueError("first element in the `process` array cannot be an array")
         return v
 
     def current_process_definition(self) -> ProcessDefinition:
+        if not isinstance(self.process[0], ProcessDefinition):
+            raise ValueError("first element in the `process` array cannot be an array")
         return self.process[0]
 
 
@@ -180,7 +204,7 @@ class JobControlOptions(Enum):
 
 class ProcessSummary(DescriptionType):
     id: str
-    version: str
+    version: Annotated[str, BeforeValidator(lambda x: str(x))]
     handlerType: str
     jobControlOptions: list[JobControlOptions] | None = [
         JobControlOptions("async-execute")
@@ -208,8 +232,8 @@ class MaxOccur(Enum):
 
 
 class InputDescription(DescriptionType):
-    minOccurs: int | None = 1
-    maxOccurs: int | MaxOccur | None = None
+    minOccurs: conint(ge=0) = 1
+    maxOccurs: conint(ge=0) | MaxOccur = "unbounded"
     schema_: Schema = Field(..., alias="schema")
 
 

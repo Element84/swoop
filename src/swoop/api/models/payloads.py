@@ -6,7 +6,7 @@ from uuid import UUID
 
 from asyncpg import Record
 from fastapi import Request
-from pydantic import UUID5, BaseModel, validator
+from pydantic import UUID5, BaseModel, field_validator
 
 from swoop.api.models.shared import Link
 
@@ -14,7 +14,7 @@ from swoop.api.models.shared import Link
 class Invalid(BaseModel):
     invalidAfter: datetime | Literal["now"]
 
-    @validator("invalidAfter")
+    @field_validator("invalidAfter")
     def coerce_to_now(cls, v):
         if v == "now":
             return datetime.utcnow()

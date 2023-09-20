@@ -42,7 +42,6 @@ async def test_get_payloads_pagination(test_client: TestClient, database: str):
 
     response = test_client.get(url)
     json = response.json()
-    print(json)
     payloads = json["payloads"]
     next_href = [link for link in json["links"] if link["rel"] == "next"][0]["href"]
 

@@ -11,8 +11,16 @@ class ConfClasses(BaseModel):
 
 
 class LandingPage(BaseModel):
-    title: str | None = Field(None, example="Example processing server")
+    title: str | None = Field(
+        None,
+        json_schema_extra={
+            "example": "Example processing server",
+        },
+    )
     description: str | None = Field(
-        None, example="Example server implementing the OGC API - Processes 1.0 Standard"
+        None,
+        json_schema_extra={
+            "example": "Example server implementing the OGC API - Processes 1.0 Standard",
+        },
     )
     links: list[Link]

@@ -24,10 +24,10 @@ a_job = {
     "type": "process",
     "jobID": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
     "status": "successful",
-    "created": "2023-04-28T15:49:00+00:00",
-    "updated": "2023-04-28T15:49:03+00:00",
-    "started": "2023-04-28T15:49:02+00:00",
-    "finished": "2023-04-28T15:49:03+00:00",
+    "created": "2023-04-28T15:49:00Z",
+    "updated": "2023-04-28T15:49:03Z",
+    "started": "2023-04-28T15:49:02Z",
+    "finished": "2023-04-28T15:49:03Z",
     "links": [
         {
             "href": "http://testserver/",
@@ -68,8 +68,8 @@ another_job = {
     "type": "process",
     "jobID": "0187c88d-a9e0-757e-aa36-2fbb6c834cb5",
     "status": "accepted",
-    "created": "2023-04-28T15:49:00+00:00",
-    "updated": "2023-04-28T15:49:00+00:00",
+    "created": "2023-04-28T15:49:00Z",
+    "updated": "2023-04-28T15:49:00Z",
     "started": None,
     "finished": None,
     "links": [
@@ -434,7 +434,6 @@ async def test_get_job_payload(test_client: TestClient):
         "/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/inputs",
     )
     assert response.status_code == 200
-    print(response.json())
     assert response.json() == {
         "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
         "payload": "test_input",

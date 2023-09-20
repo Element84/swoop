@@ -615,28 +615,12 @@ async def test_post_execution_no_collections(test_client: TestClient) -> None:
     }
     result = await post_payload_cache(test_client, json.dumps(payload))
     assert result.status_code == 422
-    assert result.json() == {
-        "detail": [
-            {
-                "loc": [
-                    "body",
-                    "inputs",
-                    "payload",
-                    "process",
-                    0,
-                    "upload_options",
-                    "collections",
-                ],
-                "msg": "Collections must contain at least one item in the map",
-                "type": "value_error",
-            },
-            {
-                "loc": ["body", "inputs", "payload", "process", 0],
-                "msg": "value is not a valid list",
-                "type": "type_error.list",
-            },
-        ],
-    }
+    detail = result.json().get("detail", [])
+    assert len(detail) == 2
+    assert detail[0].get("msg") == (
+        "Value error, Collections must contain at least one item in the map"
+    )
+    assert detail[1].get("msg") == ("Input should be a valid list")
 
 
 @pytest.mark.asyncio
@@ -725,12 +709,8 @@ async def test_post_execution_bad_chain(test_client: TestClient) -> None:
     }
     result = await post_payload_cache(test_client, json.dumps(payload))
     assert result.status_code == 422
-    assert result.json() == {
-        "detail": [
-            {
-                "loc": ["body", "inputs", "payload", "process"],
-                "msg": "first element in the `process` array cannot be an array",
-                "type": "value_error",
-            },
-        ],
-    }
+    detail = result.json().get("detail", [])
+    assert len(detail) == 1
+    assert detail[0].get("msg") == (
+        "Value error, first element in the `process` array cannot be an array"
+    )

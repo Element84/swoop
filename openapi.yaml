@@ -1,22 +1,29 @@
 components:
   schemas:
     APIException:
+      additionalProperties: true
       properties:
         detail:
           title: Detail
           type: string
         instance:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Instance
-          type: string
         status:
           title: Status
           type: integer
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
         type:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Type
-          type: string
       required:
       - status
       - detail
@@ -47,19 +54,32 @@ components:
     AdditionalParameters:
       properties:
         href:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Href
-          type: string
         parameters:
-          items:
-            $ref: '#/components/schemas/AdditionalParameter'
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/AdditionalParameter'
+            type: array
+          - type: 'null'
           title: Parameters
-          type: array
         role:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Role
-          type: string
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
+      required:
+      - title
+      - role
+      - href
+      - parameters
       title: AdditionalParameters
       type: object
     Bbox:
@@ -70,16 +90,15 @@ components:
           title: Bbox
           type: array
         crs:
-          allOf:
+          anyOf:
           - $ref: '#/components/schemas/Crs'
+          - type: 'null'
           default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
       required:
       - bbox
+      - crs
       title: Bbox
       type: object
-    BinaryInputValue:
-      title: BinaryInputValue
-      type: string
     ConfClasses:
       properties:
         conformsTo:
@@ -89,7 +108,7 @@ components:
           type: array
         links:
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
       required:
@@ -98,30 +117,31 @@ components:
       title: ConfClasses
       type: object
     Crs:
-      description: An enumeration.
       enum:
       - http://www.opengis.net/def/crs/OGC/1.3/CRS84
       - http://www.opengis.net/def/crs/OGC/0/CRS84h
       title: Crs
+      type: string
     Execute:
       properties:
         inputs:
           $ref: '#/components/schemas/InputPayload'
         response:
+          const: document
           default: document
-          enum:
-          - document
           title: Response
-          type: string
       required:
       - inputs
       title: Execute
       type: object
     Feature:
+      additionalProperties: true
       properties:
         collection:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Collection
-          type: string
         id:
           title: Id
           type: string
@@ -138,44 +158,58 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    InlineOrRefData:
-      anyOf:
-      - $ref: '#/components/schemas/InputValueNoObject'
-      - $ref: '#/components/schemas/QualifiedInputValue'
-      - $ref: '#/components/schemas/Link'
-      title: InlineOrRefData
     InputDescription:
       properties:
         additionalParameters:
-          $ref: '#/components/schemas/AdditionalParameters'
+          anyOf:
+          - $ref: '#/components/schemas/AdditionalParameters'
+          - type: 'null'
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         keywords:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Keywords
-          type: array
         maxOccurs:
           anyOf:
-          - type: integer
+          - minimum: 0.0
+            type: integer
           - $ref: '#/components/schemas/MaxOccur'
+          default: unbounded
           title: Maxoccurs
         metadata:
-          items:
-            $ref: '#/components/schemas/Metadata'
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Metadata'
+            type: array
+          - type: 'null'
           title: Metadata
-          type: array
         minOccurs:
           default: 1
+          minimum: 0.0
           title: Minoccurs
           type: integer
         schema:
-          $ref: '#/components/schemas/Schema'
+          $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
       required:
+      - title
+      - description
+      - keywords
+      - metadata
+      - additionalParameters
+      - minOccurs
+      - maxOccurs
       - schema
       title: InputDescription
       type: object
@@ -187,52 +221,31 @@ components:
       - payload
       title: InputPayload
       type: object
-    InputValue:
-      anyOf:
-      - $ref: '#/components/schemas/InputValueNoObject'
-      - type: object
-      title: InputValue
-    InputValueNoObject:
-      anyOf:
-      - type: string
-      - type: number
-      - type: integer
-      - type: boolean
-      - items:
-          type: string
-        type: array
-      - $ref: '#/components/schemas/BinaryInputValue'
-      - $ref: '#/components/schemas/Bbox'
-      title: InputValueNoObject
     Invalid:
       properties:
         invalidAfter:
           anyOf:
           - format: date-time
             type: string
-          - enum:
-            - now
-            type: string
+          - const: now
           title: Invalidafter
       required:
       - invalidAfter
       title: Invalid
       type: object
     JobControlOptions:
-      description: An enumeration.
-      enum:
-      - async-execute
+      const: async-execute
       title: JobControlOptions
     JobList:
       properties:
         jobs:
           items:
-            $ref: '#/components/schemas/StatusInfo'
+            $ref: '#/components/schemas/StatusInfo-Output'
           title: Jobs
           type: array
         links:
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
       required:
@@ -243,42 +256,49 @@ components:
     LandingPage:
       properties:
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           example: Example server implementing the OGC API - Processes 1.0 Standard
           title: Description
-          type: string
         links:
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           example: Example processing server
           title: Title
-          type: string
       required:
+      - title
+      - description
       - links
       title: LandingPage
       type: object
-    Link:
+    Link-Input:
       properties:
         href:
           format: uri
-          maxLength: 65536
           minLength: 1
           title: Href
           type: string
         hreflang:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Hreflang
-          type: string
         rel:
-          example: service
           title: Rel
           type: string
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
         type:
-          example: application/json
           title: Type
           type: string
       required:
@@ -287,47 +307,101 @@ components:
       - type
       title: Link
       type: object
+    Link-Output:
+      properties:
+        href:
+          format: uri
+          minLength: 1
+          title: Href
+          type: string
+        hreflang:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hreflang
+        rel:
+          title: Rel
+          type: string
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        type:
+          title: Type
+          type: string
+      required:
+      - href
+      - rel
+      - type
+      - hreflang
+      - title
+      title: Link
+      type: object
     MaxOccur:
-      description: An enumeration.
-      enum:
-      - unbounded
+      const: unbounded
       title: MaxOccur
     Metadata:
       properties:
         href:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Href
-          type: string
         role:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Role
-          type: string
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
+      required:
+      - title
+      - role
+      - href
       title: Metadata
       type: object
     OutputDescription:
       properties:
         additionalParameters:
-          $ref: '#/components/schemas/AdditionalParameters'
+          anyOf:
+          - $ref: '#/components/schemas/AdditionalParameters'
+          - type: 'null'
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         keywords:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Keywords
-          type: array
         metadata:
-          items:
-            $ref: '#/components/schemas/Metadata'
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Metadata'
+            type: array
+          - type: 'null'
           title: Metadata
-          type: array
         schema:
-          $ref: '#/components/schemas/Schema'
+          $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
       required:
+      - title
+      - description
+      - keywords
+      - metadata
+      - additionalParameters
       - schema
       title: OutputDescription
       type: object
@@ -364,13 +438,15 @@ components:
           title: Id
           type: string
         invalidAfter:
-          format: date-time
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
           title: Invalidafter
-          type: string
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         processID:
@@ -379,13 +455,15 @@ components:
       required:
       - id
       - processID
+      - invalidAfter
+      - links
       title: PayloadCacheEntry
       type: object
     PayloadCacheList:
       properties:
         links:
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         payloads:
@@ -401,20 +479,28 @@ components:
     Process:
       properties:
         additionalParameters:
-          $ref: '#/components/schemas/AdditionalParameters'
+          anyOf:
+          - $ref: '#/components/schemas/AdditionalParameters'
+          - type: 'null'
         cacheKeyHashExcludes:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Cachekeyhashexcludes
-          type: array
         cacheKeyHashIncludes:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Cachekeyhashincludes
-          type: array
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         handlerType:
           title: Handlertype
           type: string
@@ -422,58 +508,89 @@ components:
           title: Id
           type: string
         inputs:
-          additionalProperties:
-            $ref: '#/components/schemas/InputDescription'
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/InputDescription'
+            type: object
+          - type: 'null'
           title: Inputs
-          type: object
         jobControlOptions:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/JobControlOptions'
+            type: array
+          - type: 'null'
           default:
           - async-execute
-          items:
-            $ref: '#/components/schemas/JobControlOptions'
-          type: array
+          title: Jobcontroloptions
         keywords:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Keywords
-          type: array
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         metadata:
-          items:
-            $ref: '#/components/schemas/Metadata'
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Metadata'
+            type: array
+          - type: 'null'
           title: Metadata
-          type: array
         outputTransmission:
-          items:
-            $ref: '#/components/schemas/TransmissionMode'
-          type: array
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TransmissionMode'
+            type: array
+          - type: 'null'
+          title: Outputtransmission
         outputs:
-          additionalProperties:
-            $ref: '#/components/schemas/OutputDescription'
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/OutputDescription'
+            type: object
+          - type: 'null'
           title: Outputs
-          type: object
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
         version:
           title: Version
           type: string
       required:
+      - title
+      - description
+      - keywords
+      - metadata
+      - additionalParameters
       - id
       - version
       - handlerType
+      - jobControlOptions
+      - outputTransmission
+      - links
+      - inputs
+      - outputs
+      - cacheKeyHashIncludes
+      - cacheKeyHashExcludes
       title: Process
       type: object
     ProcessDefinition:
+      additionalProperties: true
       properties:
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         tasks:
           default: {}
           title: Tasks
@@ -492,7 +609,7 @@ components:
       properties:
         links:
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         processes:
@@ -508,10 +625,14 @@ components:
     ProcessSummary:
       properties:
         additionalParameters:
-          $ref: '#/components/schemas/AdditionalParameters'
+          anyOf:
+          - $ref: '#/components/schemas/AdditionalParameters'
+          - type: 'null'
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         handlerType:
           title: Handlertype
           type: string
@@ -519,59 +640,87 @@ components:
           title: Id
           type: string
         jobControlOptions:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/JobControlOptions'
+            type: array
+          - type: 'null'
           default:
           - async-execute
-          items:
-            $ref: '#/components/schemas/JobControlOptions'
-          type: array
+          title: Jobcontroloptions
         keywords:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Keywords
-          type: array
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Output'
           title: Links
           type: array
         metadata:
-          items:
-            $ref: '#/components/schemas/Metadata'
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Metadata'
+            type: array
+          - type: 'null'
           title: Metadata
-          type: array
         outputTransmission:
-          items:
-            $ref: '#/components/schemas/TransmissionMode'
-          type: array
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TransmissionMode'
+            type: array
+          - type: 'null'
+          title: Outputtransmission
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
         version:
           title: Version
           type: string
       required:
+      - title
+      - description
+      - keywords
+      - metadata
+      - additionalParameters
       - id
       - version
       - handlerType
+      - jobControlOptions
+      - outputTransmission
+      - links
       title: ProcessSummary
       type: object
     QualifiedInputValue:
       properties:
         encoding:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Encoding
-          type: string
         mediaType:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Mediatype
-          type: string
         schema:
           anyOf:
           - type: string
           - type: object
+          - type: 'null'
           title: Schema
         value:
-          $ref: '#/components/schemas/InputValue'
+          $ref: '#/components/schemas/RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____dict_str__Any___'
       required:
+      - mediaType
+      - encoding
+      - schema
       - value
       title: QualifiedInputValue
       type: object
@@ -584,69 +733,126 @@ components:
       - $ref
       title: Reference
       type: object
-    Results:
-      additionalProperties:
-        $ref: '#/components/schemas/InlineOrRefData'
-      title: Results
-      type: object
-    Schema:
+    RootModel_Union_Reference__RootSchemaItem__:
       anyOf:
       - $ref: '#/components/schemas/Reference'
-      - $ref: '#/components/schemas/SchemaItem'
-      title: Schema
-    SchemaItem:
+      - $ref: '#/components/schemas/RootSchemaItem'
+      title: RootModel[Union[Reference, RootSchemaItem]]
+    RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____QualifiedInputValue__Link__:
+      anyOf:
+      - $ref: '#/components/schemas/RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox__'
+      - $ref: '#/components/schemas/QualifiedInputValue'
+      - $ref: '#/components/schemas/Link-Output'
+      title: RootModel[Union[RootModel[Union[str, float, int, bool, list[str], RootModel[str],
+        Bbox]], QualifiedInputValue, Link]]
+    RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____dict_str__Any___:
+      anyOf:
+      - $ref: '#/components/schemas/RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox__'
+      - type: object
+      title: RootModel[Union[RootModel[Union[str, float, int, bool, list[str], RootModel[str],
+        Bbox]], dict[str, Any]]]
+    ? RootModel_Union_dict_str__RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____QualifiedInputValue__Link_____NoneType__
+    : anyOf:
+      - additionalProperties:
+          $ref: '#/components/schemas/RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____QualifiedInputValue__Link__'
+        type: object
+      - type: 'null'
+      title: RootModel[Union[dict[str, RootModel[Union[RootModel[Union[str, float,
+        int, bool, list[str], RootModel[str], Bbox]], QualifiedInputValue, Link]]],
+        NoneType]]
+    RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox__:
+      anyOf:
+      - type: string
+      - type: number
+      - type: integer
+      - type: boolean
+      - items:
+          type: string
+        type: array
+      - $ref: '#/components/schemas/RootModel_str_'
+      - $ref: '#/components/schemas/Bbox'
+      title: RootModel[Union[str, float, int, bool, list[str], RootModel[str], Bbox]]
+    RootModel_str_:
+      title: RootModel[str]
+      type: string
+    RootSchemaItem:
       additionalProperties: false
       properties:
+        $defs:
+          anyOf:
+          - additionalProperties:
+              anyOf:
+              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+              - $ref: '#/components/schemas/Reference'
+            type: object
+          - type: 'null'
+          title: $Defs
         additionalProperties:
           anyOf:
-          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
           - $ref: '#/components/schemas/Reference'
           - type: boolean
           default: true
           title: Additionalproperties
         allOf:
-          items:
-            anyOf:
-            - $ref: '#/components/schemas/Schema'
-            - $ref: '#/components/schemas/Reference'
+          anyOf:
+          - items:
+              anyOf:
+              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+              - $ref: '#/components/schemas/Reference'
+            type: array
+          - type: 'null'
           title: Allof
-          type: array
         anyOf:
-          items:
-            anyOf:
-            - $ref: '#/components/schemas/Schema'
-            - $ref: '#/components/schemas/Reference'
+          anyOf:
+          - items:
+              anyOf:
+              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+              - $ref: '#/components/schemas/Reference'
+            type: array
+          - type: 'null'
           title: Anyof
-          type: array
         contentEncoding:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Contentencoding
-          type: string
         contentMediaType:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Contentmediatype
-          type: string
         contentSchema:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Contentschema
-          type: string
         default:
+          anyOf:
+          - type: object
+          - type: 'null'
           title: Default
-          type: object
         deprecated:
           default: false
           title: Deprecated
           type: boolean
         description:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Description
-          type: string
         enum:
+          default: []
           items:
             type: object
-          minItems: 1
           title: Enum
           type: array
-          uniqueItems: false
+          uniqueItems: true
         example:
+          anyOf:
+          - type: object
+          - type: 'null'
           title: Example
-          type: object
         exclusiveMaximum:
           default: false
           title: Exclusivemaximum
@@ -656,28 +862,39 @@ components:
           title: Exclusiveminimum
           type: boolean
         format:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Format
-          type: string
         items:
           anyOf:
-          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
           - $ref: '#/components/schemas/Reference'
+          - type: 'null'
           title: Items
         maxItems:
-          minimum: 0.0
+          anyOf:
+          - minimum: 0.0
+            type: integer
+          - type: 'null'
           title: Maxitems
-          type: integer
         maxLength:
-          minimum: 0.0
+          anyOf:
+          - minimum: 0.0
+            type: integer
+          - type: 'null'
           title: Maxlength
-          type: integer
         maxProperties:
-          minimum: 0.0
+          anyOf:
+          - minimum: 0.0
+            type: integer
+          - type: 'null'
           title: Maxproperties
-          type: integer
         maximum:
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Maximum
-          type: number
         minItems:
           default: 0
           minimum: 0.0
@@ -694,54 +911,69 @@ components:
           title: Minproperties
           type: integer
         minimum:
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Minimum
-          type: number
         multipleOf:
-          exclusiveMinimum: 0.0
+          anyOf:
+          - exclusiveMinimum: 0.0
+            type: number
+          - type: 'null'
           title: Multipleof
-          type: number
         not:
           anyOf:
-          - $ref: '#/components/schemas/Schema'
+          - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
           - $ref: '#/components/schemas/Reference'
+          - type: 'null'
           title: Not
         nullable:
           default: false
           title: Nullable
           type: boolean
         oneOf:
-          items:
-            anyOf:
-            - $ref: '#/components/schemas/Schema'
-            - $ref: '#/components/schemas/Reference'
+          anyOf:
+          - items:
+              anyOf:
+              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+              - $ref: '#/components/schemas/Reference'
+            type: array
+          - type: 'null'
           title: Oneof
-          type: array
         pattern:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Pattern
-          type: string
         properties:
-          additionalProperties:
-            anyOf:
-            - $ref: '#/components/schemas/Schema'
-            - $ref: '#/components/schemas/Reference'
+          anyOf:
+          - additionalProperties:
+              anyOf:
+              - $ref: '#/components/schemas/RootModel_Union_Reference__RootSchemaItem__'
+              - $ref: '#/components/schemas/Reference'
+            type: object
+          - type: 'null'
           title: Properties
-          type: object
         readOnly:
           default: false
           title: Readonly
           type: boolean
         required:
+          default: []
           items:
             type: string
-          minItems: 1
           title: Required
           type: array
           uniqueItems: true
         title:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Title
-          type: string
         type:
-          $ref: '#/components/schemas/Type1'
+          anyOf:
+          - $ref: '#/components/schemas/Type1'
+          - type: 'null'
         uniqueItems:
           default: false
           title: Uniqueitems
@@ -750,10 +982,46 @@ components:
           default: false
           title: Writeonly
           type: boolean
-      title: SchemaItem
+      required:
+      - title
+      - multipleOf
+      - maximum
+      - exclusiveMaximum
+      - minimum
+      - exclusiveMinimum
+      - maxLength
+      - minLength
+      - pattern
+      - maxItems
+      - minItems
+      - uniqueItems
+      - maxProperties
+      - minProperties
+      - required
+      - enum
+      - type
+      - not
+      - allOf
+      - oneOf
+      - anyOf
+      - items
+      - properties
+      - additionalProperties
+      - description
+      - format
+      - default
+      - nullable
+      - readOnly
+      - writeOnly
+      - example
+      - deprecated
+      - contentMediaType
+      - contentEncoding
+      - contentSchema
+      - $defs
+      title: RootSchemaItem
       type: object
     StatusCode:
-      description: An enumeration.
       enum:
       - accepted
       - running
@@ -762,16 +1030,20 @@ components:
       - dismissed
       title: StatusCode
       type: string
-    StatusInfo:
+    StatusInfo-Input:
       properties:
         created:
-          format: date-time
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
           title: Created
-          type: string
         finished:
-          format: date-time
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
           title: Finished
-          type: string
         jobID:
           format: uuid
           title: Jobid
@@ -779,27 +1051,33 @@ components:
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: '#/components/schemas/Link-Input'
           title: Links
           type: array
         message:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Message
-          type: string
         processID:
           title: Processid
           type: string
         started:
-          format: date-time
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
           title: Started
-          type: string
         status:
           $ref: '#/components/schemas/StatusCode'
         type:
           $ref: '#/components/schemas/Type'
         updated:
-          format: date-time
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
           title: Updated
-          type: string
       required:
       - processID
       - type
@@ -807,8 +1085,68 @@ components:
       - status
       title: StatusInfo
       type: object
+    StatusInfo-Output:
+      properties:
+        created:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Created
+        finished:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Finished
+        jobID:
+          format: uuid
+          title: Jobid
+          type: string
+        links:
+          default: []
+          items:
+            $ref: '#/components/schemas/Link-Output'
+          title: Links
+          type: array
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+        processID:
+          title: Processid
+          type: string
+        started:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Started
+        status:
+          $ref: '#/components/schemas/StatusCode'
+        type:
+          $ref: '#/components/schemas/Type'
+        updated:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Updated
+      required:
+      - processID
+      - type
+      - jobID
+      - status
+      - message
+      - created
+      - started
+      - finished
+      - updated
+      - links
+      title: StatusInfo
+      type: object
     SwoopStatusCode:
-      description: An enumeration.
       enum:
       - PENDING
       - QUEUED
@@ -824,18 +1162,15 @@ components:
       title: SwoopStatusCode
       type: string
     TransmissionMode:
-      description: An enumeration.
       enum:
       - value
       - reference
       title: TransmissionMode
+      type: string
     Type:
-      description: An enumeration.
-      enum:
-      - process
+      const: process
       title: Type
     Type1:
-      description: An enumeration.
       enum:
       - array
       - boolean
@@ -844,7 +1179,9 @@ components:
       - object
       - string
       title: Type1
+      type: string
     UploadOptions:
+      additionalProperties: true
       properties:
         collections:
           title: Collections
@@ -881,7 +1218,7 @@ components:
 info:
   title: swoop-api
   version: 0.1.0
-openapi: 3.0.2
+openapi: 3.1.0
 paths:
   /:
     get:
@@ -914,24 +1251,28 @@ paths:
         required: false
         schema:
           default: 1000
-          minimum: 1.0
+          minimum: 1
           title: Limit
           type: integer
       - in: query
         name: processID
         required: false
         schema:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Processid
-          type: array
       - in: query
         name: lastID
         required: false
         schema:
-          format: uuid
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
           title: Lastid
-          type: string
       responses:
         '200':
           content:
@@ -1101,40 +1442,47 @@ paths:
         required: false
         schema:
           default: 1000
-          minimum: 1.0
+          minimum: 1
           title: Limit
           type: integer
       - in: query
         name: processID
         required: false
         schema:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Processid
-          type: array
       - in: query
         name: jobID
         required: false
         schema:
-          items:
-            format: uuid
-            type: string
+          anyOf:
+          - items:
+              format: uuid
+              type: string
+            type: array
+          - type: 'null'
           title: Jobid
-          type: array
       - in: query
         name: type
         required: false
         schema:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Type
-          type: array
       - in: query
         name: status
         required: false
         schema:
           items:
             $ref: '#/components/schemas/StatusCode'
+          title: Status
           type: array
       - in: query
         name: swoopStatus
@@ -1142,6 +1490,7 @@ paths:
         schema:
           items:
             $ref: '#/components/schemas/SwoopStatusCode'
+          title: Swoopstatus
           type: array
       - in: query
         name: datetime
@@ -1165,9 +1514,11 @@ paths:
         name: lastID
         required: false
         schema:
-          format: uuid
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
           title: Lastid
-          type: string
       responses:
         '200':
           content:
@@ -1207,7 +1558,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusInfo'
+                $ref: '#/components/schemas/StatusInfo-Output'
           description: Successful Response
         '404':
           content:
@@ -1285,7 +1636,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Results'
+                $ref: '#/components/schemas/RootModel_Union_dict_str__RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____QualifiedInputValue__Link_____NoneType__'
           description: Successful Response
         '404':
           content:
@@ -1318,31 +1669,37 @@ paths:
         required: false
         schema:
           default: 1000
-          minimum: 1.0
+          minimum: 1
           title: Limit
           type: integer
       - in: query
         name: handler
         required: false
         schema:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Handler
-          type: array
       - in: query
         name: type
         required: false
         schema:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
           title: Type
-          type: array
       - in: query
         name: lastID
         required: false
         schema:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Lastid
-          type: string
       responses:
         '200':
           content:
@@ -1419,7 +1776,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusInfo'
+                $ref: '#/components/schemas/StatusInfo-Input'
           description: Successful Response
         '303':
           description: See existing job
