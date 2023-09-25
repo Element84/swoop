@@ -5,9 +5,9 @@ ignore:
   SNYK-DEBIAN12-LIBWEBP-5893095:
     - '*':
         reason: Although libwebp package has been flagged as vulnerable, we're not installing libwebp on our base image.
-        expires: 2023-10-19T00:00:00.000Z
+        expires: 2024-09-19T00:00:00.000Z
   SNYK:LIC:PIP:CERTIFI:MPL-2.0:
     - '*':
       reason: Dependency added to the mpl-dependencies.txt file for license compliance.
-      expires: 2030-01-01T00:00:00.000Z
+      expires: 2024-09-19T00:00:00.000Z
 patch: {}
