@@ -29,7 +29,7 @@ click==8.1.7
     # via uvicorn
 dbami==0.3.0
     # via swoop-db
-fastapi==0.103.1
+fastapi==0.103.2
     # via swoop (pyproject.toml)
 h11==0.14.0
     # via uvicorn
@@ -37,18 +37,18 @@ idna==3.4
     # via anyio
 iso8601==2.0.0
     # via swoop (pyproject.toml)
-jsonschema==4.19.0
+jsonschema==4.19.1
     # via swoop (pyproject.toml)
 jsonschema-specifications==2023.7.1
     # via jsonschema
-minio==7.1.16
+minio==7.1.17
     # via swoop (pyproject.toml)
-pydantic==2.3.0
+pydantic==2.4.2
     # via
     #   fastapi
     #   pydantic-settings
     #   swoop (pyproject.toml)
-pydantic-core==2.6.3
+pydantic-core==2.10.1
     # via pydantic
 pydantic-settings==2.0.3
     # via swoop (pyproject.toml)
@@ -75,7 +75,7 @@ typing-extensions==4.8.0
     #   fastapi
     #   pydantic
     #   pydantic-core
-urllib3==2.0.4
+urllib3==2.0.5
     # via minio
 uvicorn==0.23.2
     # via swoop (pyproject.toml)
