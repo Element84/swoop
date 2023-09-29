@@ -75,11 +75,6 @@ components:
           - type: string
           - type: 'null'
           title: Title
-      required:
-      - title
-      - role
-      - href
-      - parameters
       title: AdditionalParameters
       type: object
     Bbox:
@@ -96,7 +91,6 @@ components:
           default: http://www.opengis.net/def/crs/OGC/1.3/CRS84
       required:
       - bbox
-      - crs
       title: Bbox
       type: object
     ConfClasses:
@@ -108,7 +102,7 @@ components:
           type: array
         links:
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
       required:
@@ -176,13 +170,6 @@ components:
           - type: 'null'
           title: Title
       required:
-      - title
-      - description
-      - keywords
-      - metadata
-      - additionalParameters
-      - minOccurs
-      - maxOccurs
       - schema
       title: InputDescription
       type: object
@@ -206,12 +193,12 @@ components:
       properties:
         jobs:
           items:
-            $ref: '#/components/schemas/StatusInfo-Output'
+            $ref: '#/components/schemas/StatusInfo'
           title: Jobs
           type: array
         links:
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
       required:
@@ -229,7 +216,7 @@ components:
           title: Description
         links:
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         title:
@@ -239,12 +226,10 @@ components:
           example: Example processing server
           title: Title
       required:
-      - title
-      - description
       - links
       title: LandingPage
       type: object
-    Link-Input:
+    Link:
       properties:
         href:
           format: uri
@@ -271,37 +256,6 @@ components:
       - href
       - rel
       - type
-      title: Link
-      type: object
-    Link-Output:
-      properties:
-        href:
-          format: uri
-          minLength: 1
-          title: Href
-          type: string
-        hreflang:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Hreflang
-        rel:
-          title: Rel
-          type: string
-        title:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Title
-        type:
-          title: Type
-          type: string
-      required:
-      - href
-      - rel
-      - type
-      - hreflang
-      - title
       title: Link
       type: object
     MaxOccur:
@@ -325,10 +279,6 @@ components:
           - type: string
           - type: 'null'
           title: Title
-      required:
-      - title
-      - role
-      - href
       title: Metadata
       type: object
     OutputDescription:
@@ -364,11 +314,6 @@ components:
           - type: 'null'
           title: Title
       required:
-      - title
-      - description
-      - keywords
-      - metadata
-      - additionalParameters
       - schema
       title: OutputDescription
       type: object
@@ -387,7 +332,7 @@ components:
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         processID:
@@ -397,14 +342,13 @@ components:
       - id
       - processID
       - invalidAfter
-      - links
       title: PayloadCacheEntry
       type: object
     PayloadCacheList:
       properties:
         links:
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         payloads:
@@ -474,7 +418,7 @@ components:
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         metadata:
@@ -507,28 +451,16 @@ components:
           title: Version
           type: string
       required:
-      - title
-      - description
-      - keywords
-      - metadata
-      - additionalParameters
       - id
       - version
       - handlerType
-      - jobControlOptions
-      - outputTransmission
-      - links
-      - inputs
-      - outputs
-      - cacheKeyHashIncludes
-      - cacheKeyHashExcludes
       title: Process
       type: object
     ProcessList:
       properties:
         links:
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         processes:
@@ -577,7 +509,7 @@ components:
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link-Output'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         metadata:
@@ -603,17 +535,9 @@ components:
           title: Version
           type: string
       required:
-      - title
-      - description
-      - keywords
-      - metadata
-      - additionalParameters
       - id
       - version
       - handlerType
-      - jobControlOptions
-      - outputTransmission
-      - links
       title: ProcessSummary
       type: object
     QualifiedInputValue:
@@ -637,9 +561,6 @@ components:
         value:
           $ref: '#/components/schemas/RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____dict_str__Any___'
       required:
-      - mediaType
-      - encoding
-      - schema
       - value
       title: QualifiedInputValue
       type: object
@@ -657,7 +578,7 @@ components:
       anyOf:
       - $ref: '#/components/schemas/RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox__'
       - $ref: '#/components/schemas/QualifiedInputValue'
-      - $ref: '#/components/schemas/Link-Output'
+      - $ref: '#/components/schemas/Link'
       title: RootModel[Union[RootModel[Union[str, float, int, bool, list[str], RootModel[str],
         Bbox]], QualifiedInputValue, Link]]
     RootModel_Union_RootModel_Union_str__float__int__bool__list_str___RootModel_str___Bbox____dict_str__Any___:
@@ -699,7 +620,7 @@ components:
       - dismissed
       title: StatusCode
       type: string
-    StatusInfo-Input:
+    StatusInfo:
       properties:
         created:
           anyOf:
@@ -720,7 +641,7 @@ components:
         links:
           default: []
           items:
-            $ref: '#/components/schemas/Link-Input'
+            $ref: '#/components/schemas/Link'
           title: Links
           type: array
         message:
@@ -752,67 +673,6 @@ components:
       - type
       - jobID
       - status
-      title: StatusInfo
-      type: object
-    StatusInfo-Output:
-      properties:
-        created:
-          anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-          title: Created
-        finished:
-          anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-          title: Finished
-        jobID:
-          format: uuid
-          title: Jobid
-          type: string
-        links:
-          default: []
-          items:
-            $ref: '#/components/schemas/Link-Output'
-          title: Links
-          type: array
-        message:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Message
-        processID:
-          title: Processid
-          type: string
-        started:
-          anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-          title: Started
-        status:
-          $ref: '#/components/schemas/StatusCode'
-        type:
-          $ref: '#/components/schemas/Type'
-        updated:
-          anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-          title: Updated
-      required:
-      - processID
-      - type
-      - jobID
-      - status
-      - message
-      - created
-      - started
-      - finished
-      - updated
-      - links
       title: StatusInfo
       type: object
     SwoopStatusCode:
@@ -1205,7 +1065,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusInfo-Output'
+                $ref: '#/components/schemas/StatusInfo'
           description: Successful Response
         '404':
           content:
@@ -1424,7 +1284,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusInfo-Input'
+                $ref: '#/components/schemas/StatusInfo'
           description: Successful Response
         '303':
           description: See existing job
