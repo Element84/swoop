@@ -29,54 +29,6 @@ components:
       - detail
       title: APIException
       type: object
-    AdditionalParameter:
-      properties:
-        name:
-          title: Name
-          type: string
-        value:
-          items:
-            anyOf:
-            - type: string
-            - type: number
-            - type: integer
-            - items:
-                type: object
-              type: array
-            - type: object
-          title: Value
-          type: array
-      required:
-      - name
-      - value
-      title: AdditionalParameter
-      type: object
-    AdditionalParameters:
-      properties:
-        href:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Href
-        parameters:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/AdditionalParameter'
-            type: array
-          - type: 'null'
-          title: Parameters
-        role:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Role
-        title:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Title
-      title: AdditionalParameters
-      type: object
     Bbox:
       properties:
         bbox:
@@ -127,10 +79,6 @@ components:
       type: object
     InputDescription:
       properties:
-        additionalParameters:
-          anyOf:
-          - $ref: '#/components/schemas/AdditionalParameters'
-          - type: 'null'
         description:
           anyOf:
           - type: string
@@ -283,10 +231,6 @@ components:
       type: object
     OutputDescription:
       properties:
-        additionalParameters:
-          anyOf:
-          - $ref: '#/components/schemas/AdditionalParameters'
-          - type: 'null'
         description:
           anyOf:
           - type: string
@@ -363,10 +307,6 @@ components:
       type: object
     Process:
       properties:
-        additionalParameters:
-          anyOf:
-          - $ref: '#/components/schemas/AdditionalParameters'
-          - type: 'null'
         cacheKeyHashExcludes:
           anyOf:
           - items:
@@ -475,10 +415,6 @@ components:
       type: object
     ProcessSummary:
       properties:
-        additionalParameters:
-          anyOf:
-          - $ref: '#/components/schemas/AdditionalParameters'
-          - type: 'null'
         description:
           anyOf:
           - type: string

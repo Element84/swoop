@@ -74,11 +74,6 @@ class Metadata(BaseModel):
     href: str | None = None
 
 
-class AdditionalParameter(BaseModel):
-    name: str
-    value: list[str | float | int | list[dict[str, Any]] | dict[str, Any]]
-
-
 class Reference(BaseModel, extra="forbid"):
     field_ref: str = Field(..., alias="$ref")
 
@@ -101,16 +96,11 @@ class Output(BaseModel):
     transmissionMode: TransmissionMode = TransmissionMode.value
 
 
-class AdditionalParameters(Metadata):
-    parameters: list[AdditionalParameter] | None = None
-
-
 class DescriptionType(BaseModel):
     title: str | None = None
     description: str | None = None
     keywords: list[str] | None = None
     metadata: list[Metadata] | None = None
-    additionalParameters: AdditionalParameters | None = None
 
 
 InputValueNoObject = RootModel[
