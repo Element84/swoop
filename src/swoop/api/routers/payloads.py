@@ -4,8 +4,11 @@ from typing import Any
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Query, Request, Response
+from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 
+from swoop.api.exceptions import HTTPException
 from swoop.api.models.payloads import Invalid, PayloadCacheEntry, PayloadCacheList
 from swoop.api.models.shared import APIException, Link
 from swoop.api.models.workflows import Payload, Workflows
@@ -156,9 +159,13 @@ async def retrieve_payload_cache_entry_by_payload_input(
     if inputs is None:
         raise HTTPException(status_code=422, detail="inputs required")
 
-    payload = inputs.get("payload", {}).get("value")
+    payload = inputs.get("payload", {}).get("value", {})
 
-    validated = Payload(**payload)
+    try:
+        validated = Payload(**payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=jsonable_encoder(e.errors()))
+
     workflow_name = validated.current_process_definition().workflow
 
     workflows: Workflows = request.app.state.workflows
