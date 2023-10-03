@@ -13,8 +13,6 @@ FROM python:3.11-slim-bookworm
 
 ENV SWOOP_CONFIG_FILE=swoop-config.yml
 
-RUN env
-
 COPY --from=APP /opt/swoop/api/swoop-api-venv /opt/swoop/api/swoop-api-venv
 COPY --from=APP /opt/swoop/api/$SWOOP_CONFIG_FILE /opt/swoop/api/swoop-api-venv
 ENV PATH=/opt/swoop/api/swoop-api-venv/bin:$PATH
