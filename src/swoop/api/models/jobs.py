@@ -10,21 +10,6 @@ from pydantic import BaseModel
 
 from swoop.api.models.shared import Link
 
-status_dict = {
-    "PENDING": "accepted",
-    "QUEUED": "accepted",  # ?
-    "RUNNING": "running",
-    "SUCCESSFUL": "successful",
-    "FAILED": "failed",
-    "CANCELED": "dismissed",
-    "TIMED_OUT": "failed",  # ?
-    "UNKNOWN": "failed",  # ?
-    "BACKOFF": "failed",  # ?
-    "INVALID": "failed",  # ?
-    "RETRIES_EXHAUSTED": "failed",  # ?
-    #'INFO': '?' # ?
-}
-
 
 class SwoopStatusCode(str, Enum):
     pending = "PENDING"
@@ -39,6 +24,25 @@ class SwoopStatusCode(str, Enum):
     invalid = "INVALID"
     retries_exhausted = "RETRIES_EXHAUSTED"
 
+    @classmethod
+    def terminal_states(cls):
+        return (
+            cls.successful,
+            cls.failed,
+            cls.canceled,
+            cls.timed_out,
+            cls.invalid,
+            cls.retries_exhausted,
+        )
+
+    @classmethod
+    def duration_states(cls):
+        return cls.terminal_states() + (cls.running, cls.queued)
+
+    @property
+    def is_terminal(self):
+        return self in self.terminal_states()
+
 
 class StatusCode(str, Enum):
     accepted = "accepted"
@@ -46,6 +50,36 @@ class StatusCode(str, Enum):
     successful = "successful"
     failed = "failed"
     dismissed = "dismissed"
+
+    @classmethod
+    def from_swoop_status(cls, swoop_status: SwoopStatusCode):
+        status_dict = {
+            SwoopStatusCode.pending: cls.accepted,
+            SwoopStatusCode.queued: cls.accepted,
+            SwoopStatusCode.running: cls.running,
+            SwoopStatusCode.successful: cls.successful,
+            SwoopStatusCode.failed: cls.failed,
+            SwoopStatusCode.canceled: cls.dismissed,
+            SwoopStatusCode.timed_out: cls.failed,
+            SwoopStatusCode.unknown: cls.failed,
+            SwoopStatusCode.backoff: cls.failed,
+            SwoopStatusCode.invalid: cls.failed,
+            SwoopStatusCode.retries_exhausted: cls.failed,
+        }
+
+        return status_dict[swoop_status]
+
+    @classmethod
+    def terminal_states(cls):
+        return (
+            cls.successful,
+            cls.failed,
+            cls.dismissed,
+        )
+
+    @property
+    def is_terminal(self):
+        return self in self.terminal_states()
 
 
 class Type(str, Enum):
@@ -128,19 +162,18 @@ class StatusInfo(BaseModel):
     def from_action_record(
         cls, record: Record, request: Request | None = None
     ) -> StatusInfo:
-        status = status_dict[record["status"]]
-        is_terminal = status in ["successful", "failed", "dismissed"]
+        status = StatusCode.from_swoop_status(record["status"])
         return cls(
             processID=record["action_name"],
             type=Type("process"),
             jobID=str(record["action_uuid"]),
-            status=StatusCode(status),
+            status=status,
             created=record["created_at"],
             updated=record["last_update"],
             request=request,
             payload_uuid=record["payload_uuid"],
             started=record["started_at"],
-            finished=record["last_update"] if is_terminal else None,
+            finished=record["last_update"] if status.is_terminal else None,
         )
 
 

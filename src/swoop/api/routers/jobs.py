@@ -9,13 +9,7 @@ from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import JSONResponse
 
 from swoop.api.exceptions import HTTPException
-from swoop.api.models.jobs import (
-    JobList,
-    StatusCode,
-    StatusInfo,
-    SwoopStatusCode,
-    status_dict,
-)
+from swoop.api.models.jobs import JobList, StatusCode, StatusInfo, SwoopStatusCode
 from swoop.api.models.shared import APIException, Link, Results
 from swoop.api.models.workflows import Payload
 from swoop.api.rfc3339 import rfc3339_str_to_datetime, str_to_interval
@@ -77,7 +71,9 @@ async def list_workflow_executions(
 
     if status is not None:
         statuses = [
-            i for i in status_dict if status_dict[i] in [s.value for s in status]
+            s.value
+            for s in SwoopStatusCode
+            if StatusCode.from_swoop_status(s) in status
         ]
     else:
         statuses = None
@@ -87,25 +83,17 @@ async def list_workflow_executions(
     else:
         swoop_status = None
 
-    duration_status = [
-        i
-        for i in status_dict
-        if status_dict[i] in ["running", "successful", "failed", "dismissed"]
-    ]
-
-    completed_status = [
-        i
-        for i in status_dict
-        if status_dict[i] in ["successful", "failed", "dismissed"]
-    ]
-
     proc_clause = V("a.action_name") == funcs.any(processID)
     type_clause = V("a.handler_type") == funcs.any(types)
     job_clause = V("a.action_uuid") == funcs.any(jobID)
     status_clause = V("t.status") == funcs.any(statuses)
     swoop_status_clause = V("t.status") == funcs.any(swoop_status)
-    duration_status_clause = V("status") == funcs.any(duration_status)
-    completed_status_clause = V("t.status") == funcs.any(completed_status)
+    duration_status_clause = V("status") == funcs.any(
+        [s.value for s in SwoopStatusCode.duration_states()],
+    )
+    completed_status_clause = V("t.status") == funcs.any(
+        [s.value for s in SwoopStatusCode.terminal_states()],
+    )
 
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
@@ -330,7 +318,8 @@ async def get_workflow_execution_result(
         q, p = render(
             """
             SELECT
-                status
+                t.status as status,
+                t.error as error
             FROM swoop.action a
             INNER JOIN swoop.thread t ON t.action_uuid = a.action_uuid
             WHERE
@@ -339,10 +328,26 @@ async def get_workflow_execution_result(
             """,
             job_id=jobID,
         )
-        status = await conn.fetchval(q, *p)
+        record = await conn.fetchrow(q, *p)
 
-    if not status or status != SwoopStatusCode.successful:
+    if not record:
         job_not_found()
+
+    status = SwoopStatusCode(record["status"])
+
+    if not status.is_terminal:
+        raise HTTPException(
+            status_code=404,
+            type="http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready",
+        )
+    # TODO: what about invalid (should be 204?)?
+    # TODO: how to better classify and return errors? Status code? Type?
+    elif not status == SwoopStatusCode.successful:
+        raise HTTPException(
+            status_code=500,
+            type="ExecutionFailure",
+            detail=record["error"],
+        )
 
     # See note above about outputs parameter
     # if outputs is not None and "payload" not in outputs:
