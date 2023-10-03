@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from swoop.api.io import split_endpoint_protocol
+
 from .conftest import inject_io_fixture
 
 inject_io_fixture(
@@ -22,6 +24,18 @@ inject_io_fixture(
 @pytest.fixture
 def single_object():
     return {"process_id": "2595f2da-81a6-423c-84db-935e6791046e", "payload": "test_io"}
+
+
+@pytest.mark.parametrize(
+    "endpoint,expected_secure,expected_endpoint",
+    [
+        ("https://example.com:80", True, "example.com:80"),
+        ("http://example.com", False, "example.com"),
+        ("s3.amazonaws.com", True, "s3.amazonaws.com"),
+    ],
+)
+def test_split_endpoint_protocol(endpoint, expected_secure, expected_endpoint):
+    assert (expected_secure, expected_endpoint) == split_endpoint_protocol(endpoint)
 
 
 def test_hasbucket(test_client, bucket_name):

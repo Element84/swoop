@@ -13,16 +13,23 @@ from minio.error import S3Error
 logger = logging.getLogger(__name__)
 
 
+def split_endpoint_protocol(s3_endpoint: str) -> tuple[bool, str]:
+    secure = True
+
+    if s3_endpoint.startswith("https://"):
+        s3_endpoint = s3_endpoint[8:]
+    elif s3_endpoint.startswith("http://"):
+        s3_endpoint = s3_endpoint[7:]
+        secure = False
+    # else we assume no scheme prefixes the endpoint url and we're secure
+
+    return secure, s3_endpoint
+
+
 class IOClient:
     def __init__(self, bucket_name: str, s3_endpoint: str = "s3.amazonaws.com"):
         """Initialize IO Client."""
-        secure = True
-
-        if s3_endpoint.startswith("https://"):
-            s3_endpoint = s3_endpoint[8:]
-        elif s3_endpoint.startswith("http://"):
-            s3_endpoint = s3_endpoint[7:]
-            secure = False
+        secure, s3_endpoint = split_endpoint_protocol(s3_endpoint)
 
         self.client = Minio(
             s3_endpoint,
