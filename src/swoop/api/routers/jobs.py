@@ -5,7 +5,7 @@ from typing import Annotated
 from uuid import UUID
 
 from buildpg import V, funcs, render
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import JSONResponse
 
 from swoop.api.exceptions import HTTPException
@@ -17,6 +17,7 @@ from swoop.api.models.jobs import (
     status_dict,
 )
 from swoop.api.models.shared import APIException, Link, Results
+from swoop.api.models.workflows import Payload
 from swoop.api.rfc3339 import rfc3339_str_to_datetime, str_to_interval
 
 logger = logging.getLogger(__name__)
@@ -275,21 +276,23 @@ async def get_workflow_execution_details(
             job_id=jobID,
         )
         record = await conn.fetchrow(q, *p)
-        if not record:
-            job_not_found()
 
-        return StatusInfo.from_action_record(record, request)
+    if not record:
+        job_not_found()
+
+    return StatusInfo.from_action_record(record, request)
 
 
 @router.get(
-    "/{jobID}/results",
-    response_model=Results,
+    "/{jobID}/results/payload",
+    response_model=None,
     responses={
+        "200": {"model": Payload},
         "404": {"model": APIException},
         "500": {"model": APIException},
     },
 )
-async def get_workflow_execution_result(
+async def get_workflow_execution_result_payload(
     request: Request,
     jobID,
 ) -> JSONResponse | APIException:
@@ -302,6 +305,63 @@ async def get_workflow_execution_result(
         raise HTTPException(status_code=404)
 
     return JSONResponse(results)
+
+
+@router.get(
+    "/{jobID}/results",
+    response_model=Results,
+    responses={
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+    response_model_exclude_unset=True,
+)
+async def get_workflow_execution_result(
+    request: Request,
+    jobID,
+    # We're supposed to support this outputs query parameter,
+    # but it is rather senseless for our implementation
+    # outputs: Annotated[list[str] | None, Query()] = None,
+) -> Response | Results | APIException:
+    """
+    Retrieves workflow execution output by jobID
+    """
+    async with request.app.state.readpool.acquire() as conn:
+        q, p = render(
+            """
+            SELECT
+                status
+            FROM swoop.action a
+            INNER JOIN swoop.thread t ON t.action_uuid = a.action_uuid
+            WHERE
+                a.action_type = 'workflow'
+                AND a.action_uuid = :job_id::uuid
+            """,
+            job_id=jobID,
+        )
+        status = await conn.fetchval(q, *p)
+
+    if not status or status != SwoopStatusCode.successful:
+        job_not_found()
+
+    # See note above about outputs parameter
+    # if outputs is not None and "payload" not in outputs:
+    #    return Response(status_code=204)
+
+    # Per spec, we're supposed to support prefer header to conditionally include payload contents
+    # in response, but we can choose to ignore that header, so we already return payload by reference
+    return Results(
+        **{
+            "payload": Link(
+                href=str(
+                    request.url_for(
+                        "get_workflow_execution_result_payload", jobID=jobID
+                    )
+                ),
+                type="application/json",
+            ),
+        }
+    )
 
 
 @router.get(

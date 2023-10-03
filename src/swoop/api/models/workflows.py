@@ -29,15 +29,9 @@ from swoop.api.models.shared import (
     Output,
     Reference,
     Schema,
-    TransmissionMode,
 )
 from swoop.cache.types import JSONFilter
 from swoop.cache.uuid import generate_payload_uuid
-
-
-class Response(str, Enum):
-    # raw = "raw"
-    document = "document"
 
 
 class Handler(BaseModel, extra="allow"):
@@ -227,8 +221,6 @@ class Payload(BaseModel):
 
 
 class Execute(BaseModel):
-    # TODO: Response isn't really to be supported, all results are json
-    response: Literal["document"] = "document"
     # subscriber: Subscriber | None = None
     inputs: dict[str, InlineOrRefData | list[InlineOrRefData]] | None = None
     outputs: dict[str, Output] | None = None
@@ -250,7 +242,6 @@ class ProcessSummary(DescriptionType):
     jobControlOptions: list[JobControlOptions] | None = [
         JobControlOptions("async-execute")
     ]
-    outputTransmission: list[TransmissionMode] | None = None
     description: str | None = None
     links: list[Link] = []
 
