@@ -8,7 +8,7 @@ from jsonschema import Draft202012Validator
 from pydantic import AnyUrl, BaseModel, Field, PrivateAttr, RootModel, model_validator
 
 
-class APIException(BaseModel, extra="allow"):
+class APIException(BaseModel):
     status: int
     detail: str
     type: str | None = None

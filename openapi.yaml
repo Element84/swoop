@@ -1,7 +1,6 @@
 components:
   schemas:
     APIException:
-      additionalProperties: true
       properties:
         detail:
           title: Detail
