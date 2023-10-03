@@ -495,6 +495,15 @@ async def test_post_valid_id_valid_payload(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_post_no_inputs(test_client: TestClient) -> None:
+    response: Response = test_client.post(
+        "/processes/mirror/execution",
+        content="{}",
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_post_valid_id_invalid_payload(test_client: TestClient) -> None:
     response: Response = test_client.post(
         "/processes/mirror/execution",
