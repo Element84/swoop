@@ -473,7 +473,7 @@ async def test_get_job_payload(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_get_job_payload_404(test_client: TestClient):
     response = test_client.get(
-        "/jobs/00000000-1111-2222-3333-444444444444/payload",
+        "/jobs/00000000-1111-2222-3333-444444444444/inputs",
     )
     assert response.status_code == 404
 
