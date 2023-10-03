@@ -208,6 +208,8 @@ class Payload(BaseModel):
     features: list[Any] = []
     process: ProcessArray
 
+    # If we could model process using prefixItems and additionalItems like
+    # in jsonschema we could better represent our payload model without this
     @field_validator("process")
     def first_item_cannot_be_list(cls, v):
         if not isinstance(v[0], ProcessDefinition):
