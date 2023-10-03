@@ -271,49 +271,7 @@ async def get_workflow_execution_details(
     return StatusInfo.from_action_record(record, request)
 
 
-@router.get(
-    "/{jobID}/results/payload",
-    response_model=None,
-    responses={
-        "200": {"model": Payload},
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-)
-async def get_workflow_execution_result_payload(
-    request: Request,
-    jobID,
-) -> JSONResponse | APIException:
-    """
-    Retrieves workflow execution output payload by jobID
-    """
-    results = request.app.state.io.get_object(f"/executions/{jobID}/output.json")
-
-    if not results:
-        raise HTTPException(status_code=404)
-
-    return JSONResponse(results)
-
-
-@router.get(
-    "/{jobID}/results",
-    response_model=Results,
-    responses={
-        "404": {"model": APIException},
-        "500": {"model": APIException},
-    },
-    response_model_exclude_unset=True,
-)
-async def get_workflow_execution_result(
-    request: Request,
-    jobID,
-    # We're supposed to support this outputs query parameter,
-    # but it is rather senseless for our implementation
-    # outputs: Annotated[list[str] | None, Query()] = None,
-) -> Response | Results | APIException:
-    """
-    Retrieves workflow execution output by jobID
-    """
+async def should_have_job_results(request: Request, jobID: UUID) -> None:
     async with request.app.state.readpool.acquire() as conn:
         q, p = render(
             """
@@ -349,12 +307,60 @@ async def get_workflow_execution_result(
             detail=record["error"],
         )
 
+
+@router.get(
+    "/{jobID}/results/payload",
+    response_model=None,
+    responses={
+        "200": {"model": Payload},
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+)
+async def get_workflow_execution_result_payload(
+    request: Request,
+    jobID: UUID,
+) -> JSONResponse | APIException:
+    """
+    Retrieves workflow execution output payload by jobID
+    """
+    await should_have_job_results(request, jobID)
+    results = request.app.state.io.get_object(f"/executions/{jobID}/output.json")
+
+    if not results:
+        raise HTTPException(status_code=404)
+
+    return JSONResponse(results)
+
+
+@router.get(
+    "/{jobID}/results",
+    response_model=Results,
+    responses={
+        "404": {"model": APIException},
+        "500": {"model": APIException},
+    },
+    response_model_exclude_unset=True,
+)
+async def get_workflow_execution_result(
+    request: Request,
+    jobID,
+    # We're supposed to support this outputs query parameter,
+    # but it is rather senseless for our implementation
+    # outputs: Annotated[list[str] | None, Query()] = None,
+) -> Response | Results | APIException:
+    """
+    Retrieves workflow execution output by jobID
+    """
+    await should_have_job_results(request, jobID)
+
     # See note above about outputs parameter
     # if outputs is not None and "payload" not in outputs:
     #    return Response(status_code=204)
 
-    # Per spec, we're supposed to support prefer header to conditionally include payload contents
-    # in response, but we can choose to ignore that header, so we already return payload by reference
+    # Per the spec, we're supposed to support PREFER header to conditionally
+    # include payload contents in response, but we can choose to ignore that
+    # header so we simply always return the payload by reference
     return Results(
         **{
             "payload": Link(
