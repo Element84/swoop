@@ -415,15 +415,45 @@ async def test_get_workflow_execution_results(test_client: TestClient):
     )
     assert response.status_code == 200
     assert response.json() == {
-        "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
-        "payload": "test_output",
+        "payload": {
+            "href": "http://testserver/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/results/payload",
+            "type": "application/json",
+        },
     }
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_execution_results_in_progress(test_client: TestClient):
+    response = test_client.get(
+        "/jobs/0187c88d-a9e0-757e-aa36-2fbb6c834cb5/results",
+    )
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_get_workflow_execution_results_404(test_client: TestClient):
     response = test_client.get(
         "/jobs/00000000-1111-2222-3333-444444444444/results",
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_execution_results_payload(test_client: TestClient):
+    response = test_client.get(
+        "/jobs/0187c88d-a9e0-788c-adcb-c0b951f8be91/results/payload",
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "process_id": "0187c88d-a9e0-788c-adcb-c0b951f8be91",
+        "payload": "test_output",
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_execution_results_payload_404(test_client: TestClient):
+    response = test_client.get(
+        "/jobs/00000000-1111-2222-3333-444444444444/results/payload",
     )
     assert response.status_code == 404
 

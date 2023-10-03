@@ -18,8 +18,8 @@ class APIException(BaseModel, extra="allow"):
 
 class Link(BaseModel):
     href: AnyUrl
-    rel: str
-    type: str
+    rel: str | None = None
+    type: str | None = None
     hreflang: str | None = None
     title: str | None = None
 
@@ -57,11 +57,6 @@ class Link(BaseModel):
         return cls(**attrs)
 
 
-class TransmissionMode(str, Enum):
-    value = "value"
-    reference = "reference"
-
-
 class Format(BaseModel):
     mediaType: str | None = None
     encoding: str | None = None
@@ -93,7 +88,6 @@ class Bbox(BaseModel):
 
 class Output(BaseModel):
     format: Format | None = None
-    transmissionMode: TransmissionMode = TransmissionMode.value
 
 
 class DescriptionType(BaseModel):

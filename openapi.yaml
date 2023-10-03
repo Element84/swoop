@@ -190,20 +190,22 @@ components:
           - type: 'null'
           title: Hreflang
         rel:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Rel
-          type: string
         title:
           anyOf:
           - type: string
           - type: 'null'
           title: Title
         type:
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Type
-          type: string
       required:
       - href
-      - rel
-      - type
       title: Link
       type: object
     MaxOccur:
@@ -260,6 +262,31 @@ components:
       required:
       - schema
       title: OutputDescription
+      type: object
+    Payload:
+      properties:
+        features:
+          default: []
+          items: {}
+          title: Features
+          type: array
+        process:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ProcessDefinition'
+            - items:
+                $ref: '#/components/schemas/ProcessDefinition'
+              type: array
+          minItems: 1
+          title: Process
+          type: array
+        type:
+          default: FeatureCollection
+          title: Type
+          type: string
+      required:
+      - process
+      title: Payload
       type: object
     PayloadCacheEntry:
       properties:
@@ -368,13 +395,6 @@ components:
             type: array
           - type: 'null'
           title: Metadata
-        outputTransmission:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/TransmissionMode'
-            type: array
-          - type: 'null'
-          title: Outputtransmission
         outputs:
           anyOf:
           - additionalProperties:
@@ -395,6 +415,28 @@ components:
       - version
       - handlerType
       title: Process
+      type: object
+    ProcessDefinition:
+      additionalProperties: true
+      properties:
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        tasks:
+          default: {}
+          title: Tasks
+          type: object
+        upload_options:
+          $ref: '#/components/schemas/UploadOptions'
+        workflow:
+          title: Workflow
+          type: string
+      required:
+      - upload_options
+      - workflow
+      title: ProcessDefinition
       type: object
     ProcessList:
       properties:
@@ -455,13 +497,6 @@ components:
             type: array
           - type: 'null'
           title: Metadata
-        outputTransmission:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/TransmissionMode'
-            type: array
-          - type: 'null'
-          title: Outputtransmission
         title:
           anyOf:
           - type: string
@@ -626,16 +661,24 @@ components:
       - RETRIES_EXHAUSTED
       title: SwoopStatusCode
       type: string
-    TransmissionMode:
-      enum:
-      - value
-      - reference
-      title: TransmissionMode
-      type: string
     Type:
       const: process
       title: Type
       type: string
+    UploadOptions:
+      additionalProperties: true
+      properties:
+        collections:
+          title: Collections
+          type: object
+        path_template:
+          title: Path Template
+          type: string
+      required:
+      - path_template
+      - collections
+      title: UploadOptions
+      type: object
     ValidationError:
       properties:
         loc:
@@ -1066,7 +1109,7 @@ paths:
       - Jobs
   /jobs/{jobID}/results:
     get:
-      description: Retrieves workflow execution output payload by jobID
+      description: Retrieves workflow execution output by jobID
       operationId: get_workflow_execution_result_jobs__jobID__results_get
       parameters:
       - in: path
@@ -1100,6 +1143,44 @@ paths:
                 $ref: '#/components/schemas/APIException'
           description: Internal Server Error
       summary: Get Workflow Execution Result
+      tags:
+      - Jobs
+  /jobs/{jobID}/results/payload:
+    get:
+      description: Retrieves workflow execution output payload by jobID
+      operationId: get_workflow_execution_result_payload_jobs__jobID__results_payload_get
+      parameters:
+      - in: path
+        name: jobID
+        required: true
+        schema:
+          title: Jobid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payload'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIException'
+          description: Internal Server Error
+      summary: Get Workflow Execution Result Payload
       tags:
       - Jobs
   /processes:
