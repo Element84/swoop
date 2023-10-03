@@ -44,7 +44,7 @@ a_payload_details["links"].extend(
     ]
 )
 
-payload_input_invalid = {
+payload_input_unknown = {
     "inputs": {
         "payload": {
             "value": {
@@ -659,11 +659,6 @@ def all_payloads(request_endpoint: str):
     }
 
 
-no_payload_id_exception = {
-    "detail": "No payload that matches payload uuid found",
-}
-
-
 # Tests for GET/payloads endpoint
 
 
@@ -711,15 +706,36 @@ async def test_get_payloadid_match(test_client: TestClient):
 @pytest.mark.asyncio
 async def test_get_payloadid_no_match(test_client: TestClient):
     response = test_client.get("/cache/d5d64165-82df-5836-b78e-af4daee55d38")
-    assert response.json() == no_payload_id_exception
     assert response.status_code == 404
+    assert response.json() == {
+        "detail": "No payload that matches payload uuid found",
+        "status": 404,
+    }
 
 
 @pytest.mark.asyncio
-async def test_retrieve_invalid_payload_cache_details(test_client: TestClient):
+async def test_retrieve_invalid_payload_cache_details1(test_client: TestClient):
     response = test_client.post(
         "/cache/",
-        content=json.dumps(payload_input_invalid),
+        content="{}",
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_retrieve_invalid_payload_cache_details2(test_client: TestClient):
+    response = test_client.post(
+        "/cache/",
+        content=json.dumps({"inputs": {}}),
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_retrieve_unknown_payload_cache_details(test_client: TestClient):
+    response = test_client.post(
+        "/cache/",
+        content=json.dumps(payload_input_unknown),
     )
     assert response.status_code == 404
 
