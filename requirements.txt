@@ -45,7 +45,7 @@ swoop-db==7.0.0
     # via swoop (pyproject.toml)
 typing-extensions==4.6.2
     # via pydantic
-urllib3==2.0.2
+urllib3==2.0.6
     # via minio
 uvicorn==0.22.0
     # via swoop (pyproject.toml)
