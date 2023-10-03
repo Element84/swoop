@@ -299,7 +299,6 @@ process_payload_valid = {
             },
         },
     },
-    "response": "document",
 }
 
 
@@ -332,7 +331,6 @@ process_payload_cache_key_change = {
             }
         },
     },
-    "response": "document",
 }
 
 

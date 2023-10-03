@@ -73,7 +73,6 @@ payload_input_unknown = {
             },
         },
     },
-    "response": "document",
 }
 
 payload_input_missing = {
@@ -105,7 +104,6 @@ payload_input_missing = {
             },
         },
     },
-    "response": "document",
 }
 
 payload_input_valid = {
@@ -635,7 +633,6 @@ payload_input_valid = {
             },
         },
     },
-    "response": "document",
 }
 
 
