@@ -38,8 +38,8 @@ def test_split_endpoint_protocol(endpoint, expected_secure, expected_endpoint):
     assert (expected_secure, expected_endpoint) == split_endpoint_protocol(endpoint)
 
 
-def test_hasbucket(test_client, bucket_name):
-    assert test_client.app.state.io.bucket_exists(bucket_name) is True
+def test_hasbucket(test_client):
+    assert test_client.app.state.io.bucket_exists() is True
 
 
 def test_add_object(test_client, single_object):
