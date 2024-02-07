@@ -29,7 +29,7 @@ click==8.1.7
     # via uvicorn
 dbami==0.3.0
     # via swoop-db
-fastapi==0.103.2
+fastapi==0.109.1
     # via swoop (pyproject.toml)
 h11==0.14.0
     # via uvicorn
