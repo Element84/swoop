@@ -33,7 +33,7 @@ fastapi==0.103.2
     # via swoop (pyproject.toml)
 h11==0.14.0
     # via uvicorn
-idna==3.4
+idna==3.7
     # via anyio
 iso8601==2.0.0
     # via swoop (pyproject.toml)
