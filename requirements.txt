@@ -23,7 +23,7 @@ buildpg==0.4
     # via
     #   dbami
     #   swoop (pyproject.toml)
-certifi==2023.7.22
+certifi==2024.7.4
     # via minio
 click==8.1.7
     # via uvicorn
