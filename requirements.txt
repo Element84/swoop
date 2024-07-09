@@ -79,3 +79,4 @@ urllib3==2.0.6
     # via minio
 uvicorn==0.23.2
     # via swoop (pyproject.toml)
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
