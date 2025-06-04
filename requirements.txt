@@ -31,7 +31,7 @@ dbami==0.3.0
     # via swoop-db
 fastapi==0.103.2
     # via swoop (pyproject.toml)
-h11==0.14.0
+h11==0.16.0
     # via uvicorn
 idna==3.4
     # via anyio
